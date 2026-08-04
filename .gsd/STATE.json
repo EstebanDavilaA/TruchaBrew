@@ -1,0 +1,19 @@
+{
+  "framework": "GSD-Architect",
+  "version": "1.0.0",
+  "current_state": 0,
+  "active_milestone": null,
+  "active_phase": null,
+  "state_history": [],
+  "gate_approvals": {
+    "intent_locked": false,
+    "roadmap_approved": false,
+    "active_spec_approved": false
+  },
+  "artifacts": {
+    "discovery": ".gsd/DISCOVERY.md",
+    "roadmap": ".gsd/ROADMAP.md",
+    "active_spec": null,
+    "verification_report": null
+  }
+}
