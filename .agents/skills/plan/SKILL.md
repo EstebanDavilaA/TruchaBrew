@@ -8,7 +8,8 @@ description: Use to draft a feature spec for the active milestone/phase before a
 **Rule:** No implementation code until the user has explicitly approved the spec with the exact phrase `SPEC_APPROVED`.
 
 ## What to do
-1. Run `plan_spec` skill for the active milestone/phase.
+0. **First action of a session, always**: if `.gsd/STATE.json` already exists, run the pre-flight integrity check (`.gsd/HARD_RULES.md` rule 10) before anything else — this is a hard block, not a formality.
+1. Run `plan_spec` skill for the active milestone/phase, pulling raw requirements and candidate items from `.gsd/FEATURES.md` and `.gsd/BUGS.md` and setting their status to `IN_PLANNING`.
 2. It drafts `.gsd/active/<milestone>_<phase>_feature_spec.md` (e.g. `M4_P3_feature_spec.md` — prior phase files should have been archived at `/steer`) containing: data schema/contracts, pure logic function signatures, and an acceptance-criteria test matrix (each AC must be specific and testable — "works well" is not an acceptance criterion).
 3. Present the spec and stop with: "Review this feature specification. Reply with SPEC_APPROVED to begin execution."
 

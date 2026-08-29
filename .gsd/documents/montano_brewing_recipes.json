@@ -1,0 +1,292 @@
+{
+  "account": "Montano Brewing Co (Brewfather Premium)",
+  "exportedFrom": "https://web.brewfather.app/tabs/recipes",
+  "exportDate": "2026-08-03",
+  "sharedEquipmentProfile": {
+    "name": "Montano Brewing #1",
+    "batchVolumeL": 28,
+    "boilTimeMin": 60,
+    "preBoilVolumeL": 34.71,
+    "brewhouseEfficiencyPct": 67.4,
+    "mashEfficiencyPct": 69.8,
+    "boilTemperatureC": 94.7
+  },
+  "recipes": [
+    {
+      "name": "Buho Weissbier",
+      "author": "Montano Brewing",
+      "type": "All Grain",
+      "style": { "code": "10A", "name": "Weissbier", "guide": "BJCP 2015" },
+      "stats": { "abvPct": 5.4, "ibu": 13, "colorEBC": 9.3, "ogPoints": 1052, "fgPoints": 1011, "buGu": 0.25, "rbr": 0.25 },
+      "fermentables": [
+        { "name": "Wheat Malt", "brand": "BestMalz", "amountKg": 3.475, "colorEBC": 4.8, "pct": 51.1, "type": "Grain" },
+        { "name": "Pale Ale", "brand": "BestMalz", "amountKg": 1.63, "colorEBC": 6, "pct": 24, "type": "Grain" },
+        { "name": "BEST Vienna", "brand": "BESTMALZ", "amountKg": 1.02, "colorEBC": 8, "pct": 15, "type": "Grain" },
+        { "name": "Oats, Flaked", "brand": null, "amountKg": 0.5, "colorEBC": 2, "pct": 7.4, "type": "Grain" },
+        { "name": "Acidulated", "brand": "BestMalz", "amountKg": 0.18, "colorEBC": 6, "pct": 2.7, "type": "Grain" }
+      ],
+      "fermentablesTotalKg": 6.81,
+      "preBoilGravity": 1045,
+      "hops": [
+        { "name": "Hallertauer Mittelfrueh", "alphaAcidPct": 4.2, "amountG": 40, "time": "60 min", "use": "Boil", "ibu": 11 },
+        { "name": "Hallertauer Mittelfrueh", "alphaAcidPct": 4.2, "amountG": 20, "time": "20 min", "use": "Hopstand @ 90C / Aroma", "ibu": 2.1 }
+      ],
+      "hopsTotalG": 60,
+      "misc": [
+        { "name": "Calcium Chloride (CaCl2)", "type": "Water Agent", "amount": "3.29 g", "use": "Mash" },
+        { "name": "Epsom Salt (MgSO4)", "type": "Water Agent", "amount": "3.09 g", "use": "Mash" },
+        { "name": "Gypsum (CaSO4)", "type": "Water Agent", "amount": "3.34 g", "use": "Mash" },
+        { "name": "Calcium Chloride (CaCl2)", "type": "Water Agent", "amount": "3.41 g", "use": "Sparge" },
+        { "name": "Epsom Salt (MgSO4)", "type": "Water Agent", "amount": "3.21 g", "use": "Sparge" },
+        { "name": "Gypsum (CaSO4)", "type": "Water Agent", "amount": "3.46 g", "use": "Sparge" },
+        { "name": "Whirlfloc", "type": "Fining", "amount": "1 item", "use": "Boil 15 min" }
+      ],
+      "yeast": [ { "brand": "Fermentis", "name": "WB-06 Safbrew Wheat", "attenuationPct": 86, "amount": "2 packets" } ],
+      "mashProfile": {
+        "name": "Montano Brewing Co",
+        "targetTempC": 74.1,
+        "steps": [ { "name": "Mash", "tempC": 67, "timeMin": 60 }, { "name": "Mash-out", "tempC": 77, "timeMin": 5 } ]
+      },
+      "fermentationProfile": {
+        "name": "Ale",
+        "steps": [
+          { "name": "Primary", "tempC": 19 },
+          { "name": "Cold Crash", "tempC": 2 },
+          { "name": "Carbonation", "tempC": 18 },
+          { "name": "Conditioning", "tempC": 4 }
+        ],
+        "carbonationVolRange": "2.9 - 4.5",
+        "targetCO2Vol": 2.4
+      },
+      "finalStats": { "estimatedFG": 1011, "apparentAttenuationPct": 78.1, "abvPct": 5.4, "kcalPer100ml": 202, "carbsGPer100ml": 4.6 },
+      "water": { "mashWaterL": 20.42, "spargeWaterL": 21.1, "spargeTempC": 77, "totalWaterL": 41.52, "mashVolumeL": 24.98 },
+      "created": "2021-02-16",
+      "lastBackup": "2025-07-14"
+    },
+    {
+      "name": "Frontino Porter",
+      "author": "Montano Brewing",
+      "type": "All Grain",
+      "style": { "code": "20A", "name": "American Porter", "guide": "BJCP 2015" },
+      "stats": { "abvPct": 5.3, "ibu": 26, "colorEBC": 71, "ogPoints": 1057, "fgPoints": 1017, "buGu": 0.46, "rbr": 0.43 },
+      "fermentables": [
+        { "name": "Pale Ale", "brand": "BestMalz", "amountKg": 4.82, "colorEBC": 6, "pct": 63.4, "type": "Grain" },
+        { "name": "BEST Biscuit", "brand": "BESTMALZ", "amountKg": 0.765, "colorEBC": 50, "pct": 10.1, "type": "Grain" },
+        { "name": "Caramel Munich I", "brand": "BestMalz", "amountKg": 0.66, "colorEBC": 90, "pct": 8.7, "type": "Grain" },
+        { "name": "Chocolate", "brand": "BestMalz", "amountKg": 0.38, "colorEBC": 900, "pct": 5.0, "type": "Grain" },
+        { "name": "Oats, Flaked", "brand": "Briess", "amountKg": 0.29, "colorEBC": 2.8, "pct": 3.8, "type": "Grain" },
+        { "name": "Wheat Malt", "brand": "BestMalz", "amountKg": 0.29, "colorEBC": 4.8, "pct": 3.8, "type": "Grain" },
+        { "name": "Black Malt", "brand": "BestMalz", "amountKg": 0.25, "colorEBC": 1300, "pct": 3.3, "type": "Grain" },
+        { "name": "Acidulated", "brand": "BestMalz", "amountKg": 0.15, "colorEBC": 6, "pct": 2.0, "type": "Grain" }
+      ],
+      "fermentablesTotalKg": 7.61,
+      "preBoilGravity": 1050,
+      "hops": [
+        { "name": "East Kent Goldings (EKG)", "alphaAcidPct": 4.7, "amountG": 50, "time": "60 min", "use": "Boil", "ibu": 14.6 },
+        { "name": "East Kent Goldings (EKG)", "alphaAcidPct": 4.7, "amountG": 35, "time": "30 min", "use": "Boil", "ibu": 8.5 },
+        { "name": "Fuggles", "alphaAcidPct": 3.8, "amountG": 40, "time": "15 min", "use": "Hopstand @ 90C / Aroma", "ibu": 3 }
+      ],
+      "hopsTotalG": 125,
+      "misc": [ { "name": "Whirlfloc", "type": "Fining", "amount": "1.12 items", "use": "Boil 15 min" } ],
+      "yeast": [ { "brand": "Fermentis", "name": "S-04 SafAle English Ale", "attenuationPct": 75, "amount": "2.2 packets", "cellsBillions": 329, "cellsPerMlPerP": 0.85 } ],
+      "mashProfile": {
+        "name": "Montano Brewing Co",
+        "targetTempC": 74,
+        "steps": [ { "name": "Mash", "tempC": 67, "timeMin": 60 }, { "name": "Mash-out", "tempC": 77, "timeMin": 5 } ]
+      },
+      "fermentationProfile": {
+        "name": "Patrimonio 1W Ales",
+        "steps": [
+          { "name": "Primary", "tempC": 18 },
+          { "name": "Primary", "tempC": 22 },
+          { "name": "Primary", "tempC": 2 }
+        ],
+        "carbonationVolRange": "2.3 - 2.9",
+        "targetCO2Vol": 2.4
+      },
+      "finalStats": { "estimatedFG": 1017, "apparentAttenuationPct": 69.2, "abvPct": 5.3, "kcalPer100ml": 228, "carbsGPer100ml": 6.1 },
+      "water": { "mashWaterL": 22.82, "spargeWaterL": 19.5, "spargeTempC": 77, "totalWaterL": 42.32, "mashVolumeL": 27.92 },
+      "created": "2019-01-01",
+      "lastBackup": "2025-07-14"
+    },
+    {
+      "name": "IPL",
+      "author": "Montano Brewing Co",
+      "type": "All Grain",
+      "style": { "code": "21A", "name": "American IPA", "guide": "BJCP 2021" },
+      "stats": { "abvPct": 5.1, "ibu": 33, "colorEBC": 7.1, "ogPoints": 1046, "fgPoints": 1007, "buGu": 0.72, "rbr": 0.78 },
+      "fermentables": [
+        { "name": "Pilsner", "brand": "Fuglsang", "amountKg": 5.3, "colorEBC": 3.8, "pct": 82.3, "type": "Grain" },
+        { "name": "Chateau Maize Flakes", "brand": "Castle Malting", "amountKg": 0.9, "colorEBC": 3.5, "pct": 14, "type": "Grain" },
+        { "name": "Acidulated", "brand": "BestMalz", "amountKg": 0.24, "colorEBC": 6, "pct": 3.7, "type": "Grain" }
+      ],
+      "fermentablesTotalKg": 6.44,
+      "preBoilGravity": 1040,
+      "hops": [
+        { "name": "Magnum", "alphaAcidPct": 12.5, "amountG": 21, "time": "60 min", "use": "Boil", "ibu": 17.6 },
+        { "name": "Citra", "alphaAcidPct": 14.4, "amountG": 42, "time": "20 min", "use": "Hopstand @ 80C / Aroma", "ibu": 7.6 },
+        { "name": "Simcoe", "alphaAcidPct": 14.2, "amountG": 42, "time": "20 min", "use": "Hopstand @ 80C / Aroma", "ibu": 7.5 },
+        { "name": "Citra", "alphaAcidPct": 14.4, "amountG": 56, "time": "day 17 (approx)", "use": "Dry Hop", "ibu": null },
+        { "name": "Simcoe", "alphaAcidPct": 14.2, "amountG": 56, "time": "day 17 (approx)", "use": "Dry Hop", "ibu": null }
+      ],
+      "hopsTotalG": 217,
+      "misc": [ { "name": "Whirlfloc", "type": "Fining", "amount": "1 item", "use": "Boil 15 min" } ],
+      "yeast": [ { "brand": "Fermentis", "name": "W-34/70 Saflager Lager", "attenuationPct": 84, "amount": "3 packets" } ],
+      "mashProfile": {
+        "name": "High fermentability",
+        "targetTempC": 72.7,
+        "steps": [ { "name": "Mash", "tempC": 65, "timeMin": 75 }, { "name": "Mash-out", "tempC": 77, "timeMin": 10 } ]
+      },
+      "fermentationProfile": {
+        "name": "Lager (Standard)",
+        "steps": [
+          { "name": "Main", "tempC": 12 },
+          { "name": "D-Rest", "tempC": 18 },
+          { "name": "Dryhop", "tempC": 15 },
+          { "name": "Cold Crash", "tempC": 2 }
+        ],
+        "carbonationVolRange": "2.4 - 2.9",
+        "targetCO2Vol": 2.4
+      },
+      "finalStats": { "estimatedFG": 1007, "apparentAttenuationPct": 84.3, "abvPct": 5.1, "kcalPer100ml": 176, "carbsGPer100ml": 3.5 },
+      "water": { "mashWaterL": 19.32, "spargeWaterL": 21.83, "spargeTempC": 77, "totalWaterL": 41.15, "mashVolumeL": 23.63, "sourceProfile": "Reverse Osmosis Water", "targetProfile": "Style - General (Ca 100, HCO3 198)" },
+      "created": "2025-06-19",
+      "lastBackup": "2025-07-07"
+    },
+    {
+      "name": "Mapanare IPA",
+      "author": "Montano Brewing",
+      "type": "All Grain",
+      "style": { "code": "21A", "name": "American IPA", "guide": "BJCP 2015" },
+      "stats": { "abvPct": 6.6, "ibu": 43, "colorEBC": 18.3, "ogPoints": 1065, "fgPoints": 1015, "buGu": 0.66, "rbr": 0.66 },
+      "fermentables": [
+        { "name": "Pale Ale", "brand": "BestMalz", "amountKg": 6.3, "colorEBC": 6, "pct": 73.4, "type": "Grain" },
+        { "name": "Wheat Malt", "brand": "BestMalz", "amountKg": 0.84, "colorEBC": 4.8, "pct": 9.8, "type": "Grain" },
+        { "name": "Caramel Amber", "brand": "BestMalz", "amountKg": 0.63, "colorEBC": 70, "pct": 7.3, "type": "Grain" },
+        { "name": "Oats, Flaked", "brand": null, "amountKg": 0.4, "colorEBC": 2, "pct": 4.7, "type": "Grain" },
+        { "name": "BEST Caramel Aromatic", "brand": "BESTMALZ", "amountKg": 0.21, "colorEBC": 50, "pct": 2.5, "type": "Grain" },
+        { "name": "Acidulated", "brand": "BestMalz", "amountKg": 0.2, "colorEBC": 6, "pct": 2.3, "type": "Grain" }
+      ],
+      "fermentablesTotalKg": 8.58,
+      "preBoilGravity": 1057,
+      "hops": [
+        { "name": "Nugget", "alphaAcidPct": 16.0, "amountG": 35, "time": "60 min", "use": "Boil", "ibu": 32.3 },
+        { "name": "Mandarina Bavaria", "alphaAcidPct": 6.7, "amountG": 14, "time": "20 min", "use": "Boil", "ibu": 3.5 },
+        { "name": "Amarillo", "alphaAcidPct": 9.1, "amountG": 28, "time": "5 min", "use": "Boil", "ibu": 4.9 },
+        { "name": "Amarillo", "alphaAcidPct": 9.2, "amountG": 28, "time": "20 min", "use": "Hopstand @ 80C / Aroma", "ibu": 2.7 },
+        { "name": "Amarillo", "alphaAcidPct": 9.1, "amountG": 35, "time": "day 3", "use": "Dry Hop", "ibu": null },
+        { "name": "Cascade", "alphaAcidPct": 5.6, "amountG": 35, "time": "day 3", "use": "Dry Hop", "ibu": null }
+      ],
+      "hopsTotalG": 175,
+      "misc": [
+        { "name": "Calcium Chloride (CaCl2)", "type": "Water Agent", "amount": "4.09 g", "use": "Mash" },
+        { "name": "Epsom Salt (MgSO4)", "type": "Water Agent", "amount": "3.86 g", "use": "Mash" },
+        { "name": "Gypsum (CaSO4)", "type": "Water Agent", "amount": "4.09 g", "use": "Mash" },
+        { "name": "Calcium Chloride (CaCl2)", "type": "Water Agent", "amount": "2.91 g", "use": "Sparge" },
+        { "name": "Epsom Salt (MgSO4)", "type": "Water Agent", "amount": "2.74 g", "use": "Sparge" },
+        { "name": "Gypsum (CaSO4)", "type": "Water Agent", "amount": "2.91 g", "use": "Sparge" }
+      ],
+      "yeast": [ { "brand": "Fermentis", "name": "US-05 Safale American", "attenuationPct": 81, "amount": "1.7 packets" } ],
+      "mashProfile": {
+        "name": "Montano Brewing Co",
+        "targetTempC": 74.6,
+        "steps": [ { "name": "Mash", "tempC": 67, "timeMin": 60 }, { "name": "Mash-out", "tempC": 77, "timeMin": 5 } ]
+      },
+      "fermentationProfile": {
+        "name": "Ale",
+        "steps": [ { "name": "Primary", "tempC": 18 } ],
+        "carbonationVolRange": "2.4 - 2.9",
+        "targetCO2Vol": 2.4
+      },
+      "finalStats": { "estimatedFG": 1015, "apparentAttenuationPct": 75.9, "abvPct": 6.6, "kcalPer100ml": 261, "carbsGPer100ml": null },
+      "water": { "mashWaterL": 25.74, "spargeWaterL": 17.55, "spargeTempC": 77, "totalWaterL": 43.29, "mashVolumeL": 31.49, "targetProfile": "Style - General (HCO3 155)" },
+      "created": "2019-01-02",
+      "lastBackup": "2025-07-14"
+    },
+    {
+      "name": "Navidad Red Ale",
+      "author": "Montano Brewing Co",
+      "type": "All Grain",
+      "style": { "code": "15A", "name": "Irish Red Ale", "guide": "BJCP 2015" },
+      "stats": { "abvPct": 4.9, "ibu": 22, "colorEBC": 31.5, "ogPoints": 1052, "fgPoints": 1015, "buGu": 0.43, "rbr": 0.40 },
+      "fermentables": [
+        { "name": "Pale Ale", "brand": "BestMalz", "amountKg": 5.38, "colorEBC": 6, "pct": 78.4, "type": "Grain" },
+        { "name": "Caramel Munich III", "brand": "BestMalz", "amountKg": 0.53, "colorEBC": 180, "pct": 7.7, "type": "Grain" },
+        { "name": "Acidulated", "brand": "BestMalz", "amountKg": 0.38, "colorEBC": 6, "pct": 5.5, "type": "Grain" },
+        { "name": "Rye Malt", "brand": "BestMalz", "amountKg": 0.31, "colorEBC": 6.5, "pct": 4.5, "type": "Grain" },
+        { "name": "Oats, Flaked", "brand": null, "amountKg": 0.2, "colorEBC": 2, "pct": 2.9, "type": "Grain" },
+        { "name": "Roasted Barley", "brand": "BestMalz", "amountKg": 0.066, "colorEBC": 1300, "pct": 1.0, "type": "Grain" }
+      ],
+      "fermentablesTotalKg": 6.87,
+      "preBoilGravity": 1045,
+      "hops": [
+        { "name": "Fuggles", "alphaAcidPct": 4.5, "amountG": 30, "time": "60 min", "use": "Boil", "ibu": 8.9 },
+        { "name": "East Kent Goldings (EKG)", "alphaAcidPct": 5.0, "amountG": 25, "time": "30 min", "use": "Boil", "ibu": 7.3 },
+        { "name": "East Kent Goldings (EKG)", "alphaAcidPct": 5.0, "amountG": 25, "time": "15 min", "use": "Boil", "ibu": 6.1 },
+        { "name": "Citra", "alphaAcidPct": 12.0, "amountG": 56, "time": "day 5 / Hopstand 15 min @ 95C", "use": "Dry Hop", "ibu": null }
+      ],
+      "hopsTotalG": 136,
+      "misc": [],
+      "yeast": [ { "brand": "Fermentis", "name": "S-04 SafAle English Ale", "attenuationPct": 75, "amount": "2 packets", "cellsBillions": 239, "cellsPerMlPerP": 0.7 } ],
+      "mashProfile": {
+        "name": "Montano Brewing Co",
+        "targetTempC": 75,
+        "steps": [ { "name": "Mash", "tempC": 67, "timeMin": 60 }, { "name": "Mash-out", "tempC": 77, "timeMin": 5 } ]
+      },
+      "fermentationProfile": {
+        "name": "Ale",
+        "steps": [ { "name": "Primary", "tempC": 20 } ],
+        "carbonationVolRange": "2.4 - 2.8",
+        "targetCO2Vol": 2.4
+      },
+      "finalStats": { "estimatedFG": 1015, "apparentAttenuationPct": 70.2, "abvPct": 4.9, "kcalPer100ml": 206, "carbsGPer100ml": 5.4 },
+      "water": { "mashWaterL": 20.6, "spargeWaterL": 20.98, "spargeTempC": 77, "totalWaterL": 41.58, "mashVolumeL": 25.2 },
+      "created": "2021-11-22",
+      "lastBackup": "2021-11-27",
+      "notes": "Brewfather flagged this recipe's calc engine as outdated (v1.2 vs current v2); numbers may shift slightly if updated in-app."
+    },
+    {
+      "name": "Tangara APA",
+      "author": "Montano Brewing",
+      "type": "All Grain",
+      "style": { "code": "18B", "name": "American Pale Ale", "guide": "BJCP" },
+      "stats": { "abvPct": 5.5, "ibu": 37, "colorEBC": 15, "ogPoints": 1053, "fgPoints": 1011, "buGu": 0.71, "rbr": 0.72, "phMash": 5.37 },
+      "fermentables": [
+        { "name": "Pale Ale", "brand": "BestMalz", "amountKg": 5.71, "colorEBC": 6, "pct": 82.3, "type": "Grain" },
+        { "name": "BEST Vienna", "brand": "BESTMALZ", "amountKg": 0.54, "colorEBC": 8, "pct": 7.8, "type": "Grain" },
+        { "name": "Caramel Amber", "brand": "BestMalz", "amountKg": 0.49, "colorEBC": 70, "pct": 7.1, "type": "Grain" },
+        { "name": "Acidulated", "brand": "BestMalz", "amountKg": 0.2, "colorEBC": 6, "pct": 2.9, "type": "Grain" }
+      ],
+      "fermentablesTotalKg": 6.94,
+      "preBoilGravity": 1046,
+      "hops": [
+        { "name": "Summit", "alphaAcidPct": 15.5, "amountG": 15, "time": "60 min", "use": "Boil", "ibu": 15.2 },
+        { "name": "Sabro", "alphaAcidPct": 14.3, "amountG": 21.7, "time": "45 min", "use": "Boil", "ibu": 19.3 },
+        { "name": "Cascade", "alphaAcidPct": 4.7, "amountG": 20, "time": "15 min", "use": "Hopstand / Aroma", "ibu": 2.8 },
+        { "name": "Cascade", "alphaAcidPct": 4.7, "amountG": 30, "time": "day 3", "use": "Dry Hop", "ibu": null },
+        { "name": "Citra", "alphaAcidPct": 12.0, "amountG": 30, "time": "day 3", "use": "Dry Hop", "ibu": null }
+      ],
+      "hopsTotalG": 116.7,
+      "hopstand": "15 min @ 95C",
+      "misc": [ { "name": "Whirlfloc", "type": "Fining", "amount": "1 item", "use": "Boil 15 min" } ],
+      "yeast": [ { "brand": "Fermentis", "name": "US-05 Safale American", "attenuationPct": 81, "amount": "2 packets" } ],
+      "mashProfile": {
+        "name": "Montano Brewing Co",
+        "targetTempC": 74.1,
+        "steps": [ { "name": "Mash", "tempC": 67, "timeMin": 60 }, { "name": "Mash-out", "tempC": 77, "timeMin": 5 } ]
+      },
+      "fermentationProfile": {
+        "name": "Ale",
+        "steps": [
+          { "name": "Primary", "tempC": 18, "days": 5 },
+          { "name": "Primary", "tempC": 22, "days": 2 },
+          { "name": "Cold Crash", "tempC": 2, "days": 2 },
+          { "name": "Carbonation", "tempC": 18, "days": 12 }
+        ],
+        "carbonationVolRange": "2.3 - 3",
+        "targetCO2Vol": 2.4
+      },
+      "finalStats": { "estimatedFG": 1011, "apparentAttenuationPct": 79.2, "abvPct": 5.5, "kcalPer100ml": 49, "kjPer100ml": 206, "carbsGPer100ml": 4.8 }
+    }
+  ]
+}

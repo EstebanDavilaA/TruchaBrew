@@ -3,6 +3,8 @@ import type { YeastItem } from '../types/brewing';
 import { useCatalog } from '../context/CatalogContext';
 import { Plus, Trash2, FlaskConical } from 'lucide-react';
 import { CARD_CLASS, SECTION_HEADING_CLASS } from './designSystem';
+import { Button, NumberInput, Table, TableHeaderCell, TableCell } from './ui';
+import { PresetPickerModal } from './PresetPickerModal';
 
 interface YeastSectionProps {
   yeasts: YeastItem[];
@@ -10,26 +12,8 @@ interface YeastSectionProps {
 }
 
 export const YeastSection: React.FC<YeastSectionProps> = ({ yeasts, onUpdate }) => {
-  const { catalog, error: catalogError } = useCatalog();
-  const [selectedCatalogId, setSelectedCatalogId] = useState('');
-
-  const handleAddFromCatalog = () => {
-    const catalogItem = catalog.yeasts.find((y) => y.id === selectedCatalogId);
-    if (!catalogItem) return;
-
-    const newItem: YeastItem = {
-      id: 'y-user-' + Date.now(),
-      name: catalogItem.name,
-      laboratory: catalogItem.laboratory,
-      type: catalogItem.type,
-      form: catalogItem.form,
-      attenuationPct: catalogItem.attenuationPct,
-      amountPkg: 1
-    };
-
-    onUpdate([...yeasts, newItem]);
-    setSelectedCatalogId('');
-  };
+  const { error: catalogError } = useCatalog();
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const handleAttenuationChange = (id: string, attenuationPct: number) => {
     onUpdate(yeasts.map((y) => (y.id === id ? { ...y, attenuationPct: Math.max(0, Math.min(100, attenuationPct)) } : y)));
@@ -48,85 +32,107 @@ export const YeastSection: React.FC<YeastSectionProps> = ({ yeasts, onUpdate }) 
       </div>
 
       {/* Yeast Table */}
-      <div className="overflow-x-auto mb-4">
-        <table className="w-full text-left text-sm text-slate-300">
-          <thead className="bg-slate-800/80 text-xs text-slate-400 uppercase border-b border-slate-700">
-            <tr>
-              <th scope="col" className="py-2 px-3">Yeast Name</th>
-              <th scope="col" className="py-2 px-3">Laboratory</th>
-              <th scope="col" className="py-2 px-3">Type</th>
-              <th scope="col" className="py-2 px-3">Form</th>
-              <th scope="col" className="py-2 px-3 text-right">Attenuation %</th>
-              <th scope="col" className="py-2 px-3 text-center">Action</th>
+      <Table>
+        <thead className="bg-slate-800/80 border-b border-slate-700">
+          <tr>
+            <TableHeaderCell>Yeast Name</TableHeaderCell>
+            <TableHeaderCell>Laboratory</TableHeaderCell>
+            <TableHeaderCell>Type</TableHeaderCell>
+            <TableHeaderCell>Form</TableHeaderCell>
+            <TableHeaderCell className="text-right">Attenuation %</TableHeaderCell>
+            <TableHeaderCell className="text-center">Action</TableHeaderCell>
+          </tr>
+        </thead>
+        <tbody>
+          {yeasts.map((yeast) => (
+            <tr key={yeast.id} className="hover:bg-slate-800/40 transition-colors">
+              <TableCell variant="text" className="font-medium">{yeast.name}</TableCell>
+              <TableCell variant="text">{yeast.laboratory}</TableCell>
+              <TableCell variant="text">{yeast.type}</TableCell>
+              <TableCell variant="text">{yeast.form}</TableCell>
+              <TableCell className="text-right">
+                <NumberInput
+                  type="number"
+                  size="sm"
+                  align="right"
+                  width="md"
+                  aria-label={`${yeast.name} attenuation %`}
+                  min="50"
+                  max="98"
+                  value={yeast.attenuationPct}
+                  onChange={(e) => handleAttenuationChange(yeast.id, parseInt(e.target.value, 10) || 75)}
+                />
+              </TableCell>
+              <TableCell variant="text" className="text-center">
+                <Button
+                  variant="icon"
+                  type="button"
+                  onClick={() => handleRemove(yeast.id)}
+                  className="text-slate-400 hover:text-rose-400 p-2"
+                  title="Remove yeast"
+                  aria-label={`Remove ${yeast.name}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TableCell>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            {yeasts.map((yeast) => (
-              <tr key={yeast.id} className="hover:bg-slate-800/40 transition-colors">
-                <td className="py-2.5 px-3 font-medium text-slate-100">{yeast.name}</td>
-                <td className="py-2.5 px-3 text-xs text-slate-400">{yeast.laboratory}</td>
-                <td className="py-2.5 px-3 text-xs text-slate-300">{yeast.type}</td>
-                <td className="py-2.5 px-3 text-xs text-slate-400">{yeast.form}</td>
-                <td className="py-2.5 px-3 text-right">
-                  <input
-                    type="number"
-                    aria-label={`${yeast.name} attenuation %`}
-                    min="50"
-                    max="98"
-                    value={yeast.attenuationPct}
-                    onChange={(e) => handleAttenuationChange(yeast.id, parseInt(e.target.value, 10) || 75)}
-                    className="w-16 text-right bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-100 focus:outline-none focus:border-purple-500 text-xs"
-                  />
-                </td>
-                <td className="py-2.5 px-3 text-center">
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(yeast.id)}
-                    className="text-slate-500 hover:text-rose-400 p-2 transition-colors cursor-pointer"
-                    title="Remove yeast"
-                    aria-label={`Remove ${yeast.name}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {yeasts.length === 0 && (
-              <tr>
-                <td colSpan={6} className="py-4 text-center text-xs text-slate-500 italic">
-                  No yeast added yet. Select a yeast strain below.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          ))}
+          {yeasts.length === 0 && (
+            <tr>
+              <TableCell variant="text" colSpan={6} className="text-center italic">
+                No yeast added yet. Select a yeast strain below.
+              </TableCell>
+            </tr>
+          )}
+        </tbody>
+      </Table>
+
+      {/* Add Yeast Action */}
+      <div className="flex items-center justify-end gap-3 mt-2">
+        {catalogError && <span className="text-xs text-rose-400 italic">Catalog unavailable.</span>}
+        <Button
+          variant="secondary"
+          size="sm"
+          type="button"
+          onClick={() => setIsPickerOpen(true)}
+          disabled={!!catalogError}
+          data-testid="yeast-open-picker-btn"
+        >
+          <Plus className="w-4 h-4" /> Select Yeast from Catalog
+        </Button>
       </div>
 
-      {/* Add Yeast Form */}
-      <div className="flex flex-wrap items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-800">
-        <span className="text-xs text-slate-400 font-medium">Add Yeast:</span>
-        <select
-          value={selectedCatalogId}
-          onChange={(e) => setSelectedCatalogId(e.target.value)}
-          disabled={!!catalogError}
-          className="flex-1 min-w-[220px] bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <option value="">-- Select Yeast Strain --</option>
-          {catalog.yeasts.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name} ({cat.laboratory}) - {cat.attenuationPct}% Attenuation
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleAddFromCatalog}
-          disabled={!selectedCatalogId || !!catalogError}
-          className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-2 rounded flex items-center gap-1 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Select Yeast
-        </button>
-        {catalogError && <span className="text-xs text-rose-400 italic">Catalog unavailable — you can still edit fields above.</span>}
-      </div>
+      <PresetPickerModal
+        category="Yeast"
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onSelectPreset={(name, _category, details) => {
+          const newItem: YeastItem = {
+            id: 'y-user-' + Date.now(),
+            name,
+            laboratory: (details as any).laboratory ?? '',
+            type: (details as any).yeastType ?? 'Ale',
+            form: (details as any).form ?? 'Dry',
+            attenuationPct: (details as any).attenuationPct ?? 75,
+            amountPkg: 1,
+          };
+          onUpdate([...yeasts, newItem]);
+          setIsPickerOpen(false);
+        }}
+        onSelectCustom={() => {
+          const newItem: YeastItem = {
+            id: 'y-user-' + Date.now(),
+            name: 'Custom Yeast',
+            laboratory: '',
+            type: 'Ale',
+            form: 'Dry',
+            attenuationPct: 75,
+            amountPkg: 1,
+          };
+          onUpdate([...yeasts, newItem]);
+          setIsPickerOpen(false);
+        }}
+      />
     </div>
   );
 };

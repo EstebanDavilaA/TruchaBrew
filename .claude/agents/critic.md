@@ -21,6 +21,7 @@ The executor's tests are evidence, not proof. A test suite written by the same a
 6. Separately, run the existing test suite and note whether it passes — but this is one input, not your verdict.
 
 ## Output: `.gsd/archive/CRITIC_REPORT.md`
+**This file is a cumulative log across the entire project's lifetime, not a per-milestone scratch file (`.gsd/HARD_RULES.md` rule 12). Read its current content first, then APPEND a new dated section below whatever's already there. Never truncate, replace, or overwrite existing entries — a tool call that would write the whole file needs the prior content re-included, not discarded.** Write as UTF-8 (rule 14).
 ```
 # CRITIC REPORT: <milestone/phase id>
 

@@ -32,12 +32,17 @@ import { BatchDetail } from './pages/BatchDetail';
 import { MashSection } from './components/MashSection';
 import { SaveBar } from './components/SaveBar';
 import { Sidebar, type NavDestination } from './components/Sidebar';
+import { MobileNav } from './components/MobileNav';
 import { TopBar } from './components/TopBar';
 import { PageContainer } from './components/PageContainer';
+import { Modal } from './components/Modal';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Calculators } from './pages/Calculators';
-import { CARD_CLASS } from './components/designSystem';
+import { CARD_CLASS, MONO_VALUE_CLASS } from './components/designSystem';
+import { Button, NumberInput } from './components/ui';
 import { Beer, Settings, Scale, Bookmark, ArrowLeft, AlertTriangle, Trash2 } from 'lucide-react';
+
+
 
 type View =
   | 'list'
@@ -55,6 +60,8 @@ type View =
 function AppInner() {
   const [view, setView] = useState<View>('list');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   const [equipmentProfiles, setEquipmentProfiles] = useState<EquipmentProfile[]>([]);
   const [equipmentError, setEquipmentError] = useState<string | null>(null);
   const [mashProfiles, setMashProfiles] = useState<MashProfile[]>([]);
@@ -74,6 +81,7 @@ function AppInner() {
   const [recipeDeleteOpen, setRecipeDeleteOpen] = useState(false);
   const [recipeDeleteBusy, setRecipeDeleteBusy] = useState(false);
   const [recipeDeleteError, setRecipeDeleteError] = useState<string | null>(null);
+  const [pendingNavigation, setPendingNavigation] = useState<View | null>(null);
 
   const { config } = useConfig();
   const editor = useRecipeEditor(config);
@@ -84,7 +92,7 @@ function AppInner() {
         setEquipmentProfiles(profiles);
         setEquipmentError(null);
       })
-      .catch((err: unknown) => {
+      .catch((err) => {
         setEquipmentError(err instanceof ApiClientError ? err.message : 'Failed to load equipment profiles.');
       });
   }, []);
@@ -95,8 +103,8 @@ function AppInner() {
         setMashProfiles(profiles);
         setMashProfilesError(null);
       })
-      .catch((err: unknown) => {
-        setMashProfilesError(err instanceof ApiClientError ? err.message : 'Failed to load mash schedules.');
+      .catch((err) => {
+        setMashProfilesError(err instanceof ApiClientError ? err.message : 'Failed to load mash profiles.');
       });
   }, []);
 
@@ -106,8 +114,8 @@ function AppInner() {
         setFermentationProfiles(profiles);
         setFermentationProfilesError(null);
       })
-      .catch((err: unknown) => {
-        setFermentationProfilesError(err instanceof ApiClientError ? err.message : 'Failed to load fermentation schedules.');
+      .catch((err) => {
+        setFermentationProfilesError(err instanceof ApiClientError ? err.message : 'Failed to load fermentation profiles.');
       });
   }, []);
 
@@ -117,7 +125,7 @@ function AppInner() {
         setWaterProfiles(profiles);
         setWaterProfilesError(null);
       })
-      .catch((err: unknown) => {
+      .catch((err) => {
         setWaterProfilesError(err instanceof ApiClientError ? err.message : 'Failed to load water profiles.');
       });
   }, []);
@@ -139,27 +147,28 @@ function AppInner() {
     }
   }, [view, editor.recipe]);
 
-  const confirmLeaveEditorIfDirty = (): boolean => {
-    if (!editor.isDirty) return true;
-    return window.confirm('You have unsaved changes. Leave without saving?');
-  };
-
-  // M13_P1 §3.2 (BUG-013) — the SOLE navigation guard funnel. Attempting to
-  // navigate to ANY destination while `view === 'editor'` immediately
-  // prompts a discard confirmation if the editor is dirty; confirming closes
-  // the editor session (resetting dirty state) before completing the
-  // navigation, and cancelling aborts navigation entirely, remaining on
-  // 'editor'. When `view !== 'editor'`, `confirmLeaveEditorIfDirty` (and
-  // therefore `window.confirm`) is never evaluated — non-editor route
-  // transitions never trigger a phantom prompt (AC-6). This supersedes the
-  // prior per-destination "equipment/mashProfiles/etc. peek without
-  // discarding" exception, which was itself BUG-013.
   const navigateGuarded = (target: View) => {
+    if (view === 'editor' && editor.isDirty) {
+      setPendingNavigation(target);
+      return;
+    }
     if (view === 'editor') {
-      if (!confirmLeaveEditorIfDirty()) return;
       editor.closeEditor();
     }
     setView(target);
+  };
+
+  const handleConfirmDiscard = () => {
+    if (pendingNavigation) {
+      const target = pendingNavigation;
+      setPendingNavigation(null);
+      editor.closeEditor();
+      setView(target);
+    }
+  };
+
+  const handleCancelDiscard = () => {
+    setPendingNavigation(null);
   };
 
   const goToLibrary = () => navigateGuarded('list');
@@ -371,12 +380,14 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           <RecipeLibrary
             onOpen={handleOpen}
             onOpenError={setLibraryError}
             onNew={handleNew}
             canCreate={equipmentProfiles.length > 0}
+            onOpenMobileNav={() => setMobileNavOpen(true)}
             notices={
               <>
                 {libraryError && (
@@ -414,6 +425,7 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           <EquipmentManager
             profiles={equipmentProfiles}
@@ -423,6 +435,7 @@ function AppInner() {
             onCreated={handleEquipmentCreated}
             onUpdated={handleEquipmentUpdated}
             onDeleted={handleEquipmentDeleted}
+            onOpenMobileNav={() => setMobileNavOpen(true)}
           />
         </div>
       </div>
@@ -433,6 +446,7 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           <MashProfileManager
             profiles={mashProfiles}
@@ -442,6 +456,7 @@ function AppInner() {
             onCreated={handleMashProfileCreated}
             onUpdated={handleMashProfileUpdated}
             onDeleted={handleMashProfileDeleted}
+            onOpenMobileNav={() => setMobileNavOpen(true)}
           />
         </div>
       </div>
@@ -452,6 +467,7 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           <FermentationProfileManager
             profiles={fermentationProfiles}
@@ -461,6 +477,7 @@ function AppInner() {
             onCreated={handleFermentationProfileCreated}
             onUpdated={handleFermentationProfileUpdated}
             onDeleted={handleFermentationProfileDeleted}
+            onOpenMobileNav={() => setMobileNavOpen(true)}
           />
         </div>
       </div>
@@ -470,6 +487,7 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           <WaterProfileManager
             profiles={waterProfiles}
@@ -480,6 +498,7 @@ function AppInner() {
             onCreated={handleWaterProfileCreated}
             onUpdated={handleWaterProfileUpdated}
             onDeleted={handleWaterProfileDeleted}
+            onOpenMobileNav={() => setMobileNavOpen(true)}
           />
         </div>
       </div>
@@ -490,8 +509,9 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-          <InventoryManager />
+          <InventoryManager onOpenMobileNav={() => setMobileNavOpen(true)} />
         </div>
       </div>
     );
@@ -501,8 +521,9 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-          <SettingsManager />
+          <SettingsManager onOpenMobileNav={() => setMobileNavOpen(true)} />
         </div>
       </div>
     );
@@ -512,8 +533,9 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-          <Calculators />
+          <Calculators onOpenMobileNav={() => setMobileNavOpen(true)} />
         </div>
       </div>
     );
@@ -523,8 +545,9 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-          <BatchList onViewBatch={handleViewBatch} />
+          <BatchList onViewBatch={handleViewBatch} onOpenMobileNav={() => setMobileNavOpen(true)} />
         </div>
       </div>
     );
@@ -534,12 +557,14 @@ function AppInner() {
     return (
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+        <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           <BatchDetail
             batchId={activeBatchId}
             onBack={goToBatches}
             onDeleted={goToBatches}
             onRebrewed={handleViewBatch}
+            onOpenMobileNav={() => setMobileNavOpen(true)}
           />
         </div>
       </div>
@@ -557,9 +582,11 @@ function AppInner() {
   return (
     <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
       <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
+      <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         <TopBar
           title="Recipe Editor"
+          onOpenMobileNav={() => setMobileNavOpen(true)}
           leading={
             <button
               onClick={goToLibrary}
@@ -572,6 +599,7 @@ function AppInner() {
           }
         >
           {editor.storedId !== null && (
+
             <button
               type="button"
               data-testid="recipe-delete"
@@ -615,6 +643,15 @@ function AppInner() {
         </TopBar>
 
       <ConfirmDialog
+        open={pendingNavigation !== null}
+        title="Discard unsaved changes?"
+        message="You have unsaved changes. Leave without saving?"
+        confirmLabel="Discard"
+        onConfirm={handleConfirmDiscard}
+        onCancel={handleCancelDiscard}
+      />
+
+      <ConfirmDialog
         open={recipeDeleteOpen}
         busy={recipeDeleteBusy}
         title={`Delete "${recipe.name}"?`}
@@ -622,6 +659,7 @@ function AppInner() {
         onConfirm={handleDeleteRecipe}
         onCancel={() => setRecipeDeleteOpen(false)}
       />
+
 
       <PageContainer>
       {recipeDeleteError && (
@@ -641,6 +679,7 @@ function AppInner() {
           <div className="flex-1 min-w-[280px]">
             <input
               type="text"
+              aria-label="Recipe name"
               value={recipe.name}
               onChange={(e) => editor.setRecipe((prev) => ({ ...prev, name: e.target.value }))}
               className="text-2xl font-bold bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-white focus:outline-none w-full py-0.5"
@@ -651,6 +690,7 @@ function AppInner() {
                 <Bookmark className="w-3.5 h-3.5 text-amber-500" />
                 <input
                   type="text"
+                  aria-label="Style name"
                   value={recipe.styleName}
                   onChange={(e) => editor.setRecipe((prev) => ({ ...prev, styleName: e.target.value }))}
                   className="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-slate-300 focus:outline-none"
@@ -662,6 +702,7 @@ function AppInner() {
                 Brewer:{' '}
                 <input
                   type="text"
+                  aria-label="Brewer"
                   value={recipe.author}
                   onChange={(e) => editor.setRecipe((prev) => ({ ...prev, author: e.target.value }))}
                   className="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-slate-200 focus:outline-none"
@@ -670,6 +711,7 @@ function AppInner() {
               </span>
             </div>
           </div>
+
 
           <div className="flex items-center gap-3 bg-slate-800/60 p-3 rounded-lg border border-slate-800">
             <Settings className="w-4 h-4 text-slate-400" />
@@ -755,64 +797,63 @@ function AppInner() {
         />
       </PageContainer>
 
-      {showScaleModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="scale-modal-title"
-            className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl"
-          >
-            <h3 id="scale-modal-title" className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-              <Scale className="w-5 h-5 text-amber-500" /> Scale Recipe Batch Size
-            </h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Enter a new target batch size. A new derived equipment profile is created (or reused) for the target size, and every
-              fermentable, hop and misc amount is rescaled so gravity and IBU stay the same.
-            </p>
+      <Modal
+        isOpen={showScaleModal}
+        onClose={() => setShowScaleModal(false)}
+        titleId="scale-modal-title"
+        maxWidthClass="max-w-md"
+        containerClassName="p-6"
+      >
+        <h3 id="scale-modal-title" className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+          <Scale className="w-5 h-5 text-amber-500" /> Scale Recipe Batch Size
+        </h3>
+        <p className="text-xs text-slate-400 mb-4">
+          Enter a new target batch size. A new derived equipment profile is created (or reused) for the target size, and every
+          fermentable, hop and misc amount is rescaled so gravity and IBU stay the same.
+        </p>
 
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Current Batch Size: <strong className="text-amber-400">{recipe.equipment.batchSizeL} L</strong>
-              </label>
-              <label className="block text-xs font-medium text-slate-300 mt-2 mb-1">
-                Target Batch Size (L)
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  aria-label="Target batch size in liters"
-                  step="1"
-                  min="1"
-                  value={targetScaleL}
-                  onChange={(e) => setTargetScaleL(parseFloat(e.target.value) || 1)}
-                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500 font-semibold"
-                />
-                <span className="text-sm text-slate-400">Liters</span>
-              </div>
-            </div>
-
-            {scaleError && <div className="text-xs text-rose-400 mb-3">{scaleError}</div>}
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-              <button
-                onClick={() => setShowScaleModal(false)}
-                disabled={scaleBusy}
-                className="text-xs text-slate-400 hover:text-slate-200 px-3 py-2 font-medium cursor-pointer disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleScaleRecipe}
-                disabled={scaleBusy}
-                className="bg-amber-600 hover:bg-amber-500 disabled:opacity-60 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-              >
-                {scaleBusy ? 'Scaling…' : 'Scale Recipe'}
-              </button>
-            </div>
-          </div>
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-slate-300 mb-1">
+            Current Batch Size: <strong className={`text-amber-400 ${MONO_VALUE_CLASS}`}>{recipe.equipment.batchSizeL} L</strong>
+          </label>
+          <label className="block text-xs font-medium text-slate-300 mt-2 mb-1">
+            Target Batch Size (L)
+          </label>
+          <NumberInput
+            type="number"
+            aria-label="Target batch size in liters"
+            step="1"
+            min="1"
+            value={targetScaleL}
+            onChange={(e) => setTargetScaleL(parseFloat(e.target.value) || 1)}
+            width="full"
+            addonRight="Liters"
+          />
         </div>
-      )}
+
+        {scaleError && <div className="text-xs text-rose-400 mb-3">{scaleError}</div>}
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => setShowScaleModal(false)}
+            disabled={scaleBusy}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            type="button"
+            onClick={handleScaleRecipe}
+            disabled={scaleBusy}
+          >
+            {scaleBusy ? 'Scaling…' : 'Scale Recipe'}
+          </Button>
+        </div>
+      </Modal>
+
       </div>
     </div>
   );

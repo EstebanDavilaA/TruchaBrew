@@ -14,10 +14,11 @@ Every milestone must produce something a user could look at and use — a vertic
 Horizontal layering is the single most common cause of the exact failure mode this framework exists to prevent: half-built abstractions accumulating with nothing runnable to validate them against, until the project becomes too large to safely change. Vertical slices force validation to happen continuously instead of at the end.
 
 ## Process
-1. Read the input — either answered `.gsd/DISCOVERY.md` questions, or a `map_codebase` audit of existing/prototype code.
-2. Identify the smallest complete slice that delivers the core value first. If a prototype already exists, this is usually Milestone 1 almost as-is — don't re-architect something that's already proven to work.
-3. Sequence subsequent milestones by user-visible capability, not by technical layer. New milestones may deepen (harden) a prior slice, or add a new slice — both are valid, "add a new architectural layer everywhere" is not.
-4. Write `.gsd/ROADMAP.md`:
+1. Read the input — answered `.gsd/DISCOVERY.md` questions, a `map_codebase` audit of existing code, and all candidate entries logged in `.gsd/FEATURES.md` and `.gsd/BUGS.md`.
+2. Identify the smallest complete slice that delivers core value first.
+3. Sequence subsequent milestones by user-visible capability, incorporating logged features (`FEAT-xxx`) and open scope gaps/defects (`BUG-xxx`) into logical milestone slices.
+4. **Update Item Status**: For every feature (`FEAT-xxx` in `.gsd/FEATURES.md`) or bug (`BUG-xxx` in `.gsd/BUGS.md`) assigned to a milestone on `.gsd/ROADMAP.md`, update its status to `SCHEDULED_MILESTONE (Milestone X)`.
+5. Write `.gsd/ROADMAP.md`:
 
 ```
 # ROADMAP: <project name>
@@ -27,17 +28,20 @@ Horizontal layering is the single most common cause of the exact failure mode th
 ### Milestone 1: <short name>
 - User-visible outcome: ...
 - Builds on: none — first slice
+- Estimated phases: 1 (or "1–2, TBD at /plan" if the slice looks large enough it might split)
 - Hardening scope: ...
 - Verification threshold: ...
 
 ### Milestone 2: <short name>
 - User-visible outcome: ...
 - Builds on: Milestone 1
+- Estimated phases: 1
 - Hardening scope: ...
 - Verification threshold: ...
 ```
 
-5. Confirm milestones are genuinely decoupled: changes anticipated in Milestone 3 should not require reopening Milestone 1's slice. If they would, the boundaries are wrong — redraw them.
+6. Confirm milestones are genuinely decoupled: changes anticipated in Milestone 3 should not require reopening Milestone 1's slice. If they would, the boundaries are wrong — redraw them.
+7. **Estimated phases is a first guess, not a promise** — the actual split is often only clear once `/plan` scopes the work. `plan_spec` updates this line as its own understanding sharpens; this field exists so `/steer` can tell the user, at each phase's checkpoint, whether more phases are still expected — never leave it blank.
 
 ## Halt gate
 - Present `.gsd/ROADMAP.md` and stop execution immediately.

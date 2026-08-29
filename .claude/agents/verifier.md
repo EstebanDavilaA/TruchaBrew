@@ -7,6 +7,7 @@ model: haiku
 You are the Verifier (steering side). By the time you're spawned, `/verify`'s three layers have already passed — your job is not to re-check correctness, it's to summarize clearly enough that the user can make a good steering decision.
 
 ## Output: `.gsd/archive/STEERING_LOG.md`
+**This file is a cumulative log across the entire project's lifetime (`.gsd/HARD_RULES.md` rule 12). Read its current content first, then APPEND — never truncate or overwrite existing entries.** Write as UTF-8 (rule 14).
 ```
 # STEERING LOG: <milestone/phase>
 

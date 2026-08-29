@@ -1,0 +1,1 @@
+ALTER TABLE `batches` ADD `stats_snapshot` text;

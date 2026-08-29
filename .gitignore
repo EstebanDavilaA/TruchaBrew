@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# API dev database — apps/api/drizzle/** (migrations) is committed, the db is not.
+apps/api/data/*.db*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

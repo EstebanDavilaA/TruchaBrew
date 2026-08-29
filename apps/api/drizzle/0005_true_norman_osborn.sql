@@ -1,0 +1,1 @@
+ALTER TABLE `recipe_hops` ADD `time_minutes` real;

@@ -5,6 +5,8 @@ import { useConfig } from '../context/ConfigContext';
 import { formatMass } from '@truchabrew/calculations';
 import { Plus, Trash2, Wheat } from 'lucide-react';
 import { CARD_CLASS, SECTION_HEADING_CLASS } from './designSystem';
+import { Button, NumberInput, Table, TableHeaderCell, TableCell } from './ui';
+import { PresetPickerModal } from './PresetPickerModal';
 
 interface FermentableSectionProps {
   fermentables: FermentableItem[];
@@ -13,27 +15,9 @@ interface FermentableSectionProps {
 }
 
 export const FermentableSection: React.FC<FermentableSectionProps> = ({ fermentables, totalGrainKg, onUpdate }) => {
-  const { catalog, error: catalogError } = useCatalog();
+  const { error: catalogError } = useCatalog();
   const { config } = useConfig();
-  const [selectedCatalogId, setSelectedCatalogId] = useState('');
-  const [amountKgInput, setAmountKgInput] = useState('1.0');
-
-  const handleAddFromCatalog = () => {
-    const catalogItem = catalog.fermentables.find((f) => f.id === selectedCatalogId);
-    if (!catalogItem) return;
-
-    const newItem: FermentableItem = {
-      id: 'f-user-' + Date.now(),
-      name: catalogItem.name,
-      type: catalogItem.type,
-      amountKg: parseFloat(amountKgInput) || 1.0,
-      colorSrm: catalogItem.colorSrm,
-      potentialSg: catalogItem.potentialSg
-    };
-
-    onUpdate([...fermentables, newItem]);
-    setSelectedCatalogId('');
-  };
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const handleAmountChange = (id: string, newAmount: number) => {
     const updated = fermentables.map((f) => (f.id === id ? { ...f, amountKg: Math.max(0, newAmount) } : f));
@@ -54,101 +38,114 @@ export const FermentableSection: React.FC<FermentableSectionProps> = ({ fermenta
       </div>
 
       {/* Fermentables Table */}
-      <div className="overflow-x-auto mb-4">
-        <table className="w-full text-left text-sm text-slate-300">
-          <thead className="bg-slate-800/80 text-xs text-slate-400 uppercase border-b border-slate-700">
+      <div className="mb-4">
+        <Table>
+          <thead className="bg-slate-800/80 border-b border-slate-700">
             <tr>
-              <th scope="col" className="py-2 px-3">Name</th>
-              <th scope="col" className="py-2 px-3">Type</th>
-              <th scope="col" className="py-2 px-3 text-right">Amount (kg)</th>
-              <th scope="col" className="py-2 px-3 text-right">% Grain Bill</th>
-              <th scope="col" className="py-2 px-3 text-right">Color (SRM)</th>
-              <th scope="col" className="py-2 px-3 text-right">Potential (SG)</th>
-              <th scope="col" className="py-2 px-3 text-center">Action</th>
+              <TableHeaderCell>Name</TableHeaderCell>
+              <TableHeaderCell>Type</TableHeaderCell>
+              <TableHeaderCell className="text-right">Amount (kg)</TableHeaderCell>
+              <TableHeaderCell className="text-right">% Grain Bill</TableHeaderCell>
+              <TableHeaderCell className="text-right">Color (SRM)</TableHeaderCell>
+              <TableHeaderCell className="text-right">Potential (SG)</TableHeaderCell>
+              <TableHeaderCell className="text-center">Action</TableHeaderCell>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody>
             {fermentables.map((item) => {
               const pct = totalGrainKg > 0 ? ((item.amountKg / totalGrainKg) * 100).toFixed(1) : '0';
               return (
                 <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="py-2.5 px-3 font-medium text-slate-100">{item.name}</td>
-                  <td className="py-2.5 px-3 text-xs text-slate-400">{item.type}</td>
-                  <td className="py-2.5 px-3 text-right">
-                    <input
+                  <TableCell variant="text" className="font-medium">{item.name}</TableCell>
+                  <TableCell variant="text">{item.type}</TableCell>
+                  <TableCell className="text-right">
+                    <NumberInput
                       type="number"
                       aria-label={`${item.name} amount (kg)`}
                       step="0.05"
                       min="0"
                       value={item.amountKg}
                       onChange={(e) => handleAmountChange(item.id, parseFloat(e.target.value) || 0)}
-                      className="w-20 text-right bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-100 focus:outline-none focus:border-amber-500"
+                      width="xl"
+                      size="sm"
+                      align="right"
                     />
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-xs text-amber-400 font-semibold">{pct}%</td>
-                  <td className="py-2.5 px-3 text-right text-xs text-slate-300">{item.colorSrm} SRM</td>
-                  <td className="py-2.5 px-3 text-right text-xs text-slate-300">{item.potentialSg.toFixed(3)}</td>
-                  <td className="py-2.5 px-3 text-center">
-                    <button
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-amber-400 font-semibold">{pct}%</span>
+                  </TableCell>
+                  <TableCell className="text-right">{item.colorSrm} SRM</TableCell>
+                  <TableCell className="text-right">{item.potentialSg.toFixed(3)}</TableCell>
+                  <TableCell variant="text" className="text-center">
+                    <Button
+                      variant="icon"
                       type="button"
                       onClick={() => handleRemove(item.id)}
-                      className="text-slate-500 hover:text-rose-400 p-2 transition-colors cursor-pointer"
+                      className="text-slate-400 hover:text-rose-400 p-2"
                       title="Remove fermentable"
                       aria-label={`Remove ${item.name}`}
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
+                    </Button>
+                  </TableCell>
                 </tr>
               );
             })}
             {fermentables.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-4 text-center text-xs text-slate-500 italic">
+                <TableCell variant="text" colSpan={7} className="text-center italic">
                   No fermentables added yet. Add malts below to calculate gravity and color.
-                </td>
+                </TableCell>
               </tr>
             )}
           </tbody>
-        </table>
+        </Table>
       </div>
 
-      {/* Add Ingredient Form */}
-      <div className="flex flex-wrap items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-800">
-        <span className="text-xs text-slate-400 font-medium">Add Fermentable:</span>
-        <select
-          value={selectedCatalogId}
-          onChange={(e) => setSelectedCatalogId(e.target.value)}
+      {/* Add Ingredient Action */}
+      <div className="flex items-center justify-end gap-3 mt-2">
+        {catalogError && <span className="text-xs text-rose-400 italic">Catalog unavailable.</span>}
+        <Button
+          variant="secondary"
+          size="sm"
+          type="button"
+          onClick={() => setIsPickerOpen(true)}
           disabled={!!catalogError}
-          className="flex-1 min-w-[200px] bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          data-testid="fermentable-open-picker-btn"
         >
-          <option value="">-- Select Grain / Malt from Catalog --</option>
-          {catalog.fermentables.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name} ({cat.colorSrm} SRM, SG {cat.potentialSg})
-            </option>
-          ))}
-        </select>
-        <div className="flex items-center gap-1">
-          <input
-            type="number"
-            step="0.1"
-            min="0.1"
-            value={amountKgInput}
-            onChange={(e) => setAmountKgInput(e.target.value)}
-            className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500 text-right"
-          />
-          <span className="text-xs text-slate-400">kg</span>
-        </div>
-        <button
-          onClick={handleAddFromCatalog}
-          disabled={!selectedCatalogId || !!catalogError}
-          className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-2 rounded flex items-center gap-1 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Malt
-        </button>
-        {catalogError && <span className="text-xs text-rose-400 italic">Catalog unavailable — you can still edit amounts above.</span>}
+          <Plus className="w-4 h-4" /> Add Fermentable from Catalog
+        </Button>
       </div>
+
+      <PresetPickerModal
+        category="Fermentable"
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onSelectPreset={(name, _category, details) => {
+          const newItem: FermentableItem = {
+            id: 'f-user-' + Date.now(),
+            name,
+            type: (details as any).grainType ?? 'Grain',
+            amountKg: 1.0,
+            colorSrm: (details as any).colorSrm ?? 3.0,
+            potentialSg: (details as any).potentialSg ?? 1.036,
+          };
+          onUpdate([...fermentables, newItem]);
+          setIsPickerOpen(false);
+        }}
+        onSelectCustom={() => {
+          const newItem: FermentableItem = {
+            id: 'f-user-' + Date.now(),
+            name: 'Custom Fermentable',
+            type: 'Grain',
+            amountKg: 1.0,
+            colorSrm: 3.0,
+            potentialSg: 1.036,
+          };
+          onUpdate([...fermentables, newItem]);
+          setIsPickerOpen(false);
+        }}
+      />
     </div>
   );
 };

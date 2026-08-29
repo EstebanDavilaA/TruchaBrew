@@ -1,0 +1,17 @@
+{
+  "packages/shared-types/src/brewing.ts": "031d4e773f04409199a657e35ba6a289b94b59b96d9ca179de3554a54e9e4612",
+  "packages/calculations/src/water.ts": "b5267dadd19e14fa8571a6aebc9b592d78f0b1d4d34cdd8cf1e0a734b14c3ece",
+  "packages/calculations/src/mash.ts": "1054c0a6db9cfa56b835b6a91978cccc6c6268dcceb2332d9898e90e162fbf75",
+  "packages/calculations/src/brewingMath.ts": "69a6e7fecaa1634f5d8cd3204d80ceca168ca8f86fc13b35a4b2ad0f9b8dd2fe",
+  "packages/calculations/src/index.ts": "2819d877e3fa3c192b432d0f4ad519987d6e8907989ae01ada4c36d48659de98",
+  "apps/api/src/db/schema.ts": "b095a76ad024b92bc6658d161288fc9cc9a54880400ff3086e64d4b47e6f4288",
+  "apps/api/src/repositories/equipmentRepository.ts": "0bb5acc19d67c93579f32d0b9360cdb0ad81c9ee03076229476db11ba7afd704",
+  "apps/api/src/mappers/recipeMapper.ts": "dd8f43db7420c20e78f9cb4de589317a3f10e4e419a056b022513c01ea5a75c6",
+  "apps/api/src/routes/schemas.ts": "e0ef4e11d1dfa8a93ea613c78695144fd259185486f4efc474fe723d8cbebba9",
+  "apps/api/drizzle/0013_brewing_physics.sql": "40427462cd5ba1c745f7c9c46bd4ab3463f7e638f3be499de1af853cedc86ff8",
+  "apps/api/drizzle/meta/_journal.json": "9a8e4a978a52d88b15eca3188b97411b001af12aa25ea04510b57c998ff09f97",
+  "packages/calculations/test/water.test.ts": "5f1f5156af83e838b447dc2d9208183418297d66c1b9c6f8c2e62cb2f5ee4229",
+  "packages/calculations/test/mash.test.ts": "80194f20754b5dd113884f21b7e4b855fbb0e4e1d74b9ecf73aaf3ef7a3213fb",
+  "packages/calculations/test/brewingMath.test.ts": "7e7be91cf816cfd5f341c8dd870408f9c1b830fcc570bc74af3e6e4faebabc3a",
+  "apps/api/test/physics.migration.crud.test.ts": "d59f730bd5004a27e1a7c5ec5ba35a48b93a1fdda41f45ce2c3f98bc04e9f269"
+}

@@ -20,6 +20,8 @@ description: Use whenever a bug, wrong behavior, or critic FAIL is found — eit
 
 ## Process
 
+-1. **First action of a session, always**: if `.gsd/STATE.json` already exists, run the pre-flight integrity check (`.gsd/HARD_RULES.md` rule 10) before anything else — this is a hard block, not a formality.
+
 0. **Request a pointer before searching.** If the user's report doesn't already cite a milestone/phase and AC ID, ask for one before scanning anything: "Which milestone/phase and AC does this relate to, if known?" A cited AC lets you jump directly to the relevant spec section and implementation instead of re-reading the codebase to locate it. Only fall back to a broader search if the user genuinely doesn't know (e.g. behavior found outside any tested flow) — don't skip asking just because a rough guess is possible.
 
 1. Gather: what was expected, what actually happens, and where in the pipeline this was caught (critic report, regression failure, or a bug you noticed while using the app). `.gsd/archive/CRITIC_REPORT.md` is a cumulative log across every milestone — use the milestone/phase id (from the user or `.gsd/STATE.json`) to jump straight to that section rather than reading the whole file.

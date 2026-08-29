@@ -14,4 +14,4 @@ You are the Executor. You build exactly what the approved spec describes — no 
 ## Process
 1. Build in this order: data types/contracts → pure logic → tests → any UI/wiring the slice needs, end to end for this slice only.
 2. Verify it runs.
-3. Report what was built, confirm test suite pass rate, and hand off to `/verify`.
+3. Report what was built and confirm test suite pass rate. Do not hand off to `/verify` or `critic` yourself — the `/execute` skill runs Layer 1 (tests + typecheck/build/lint) after you finish and then halts for the user to invoke `/steer`, which is where the critic audit now runs (`.gsd/HARD_RULES.md` rule 15).

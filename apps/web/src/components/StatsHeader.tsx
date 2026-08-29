@@ -3,7 +3,7 @@ import type { CalculatedStats, EquipmentProfile, UserConfig } from '@truchabrew/
 import { formatGravity, formatMass, formatVolume, formatHopMass } from '@truchabrew/calculations';
 import { srmToHex, getSRMColorName } from '../utils/srmColor';
 import { Flame, Droplets, Scale, Activity } from 'lucide-react';
-import { CARD_CLASS, METRIC_TILE_CLASS, METRIC_LABEL_CLASS, METRIC_VALUE_CLASS, SECTION_HEADING_CLASS } from './designSystem';
+import { CARD_CLASS, METRIC_TILE_CLASS, METRIC_LABEL_CLASS, METRIC_VALUE_CLASS, MONO_VALUE_CLASS, SECTION_HEADING_CLASS } from './designSystem';
 
 interface StatsHeaderProps {
   stats: CalculatedStats;
@@ -37,11 +37,11 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({ stats, equipment, conf
           <Activity className="w-5 h-5" /> Live Recipe Statistics
         </h2>
         <div className="flex items-center gap-3 text-sm text-slate-400">
-          <span>Batch Size: <strong className="text-slate-200">{formatVolume(equipment.batchSizeL, config.unitSystem)}</strong></span>
+          <span>Batch Size: <strong className={`text-slate-200 ${MONO_VALUE_CLASS}`}>{formatVolume(equipment.batchSizeL, config.unitSystem)}</strong></span>
           <span>•</span>
-          <span>Pre-Boil Vol: <strong className="text-slate-200">{formatVolume(stats.preBoilVolumeL, config.unitSystem)}</strong></span>
+          <span>Pre-Boil Vol: <strong className={`text-slate-200 ${MONO_VALUE_CLASS}`}>{formatVolume(stats.preBoilVolumeL, config.unitSystem)}</strong></span>
           <span>•</span>
-          <span>Efficiency: <strong className="text-slate-200">{equipment.brewhouseEfficiencyPct}%</strong></span>
+          <span>Efficiency: <strong className={`text-slate-200 ${MONO_VALUE_CLASS}`}>{equipment.brewhouseEfficiencyPct}%</strong></span>
         </div>
       </div>
 
@@ -50,15 +50,15 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({ stats, equipment, conf
         {/* Original Gravity */}
         <div className={METRIC_TILE_CLASS}>
           <div className={METRIC_LABEL_CLASS}>Original Gravity</div>
-          <div className={`${METRIC_VALUE_CLASS} text-white`}>{formatGravity(stats.og, config.gravityUnit)}</div>
-          <div className="text-xs text-slate-400 mt-1">Pre-boil: {formatGravity(stats.preBoilGravity, config.gravityUnit)}</div>
+          <div className={`${METRIC_VALUE_CLASS} ${MONO_VALUE_CLASS} text-white`}>{formatGravity(stats.og, config.gravityUnit)}</div>
+          <div className={`text-xs text-slate-400 mt-1 ${MONO_VALUE_CLASS}`}>Pre-boil: {formatGravity(stats.preBoilGravity, config.gravityUnit)}</div>
         </div>
 
         {/* Final Gravity */}
         <div className={METRIC_TILE_CLASS}>
           <div className={METRIC_LABEL_CLASS}>Final Gravity (Est.)</div>
-          <div className={`${METRIC_VALUE_CLASS} text-slate-200`}>{formatGravity(stats.fg, config.gravityUnit)}</div>
-          <div className="text-xs text-slate-400 mt-1">Attenuation: {stats.attenuationPct}%</div>
+          <div className={`${METRIC_VALUE_CLASS} ${MONO_VALUE_CLASS} text-slate-200`}>{formatGravity(stats.fg, config.gravityUnit)}</div>
+          <div className={`text-xs text-slate-400 mt-1 ${MONO_VALUE_CLASS}`}>Attenuation: {stats.attenuationPct}%</div>
         </div>
 
         {/* ABV */}
@@ -67,14 +67,14 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({ stats, equipment, conf
             <span>ABV</span>
             <Flame className="w-3.5 h-3.5 text-amber-500" />
           </div>
-          <div className={`${METRIC_VALUE_CLASS} text-amber-400`}>{stats.abv.toFixed(1)}%</div>
+          <div className={`${METRIC_VALUE_CLASS} ${MONO_VALUE_CLASS} text-amber-400`}>{stats.abv.toFixed(1)}%</div>
           <div className="text-xs text-slate-400 mt-1">{ABV_STRATEGY_LABEL[config.abvFormula]}</div>
         </div>
 
         {/* IBU */}
         <div className={METRIC_TILE_CLASS}>
           <div className="text-xs text-emerald-400/90 font-medium mb-1">Bitterness (IBU)</div>
-          <div className={`${METRIC_VALUE_CLASS} text-emerald-400`}>{stats.ibu} <span className="text-xs font-normal text-slate-400">IBU</span></div>
+          <div className={`${METRIC_VALUE_CLASS} ${MONO_VALUE_CLASS} text-emerald-400`}>{stats.ibu} <span className="text-xs font-normal text-slate-400">IBU</span></div>
           <div className="text-xs text-slate-400 mt-1">{IBU_STRATEGY_LABEL[config.ibuFormula]}</div>
         </div>
 
@@ -84,8 +84,8 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({ stats, equipment, conf
             <span>Color (SRM)</span>
             <span className="w-3.5 h-3.5 rounded-full border border-slate-600 shadow-inner" style={{ backgroundColor: srmHex }} />
           </div>
-          <div className={`${METRIC_VALUE_CLASS} text-slate-100 flex items-baseline gap-1.5`}>
-            {stats.srm} <span className="text-xs font-normal text-slate-400">({stats.ebc} EBC)</span>
+          <div className={`${METRIC_VALUE_CLASS} ${MONO_VALUE_CLASS} text-slate-100 flex items-baseline gap-1.5`}>
+            {stats.srm} <span className={`text-xs font-normal text-slate-400 ${MONO_VALUE_CLASS}`}>({stats.ebc} EBC)</span>
           </div>
           <div className="text-xs text-slate-400 truncate mt-1">{colorName}</div>
         </div>
@@ -93,28 +93,30 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({ stats, equipment, conf
         {/* BU:GU / RBR */}
         <div className={METRIC_TILE_CLASS}>
           <div className={METRIC_LABEL_CLASS}>BU:GU Ratio</div>
-          <div className={`${METRIC_VALUE_CLASS} text-cyan-400`}>{stats.buGu}</div>
-          <div className="text-xs text-slate-400 mt-1">RBR: {stats.rbr}</div>
+          <div className={`${METRIC_VALUE_CLASS} ${MONO_VALUE_CLASS} text-cyan-400`}>{stats.buGu}</div>
+          <div className={`text-xs text-slate-400 mt-1 ${MONO_VALUE_CLASS}`}>RBR: {stats.rbr}</div>
         </div>
       </div>
 
       {/* Secondary Quick Specs Bar */}
       <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-3">
         <div className="flex items-center gap-2">
-          <Scale className="w-4 h-4 text-slate-500" />
-          <span>Total Grain: <strong className="text-slate-200">{formatMass(stats.totalGrainKg, config.unitSystem)}</strong></span>
+          <Scale className="w-4 h-4 text-slate-400" />
+          <span>Total Grain: <strong className={`text-slate-200 ${MONO_VALUE_CLASS}`}>{formatMass(stats.totalGrainKg, config.unitSystem)}</strong></span>
           <span className="mx-1">•</span>
-          <span>Total Hops: <strong className="text-slate-200">{formatHopMass(stats.totalHopG, config.unitSystem)}</strong></span>
+          <span>Total Hops: <strong className={`text-slate-200 ${MONO_VALUE_CLASS}`}>{formatHopMass(stats.totalHopG, config.unitSystem)}</strong></span>
         </div>
         <div className="flex items-center gap-2">
           <Droplets className="w-4 h-4 text-sky-400" />
-          <span>Mash Water: <strong className="text-slate-200">{formatVolume(stats.mashWaterL, config.unitSystem)}</strong></span>
+          <span>Mash Water: <strong className={`text-slate-200 ${MONO_VALUE_CLASS}`}>{formatVolume(stats.mashWaterL, config.unitSystem)}</strong></span>
           <span className="mx-1">+</span>
-          <span>Sparge: <strong className="text-slate-200">{formatVolume(stats.spargeWaterL, config.unitSystem)}</strong></span>
+          <span>Sparge: <strong className={`text-slate-200 ${MONO_VALUE_CLASS}`}>{formatVolume(stats.spargeWaterL, config.unitSystem)}</strong></span>
           <span className="mx-1">=</span>
-          <span>Total Water: <strong className="text-slate-200">{formatVolume(stats.totalWaterL, config.unitSystem)}</strong></span>
+          <span>Total Water: <strong className={`text-slate-200 ${MONO_VALUE_CLASS}`}>{formatVolume(stats.totalWaterL, config.unitSystem)}</strong></span>
         </div>
       </div>
+
     </div>
   );
 };
+

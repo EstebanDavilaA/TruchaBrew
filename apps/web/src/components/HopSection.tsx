@@ -10,6 +10,8 @@ import {
 } from '@truchabrew/calculations';
 import { Plus, Trash2, Sprout } from 'lucide-react';
 import { CARD_CLASS, SECTION_HEADING_CLASS } from './designSystem';
+import { Button, NumberInput, Select, Table, TableHeaderCell, TableCell } from './ui';
+import { PresetPickerModal } from './PresetPickerModal';
 
 interface HopSectionProps {
   hops: HopItem[];
@@ -36,44 +38,9 @@ export const HopSection: React.FC<HopSectionProps> = ({
   totalIbu,
   onUpdate,
 }) => {
-  const { catalog, error: catalogError } = useCatalog();
+  const { error: catalogError } = useCatalog();
   const { config } = useConfig();
-  const [selectedCatalogId, setSelectedCatalogId] = useState('');
-  const [amountGInput, setAmountGInput] = useState('25');
-  const [useInput, setUseInput] = useState<HopUse>('Boil');
-  const [timeInput, setTimeInput] = useState('60');
-  const [whirlpoolTempInput, setWhirlpoolTempInput] = useState(String(hopstandTemperatureC));
-  const [dryHopOffsetInput, setDryHopOffsetInput] = useState('3');
-  const [dryHopDurationInput, setDryHopDurationInput] = useState('4');
-
-  const handleAddFromCatalog = () => {
-    const catalogItem = catalog.hops.find((h) => h.id === selectedCatalogId);
-    if (!catalogItem) return;
-
-    const useClass = classifyHopUse(useInput);
-    const parsedTime = parseInt(timeInput, 10) || 0;
-    const parsedWhirlpoolTemp = parseFloat(whirlpoolTempInput) || hopstandTemperatureC;
-    const parsedDayOffset = parseInt(dryHopOffsetInput, 10) || 0;
-    const parsedDurationDays = parseFloat(dryHopDurationInput) || 3;
-
-    const newItem: HopItem = {
-      id: 'h-user-' + Date.now(),
-      name: catalogItem.name,
-      alphaAcidPct: catalogItem.alphaAcidPct,
-      amountG: parseFloat(amountGInput) || 25,
-      use: useInput,
-      boilMins: useClass === 'boil' ? parsedTime : null,
-      whirlpoolMins: useClass === 'hopstand' ? parsedTime : null,
-      whirlpoolTempC: useClass === 'hopstand' ? parsedWhirlpoolTemp : null,
-      dryHopDayOffset: useInput === 'DryHop' ? parsedDayOffset : null,
-      dryHopDurationDays: useInput === 'DryHop' ? parsedDurationDays : null,
-      timeMinutes: useInput === 'DryHop' ? parsedDurationDays * 1440 : (useClass === 'none' ? parsedTime : null),
-      type: catalogItem.type,
-    };
-
-    onUpdate([...hops, newItem]);
-    setSelectedCatalogId('');
-  };
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const handleAmountChange = (id: string, amountG: number) => {
     onUpdate(hops.map((h) => (h.id === id ? { ...h, amountG: Math.max(0, amountG) } : h)));
@@ -158,20 +125,20 @@ export const HopSection: React.FC<HopSectionProps> = ({
       </div>
 
       {/* Hop Table */}
-      <div className="overflow-x-auto mb-4">
-        <table className="w-full text-left text-sm text-slate-300">
-          <thead className="bg-slate-800/80 text-xs text-slate-400 uppercase border-b border-slate-700">
+      <div className="mb-4">
+        <Table>
+          <thead className="bg-slate-800/80 border-b border-slate-700">
             <tr>
-              <th scope="col" className="py-2 px-3">Hop Variety</th>
-              <th scope="col" className="py-2 px-3">Use</th>
-              <th scope="col" className="py-2 px-3 text-right">Timing / Schedule</th>
-              <th scope="col" className="py-2 px-3 text-right">Amount (g)</th>
-              <th scope="col" className="py-2 px-3 text-right">Alpha Acid %</th>
-              <th scope="col" className="py-2 px-3 text-right">Contribution (IBU)</th>
-              <th scope="col" className="py-2 px-3 text-center">Action</th>
+              <TableHeaderCell>Hop Variety</TableHeaderCell>
+              <TableHeaderCell>Use</TableHeaderCell>
+              <TableHeaderCell>Schedule</TableHeaderCell>
+              <TableHeaderCell className="text-right">Amount (g)</TableHeaderCell>
+              <TableHeaderCell className="text-right">Alpha Acid %</TableHeaderCell>
+              <TableHeaderCell className="text-right">Contribution (IBU)</TableHeaderCell>
+              <TableHeaderCell className="text-center">Action</TableHeaderCell>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody>
             {hops.map((hop) => {
               let itemIbu = calculateSingleHopIbu(hop, wortGravity, batchSizeL, {
                 hopUtilizationPct,
@@ -185,90 +152,94 @@ export const HopSection: React.FC<HopSectionProps> = ({
 
               return (
                 <tr key={hop.id} className="hover:bg-slate-800/40 transition-colors" data-testid={`hop-row-${hop.id}`}>
-                  <td className="py-2.5 px-3 font-medium text-slate-100 flex items-center gap-2">
-                    {hop.name}
-                    <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">
-                      {hop.type}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-xs">
-                    <select
+                  <TableCell variant="text" className="font-medium">
+                    <div className="flex items-center justify-between gap-2">
+                      {hop.name}
+                      <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">
+                        {hop.type}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell variant="text">
+                    <Select
                       value={hop.use}
                       aria-label="Hop use"
                       data-testid={`hop-use-select-${hop.id}`}
                       onChange={(e) => handleUseChange(hop.id, e.target.value as HopUse)}
-                      className={`px-2 py-1 rounded font-semibold text-[11px] bg-slate-800 border focus:outline-none cursor-pointer ${
-                        hop.use === 'Boil'
-                          ? 'text-amber-300 border-amber-800/60'
-                          : hop.use === 'Whirlpool'
-                            ? 'text-indigo-300 border-indigo-800/60'
-                            : hop.use === 'DryHop'
-                              ? 'text-emerald-300 border-emerald-800/60'
-                              : 'text-sky-300 border-sky-800/60'
-                      }`}
+                      size="sm"
                     >
                       <option value="Boil">Boil</option>
                       <option value="Whirlpool">Whirlpool</option>
                       <option value="DryHop">Dry Hop</option>
                       <option value="FirstWort">First Wort</option>
                       <option value="Aroma">Aroma</option>
-                    </select>
-                  </td>
+                    </Select>
+                  </TableCell>
 
-                  {/* Contextual Timing / Schedule Input */}
-                  <td className="py-2.5 px-3 text-right">
+                  {/* Schedule */}
+                  <TableCell>
                     {hopUseClass === 'boil' ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <input
+                      <div className="flex items-center gap-1.5">
+                        <NumberInput
                           type="number"
+                          size="sm"
+                          align="right"
+                          width="md"
                           min="0"
                           aria-label="Boil minutes"
                           data-testid={`hop-boil-mins-${hop.id}`}
                           value={hop.boilMins ?? 0}
                           onChange={(e) => handleBoilMinsChange(hop.id, parseInt(e.target.value, 10) || 0)}
-                          className="w-16 text-right bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-100 focus:outline-none focus:border-emerald-500 text-xs"
                         />
-                        <span className="text-[11px] text-slate-400">min</span>
+                        <span className="text-xs text-slate-400">min</span>
                       </div>
                     ) : hopUseClass === 'hopstand' ? (
-                      <div className="flex items-center justify-end gap-1.5">
-                        <input
+                      <div className="flex items-center gap-1.5">
+                        <NumberInput
                           type="number"
+                          size="sm"
+                          align="right"
+                          width="md"
                           min="0"
                           aria-label="Whirlpool minutes"
                           data-testid={`hop-whirlpool-mins-${hop.id}`}
                           value={hop.whirlpoolMins ?? 0}
                           onChange={(e) => handleWhirlpoolMinsChange(hop.id, parseInt(e.target.value, 10) || 0)}
-                          className="w-14 text-right bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-slate-100 focus:outline-none focus:border-emerald-500 text-xs"
                         />
-                        <span className="text-[10px] text-slate-400">min @</span>
-                        <input
+                        <span className="text-xs text-slate-400">min @</span>
+                        <NumberInput
                           type="number"
+                          size="sm"
+                          align="right"
+                          width="sm"
                           step="0.5"
                           aria-label="Whirlpool temp"
                           data-testid={`hop-whirlpool-temp-${hop.id}`}
                           value={hop.whirlpoolTempC ?? hopstandTemperatureC}
                           onChange={(e) => handleWhirlpoolTempChange(hop.id, parseFloat(e.target.value) || 0)}
-                          className="w-14 text-right bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-slate-100 focus:outline-none focus:border-emerald-500 text-xs"
                         />
-                        <span className="text-[10px] text-slate-400">°C</span>
+                        <span className="text-xs text-slate-400">°C</span>
                       </div>
                     ) : hop.use === 'DryHop' ? (
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-[10px] text-slate-400">Day</span>
-                        <input
+                      <div className="flex items-center gap-1.5">
+                        <NumberInput
                           type="number"
+                          size="sm"
+                          align="right"
+                          width="xs"
                           min="0"
                           step="1"
                           aria-label="Dry hop day offset"
                           data-testid={`hop-dry-offset-${hop.id}`}
                           value={hop.dryHopDayOffset ?? 0}
                           onChange={(e) => handleDryHopOffsetChange(hop.id, parseInt(e.target.value, 10) || 0)}
-                          className="w-12 text-right bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-slate-100 focus:outline-none focus:border-emerald-500 text-xs"
                         />
-                        <span className="text-[10px] text-slate-400">+</span>
-                        <input
+                        <span className="text-xs text-slate-400">+</span>
+                        <NumberInput
                           type="number"
+                          size="sm"
+                          align="right"
+                          width="xs"
                           min="0"
                           step="1"
                           aria-label="Dry hop duration days"
@@ -278,171 +249,127 @@ export const HopSection: React.FC<HopSectionProps> = ({
                             (hop.timeMinutes ? Math.round(hop.timeMinutes / 1440) : 3)
                           }
                           onChange={(e) => handleDryHopDurationChange(hop.id, parseFloat(e.target.value) || 0)}
-                          className="w-12 text-right bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-slate-100 focus:outline-none focus:border-emerald-500 text-xs"
                         />
-                        <span className="text-[10px] text-slate-400">d</span>
+                        <span className="text-xs text-slate-400">days</span>
                       </div>
                     ) : (
-                      <div className="text-right text-xs text-slate-500">—</div>
+                      <div className="text-xs text-slate-400 font-mono">—</div>
                     )}
-                  </td>
+                  </TableCell>
 
-                  <td className="py-2.5 px-3 text-right">
-                    <input
+                  <TableCell className="text-right">
+                    <NumberInput
                       type="number"
+                      size="sm"
+                      align="right"
+                      width="md"
                       aria-label={`${hop.name} amount (g)`}
                       step="5"
                       min="0"
                       value={hop.amountG}
                       onChange={(e) => handleAmountChange(hop.id, parseFloat(e.target.value) || 0)}
-                      className="w-16 text-right bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-100 focus:outline-none focus:border-emerald-500 text-xs"
                     />
-                  </td>
-                  <td className="py-2.5 px-3 text-right">
-                    <input
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <NumberInput
                       type="number"
+                      size="sm"
+                      align="right"
+                      width="md"
                       aria-label={`${hop.name} alpha acid %`}
                       step="0.1"
                       min="0"
                       value={hop.alphaAcidPct}
                       onChange={(e) => handleAlphaChange(hop.id, parseFloat(e.target.value) || 0)}
-                      className="w-16 text-right bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-100 focus:outline-none focus:border-emerald-500 text-xs"
                     />
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-xs text-emerald-400 font-bold" data-testid={`hop-ibu-${hop.id}`}>
-                    {itemIbu.toFixed(1)} IBU
-                  </td>
-                  <td className="py-2.5 px-3 text-center">
-                    <button
+                  </TableCell>
+                  <TableCell className="text-right" data-testid={`hop-ibu-${hop.id}`}>
+                    <span className="text-emerald-400 font-bold">{itemIbu.toFixed(1)} IBU</span>
+                  </TableCell>
+                  <TableCell variant="text" className="text-center">
+                    <Button
+                      variant="icon"
                       type="button"
                       onClick={() => handleRemove(hop.id)}
-                      className="text-slate-500 hover:text-rose-400 p-2 transition-colors cursor-pointer"
+                      className="text-slate-400 hover:text-rose-400 p-2"
                       title="Remove hop"
                       aria-label={`Remove ${hop.name}`}
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
+                    </Button>
+                  </TableCell>
                 </tr>
               );
             })}
             {hops.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-4 text-center text-xs text-slate-500 italic">
+                <TableCell variant="text" colSpan={7} className="text-center italic">
                   No hops added yet. Add hop additions below to calculate bittering & aroma.
-                </td>
+                </TableCell>
               </tr>
             )}
           </tbody>
-        </table>
+        </Table>
       </div>
 
-      {/* Add Hop Form */}
-      <div className="flex flex-wrap items-center gap-3 bg-slate-800/50 p-3 rounded-lg border border-slate-800">
-        <span className="text-xs text-slate-400 font-medium">Add Hop:</span>
-        <select
-          value={selectedCatalogId}
-          onChange={(e) => setSelectedCatalogId(e.target.value)}
-          disabled={!!catalogError}
-          className="flex-1 min-w-[180px] bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <option value="">-- Select Hop Variety --</option>
-          {catalog.hops.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name} ({cat.alphaAcidPct}% AA)
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={useInput}
-          onChange={(e) => setUseInput(e.target.value as HopUse)}
-          className="bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
-        >
-          <option value="Boil">Boil</option>
-          <option value="Whirlpool">Whirlpool</option>
-          <option value="DryHop">Dry Hop</option>
-          <option value="FirstWort">First Wort</option>
-          <option value="Aroma">Aroma</option>
-        </select>
-
-        {useInput === 'DryHop' ? (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-slate-400">Day</span>
-            <input
-              type="number"
-              min="0"
-              placeholder="0"
-              value={dryHopOffsetInput}
-              onChange={(e) => setDryHopOffsetInput(e.target.value)}
-              className="w-12 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 text-right"
-            />
-            <span className="text-xs text-slate-400">+</span>
-            <input
-              type="number"
-              min="1"
-              placeholder="3"
-              value={dryHopDurationInput}
-              onChange={(e) => setDryHopDurationInput(e.target.value)}
-              className="w-12 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 text-right"
-            />
-            <span className="text-xs text-slate-400">days</span>
-          </div>
-        ) : useInput === 'Whirlpool' || useInput === 'Aroma' ? (
-          <div className="flex items-center gap-1.5">
-            <input
-              type="number"
-              min="0"
-              placeholder="20"
-              value={timeInput}
-              onChange={(e) => setTimeInput(e.target.value)}
-              className="w-12 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 text-right"
-            />
-            <span className="text-xs text-slate-400">min @</span>
-            <input
-              type="number"
-              step="1"
-              value={whirlpoolTempInput}
-              onChange={(e) => setWhirlpoolTempInput(e.target.value)}
-              className="w-14 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 text-right"
-            />
-            <span className="text-xs text-slate-400">°C</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              min="0"
-              value={timeInput}
-              onChange={(e) => setTimeInput(e.target.value)}
-              className="w-14 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 text-right"
-            />
-            <span className="text-xs text-slate-400">min</span>
-          </div>
-        )}
-
-        <div className="flex items-center gap-1">
-          <input
-            type="number"
-            step="5"
-            value={amountGInput}
-            onChange={(e) => setAmountGInput(e.target.value)}
-            className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 text-right"
-          />
-          <span className="text-xs text-slate-400">g</span>
-        </div>
-
-        <button
-          onClick={handleAddFromCatalog}
-          disabled={!selectedCatalogId || !!catalogError}
-          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-2 rounded flex items-center gap-1 transition-colors cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add Hop
-        </button>
+      {/* Add Hop Action */}
+      <div className="flex items-center justify-end gap-3 mt-2">
         {catalogError && (
-          <span className="text-xs text-rose-400 italic">Catalog unavailable — you can still edit amounts above.</span>
+          <span className="text-xs text-rose-400 italic">Catalog unavailable.</span>
         )}
+        <Button
+          variant="secondary"
+          size="sm"
+          type="button"
+          onClick={() => setIsPickerOpen(true)}
+          disabled={!!catalogError}
+          data-testid="hop-open-picker-btn"
+        >
+          <Plus className="w-4 h-4" /> Add Hop from Catalog
+        </Button>
       </div>
+
+      <PresetPickerModal
+        category="Hop"
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onSelectPreset={(name, _category, details) => {
+          const newItem: HopItem = {
+            id: 'h-user-' + Date.now(),
+            name,
+            alphaAcidPct: (details as any).alphaAcidPct ?? 5.0,
+            amountG: 25,
+            use: 'Boil',
+            boilMins: 60,
+            whirlpoolMins: null,
+            whirlpoolTempC: null,
+            dryHopDayOffset: null,
+            dryHopDurationDays: null,
+            timeMinutes: 60,
+            type: (details as any).hopType ?? 'Pellet',
+          };
+          onUpdate([...hops, newItem]);
+          setIsPickerOpen(false);
+        }}
+        onSelectCustom={() => {
+          const newItem: HopItem = {
+            id: 'h-user-' + Date.now(),
+            name: 'Custom Hop',
+            alphaAcidPct: 5.0,
+            amountG: 25,
+            use: 'Boil',
+            boilMins: 60,
+            whirlpoolMins: null,
+            whirlpoolTempC: null,
+            dryHopDayOffset: null,
+            dryHopDurationDays: null,
+            timeMinutes: 60,
+            type: 'Pellet',
+          };
+          onUpdate([...hops, newItem]);
+          setIsPickerOpen(false);
+        }}
+      />
     </div>
   );
 };

@@ -1,25 +1,18 @@
 ---
 name: verify
-description: Use after /execute completes a milestone or phase. Runs the executor's own tests, an independent critic audit against the approved spec, and a regression pass across all prior milestones. Replaces trusting test-passage alone as proof of correctness.
+description: Standalone, user-invoked Layer-1-only recheck (tests, typecheck, build, lint). Use to re-confirm a build is still green after an unrelated environment or dependency change. The critic audit and regression pass no longer run here — they run inside /steer, right before the steering checkpoint (.gsd/HARD_RULES.md rule 15).
 ---
 
-# Verification: Three-Layer Check
+# Layer 1 Recheck
 
-**Rule:** "Tests pass" is necessary but never sufficient. A feature can pass every test its own builder wrote and still not do what was asked, and a new feature can silently break an old one.
+**Rule:** This skill is Layer 1 only. `/execute` already runs Layer 1 once as part of building the slice and halts on completion — you normally don't need to invoke `/verify` separately. Use it standalone when something outside the build itself might have changed (dependency bump, environment change, a fix applied by hand) and you want to re-confirm the four gates are still green before running `/steer`.
 
 ## What to do
-
-1. **Layer 1 — Executor's own tests.** Run the test suite the executor wrote. Record pass/fail. This is a smoke check, not a verdict.
-
-2. **Layer 2 — Independent critic audit.** Run `audit_critic` skill with the approved spec for this milestone/phase. It does not see the executor's tests as authoritative — it re-derives acceptance criteria from the spec and traces them through the actual implementation. Wait for `.gsd/archive/CRITIC_REPORT.md`.
-
-3. **Layer 3 — Cross-milestone regression.** Run the smoke tests for **every previously completed milestone**, not just the current one — this is what catches Milestone 3 quietly breaking Milestone 1. If a prior milestone's smoke test now fails, this is a regression, not a new bug — flag it as such, since the root cause lives in whatever just changed, not in the old code.
+Run the test suite, typecheck, build, and lint — all four, every time, each reported by actual exit code (`.gsd/HARD_RULES.md` rule 13). Do not stop at "tests pass."
 
 ## Verdict logic
-- Layer 1 fail → straightforward, do not proceed, hand back to `execute_feature` with the failure.
-- Layer 2 FAIL → do NOT hand this back to `execute_feature` for a quick patch. Route to `/diagnose` — a critic FAIL usually means either the spec was ambiguous or the implementation approach itself is wrong, and a patch without diagnosis tends to produce a differently-broken version of the same problem.
-- Layer 3 regression → route to `/diagnose` as well, since "what changed that broke this" needs investigation, not a reflexive fix.
-- All three clear → compile `.gsd/archive/VERIFICATION_REPORT.md` as before and proceed to `/steer`.
+- All four clear → tell the user Layer 1 is green and that `/steer` is next (it runs `audit_critic` and the regression pass itself before presenting the checkpoint).
+- Any gate fails → do not proceed to `/steer`. Hand back to `execute_feature` with the specific failure.
 
-## Output
-`.gsd/archive/VERIFICATION_REPORT.md` must include all three layers' results, not just test suite output. A milestone is not verified unless the critic report is attached.
+## Note
+Layer 2 (independent `audit_critic` pass) and Layer 3 (cross-milestone regression) are no longer part of this skill — they run inside `/steer`, in a fresh context, right before the steering checkpoint is presented. This keeps the expensive critic pass decoupled from the executor's context and under explicit user control (rule 15).

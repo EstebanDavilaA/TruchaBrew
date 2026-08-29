@@ -26,17 +26,20 @@ Horizontal layering is the single most common cause of the exact failure mode th
 ### Milestone 1: <short name>
 - User-visible outcome: ...
 - Builds on: none — first slice
+- Estimated phases: 1 (or "1–2, TBD at /plan" if the slice looks large enough it might split)
 - Hardening scope: ...
 - Verification threshold: ...
 
 ### Milestone 2: <short name>
 - User-visible outcome: ...
 - Builds on: Milestone 1
+- Estimated phases: 1
 - Hardening scope: ...
 - Verification threshold: ...
 ```
 
 5. Confirm milestones are genuinely decoupled: changes anticipated in Milestone 3 should not require reopening Milestone 1's slice. If they would, the boundaries are wrong — redraw them.
+6. **Estimated phases is a first guess, not a promise** — the actual split is often only clear once `/plan` scopes the work (many milestones in this project's history turned out two-phase despite being drafted as one). `planner` updates this line as its own understanding sharpens (`.claude/agents/planner.md`); this field exists so `/steer` can tell the user, at each phase's checkpoint, whether more phases are still expected — never leave it blank.
 
 ## Halt gate
 Present `.gsd/ROADMAP.md` and stop. Wait for explicit user confirmation via `/steer` before any milestone enters `/plan`.
