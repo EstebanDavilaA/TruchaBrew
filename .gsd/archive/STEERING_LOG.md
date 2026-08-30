@@ -1803,3 +1803,15 @@ Delivered the definitive anti-regression mechanism for the Living Design System 
 - **Milestone progress:** Milestone 35 ("Consistency that holds without anyone policing it") is COMPLETE across all 4 phases (M35_P1..M35_P4).
 - **Living Design System Initiative:** Milestones 30 through 35 are COMPLETE.
 - **Pending:** Steering decision.
+
+### Steering Decision (Option D: Complete Milestone & Initiative)
+- **Date:** 2026-08-30
+- **Selection:** Option D (Complete Milestone)
+- **Action:** Mark Milestone 35 ("Consistency that holds without anyone policing it") and the entire Living Design System initiative (Milestones 30–35) COMPLETE. Archive `M35_P4_feature_spec.md` to `.gsd/archive/specs/`. Perform Rule 21 state history milestone boundary archival (moving Milestone 33 entries to `.gsd/archive/STATE_HISTORY.md`, retaining Milestones 34 & 35 inline). Update `.gsd/ROADMAP.md`.
+- **Milestone Summary:**
+  - **M35_P1:** `Table`, `TableHeaderCell`, `TableCell` primitives shipped and proven on `BrewSheet.tsx`'s 6 tables (31/31 ACs, Critic PASS).
+  - **M35_P2:** Remaining 10 tables across 9 files migrated onto `<Table>` (33/33 ACs, Critic PASS).
+  - **M35_P3:** `<Badge>` primitive shipped with typed `BatchStatus` exhaustiveness + semantic colors, ~14 ad-hoc badge sites migrated (26/26 ACs, Critic PASS).
+  - **M35_P4:** Guardrail rewrite alone — raw elements outside `components/ui/` fail the build, positive fail demonstration confirmed, zero consumers > 0 debt, occurrence-count pins retired (23/23 ACs, Critic PASS).
+- **Living Design System Cumulative Delivery (Milestones 30–35):** 6 milestones, 25 phases, 100% component primitive adoption across all 8 dialogs, 5 batch surfaces, 4 recipe sections, 10 calculators, 6 managers, and all navigation chrome. Full monorepo quality gates green (2,293 tests passing, typecheck clean, build in 1.00s, lint clean).
+- **Agent:** antigravity-gemini

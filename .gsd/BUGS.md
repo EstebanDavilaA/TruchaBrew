@@ -713,7 +713,8 @@ This document tracks implementation defects and regressions recorded via `/log`.
 ### [BUG-040] TruchaBrew Design System Unification: Composable UI Primitives, 12-Column Responsive Grid, and Global Navigation Guard Architecture
 
 - **Date Logged:** 2026-08-24
-- **Status:** `IN_PLANNING`
+- **Status:** `VERIFIED_RESOLVED`
+- **Resolution Date:** 2026-08-30 (Living Design System Milestones 30–35 Complete)
 - **Category:** Type C (Global Architecture / Design System & Core UI/UX)
 - **Component:** `apps/web` (`components/ui/*`, `components/designSystem.ts`, `components/PageContainer.tsx`, `components/TopBar.tsx`, `components/Modal.tsx`, `hooks/useUnsavedChanges.ts`)
 - **Reported Issue:** Across all application routes (Recipe Designer, Batch Workbench, Equipment/Mash/Fermentation/Water Profile Editors, Inventory, Settings), views rely on fragmented Tailwind class strings instead of composable React primitives, resulting in severe responsive grid collapses, container boundary overflows, mismatched control heights, unlocalized numeric delimiters, and silent data loss on sidebar navigation.

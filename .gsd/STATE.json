@@ -1,104 +1,8 @@
 {
-  "current_state": 4,
+  "current_state": 1,
   "active_milestone": 35,
   "active_phase": 4,
   "state_history": [
-    {
-      "date": "2026-08-26",
-      "state": 4,
-      "agent": "antigravity-gemini",
-      "event": "/steer checkpoint: user selected Option B (Proceed Phase). M33_P2_feature_spec.md archived to .gsd/archive/specs/ and unlinked from .gsd/active/. Manual verification screenshot M33_P2_reading_log_buttons.png archived. Advancing to Milestone 33 Phase 3."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 2,
-      "agent": "antigravity-gemini",
-      "event": "State 2 /plan: drafted .gsd/active/M33_P3_feature_spec.md (Milestone 33 Phase 3 of 5 â€” The note log and the stage chrome: BatchNoteLog.tsx, BatchStageTabs.tsx, and BrewDayTimelineBar.tsx, 18 ACs). Pre-flight clean. AWAITING SPEC_APPROVED."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 3,
-      "agent": "antigravity-gemini",
-      "event": "SPEC_APPROVED received for M33_P3 ('The Note Log and the Stage Chrome', 18 ACs). Pre-edit SHA-256 manifest captured before first edit. Handed off to executor."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 3,
-      "agent": "antigravity-gemini",
-      "event": "Layer 1 execution complete for M33_P3: test (1,746 passed / 2 skipped across 88 files in web and calculations), typecheck (4/4 clean), build (production client bundle built clean in 654ms), lint (0 errors, 4 pre-existing warnings). Scope check clean via SHA-256 pre/post manifest. Zero raw buttons in BatchNoteLog.tsx verified. Stage chrome audits in BatchStageTabs.tsx and BrewDayTimelineBar.tsx verified. Visual verification screenshot M33_P3_batch_note_buttons.png present in .gsd/active/manual_verification/. HALTED for /steer."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 4,
-      "agent": "antigravity-gemini",
-      "event": "State 4 /steer: Layer 2 (Critic PASS 19/19 ACs, citing CRITIC_REPORT.md entry M33_P3) and Layer 3 (Monotonic test suite progression) completed. Scope check verified (3 modified, 0 created, 0 deleted). Steering log and verification report appended. Steering checkpoint presented to user for Milestone 33 Phase 3."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 4,
-      "agent": "antigravity-gemini",
-      "event": "/steer checkpoint: user selected Option B (Proceed Phase). M33_P3_feature_spec.md archived to .gsd/archive/specs/ and unlinked from .gsd/active/. Manual verification screenshot M33_P3_batch_note_buttons.png archived. Advancing to Milestone 33 Phase 4."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 2,
-      "agent": "antigravity-gemini",
-      "event": "State 2 /plan: drafted .gsd/active/M33_P4_feature_spec.md (Milestone 33 Phase 4 of 5 â€” BrewDayTracker.tsx, alone â€” live timer state and button hardening, 22 ACs). Pre-flight clean. AWAITING SPEC_APPROVED."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 3,
-      "agent": "antigravity-gemini",
-      "event": "SPEC_APPROVED received for M33_P4 ('BrewDayTracker.tsx, Alone: Live Timer State & Button Hardening', 22 ACs). Pre-edit SHA-256 manifest captured before first edit. Handed off to executor."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 3,
-      "agent": "antigravity-gemini",
-      "event": "Layer 1 execution complete for M33_P4: test (1,751 passed / 2 skipped across 88 files in web and calculations), typecheck (4/4 clean), build (production client bundle built clean in 836ms), lint (0 errors, 4 pre-existing warnings). Scope check clean via SHA-256 pre/post manifest. Zero hand-rolled button classes in BrewDayTracker.tsx action buttons verified. Timer and audio alert regression integrity preserved. Visual verification screenshot M33_P4_brew_day_tracker_buttons.png present in .gsd/active/manual_verification/. HALTED for /steer."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 4,
-      "agent": "antigravity-gemini",
-      "event": "State 4 /steer: M33_P4 Layer 1 four gates passing (tests, typecheck, build, lint clean). Layer 2 Critic PASS (22/22 ACs verified against .gsd/active/M33_P4_feature_spec.md). Layer 3 regression clean across full test suite (2,198 passed across 121 files). Steering checkpoint presented."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 4,
-      "agent": "antigravity-gemini",
-      "event": "/steer checkpoint: user selected Option B (Proceed Phase). M33_P4_feature_spec.md archived to .gsd/archive/specs/ and unlinked from .gsd/active/. Manual verification screenshot M33_P4_brew_day_tracker_buttons.png archived. Advancing to Milestone 33 Phase 5."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 2,
-      "agent": "antigravity-gemini",
-      "event": "State 2 /plan: drafted .gsd/active/M33_P5_feature_spec.md (Milestone 33 Phase 5 of 5 â€” BatchDetail.tsx, alone, and milestone closing assertions, 21 ACs). Pre-flight clean. AWAITING SPEC_APPROVED."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 3,
-      "agent": "antigravity-gemini",
-      "event": "SPEC_APPROVED received for M33_P5 ('BatchDetail.tsx, Alone: Closing Milestone 33', 21 ACs). Pre-edit SHA-256 manifest captured before first edit. Handed off to executor."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 3,
-      "agent": "antigravity-gemini",
-      "event": "Layer 1 execution complete for M33_P5: test (1,756 passed / 2 skipped across 88 files in web and calculations), typecheck (4/4 clean), build (production client bundle built clean in 726ms), lint (0 errors, 4 pre-existing warnings). Scope check clean. Zero raw action buttons across all 5 batch screens verified. Unified ~32px control plane height confirmed. Visual verification screenshot M33_P5_batch_detail_buttons.png present in .gsd/active/manual_verification/. HALTED for /steer."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 4,
-      "agent": "antigravity-gemini",
-      "event": "State 4 /steer: M33_P5 Layer 1 four gates passing (tests, typecheck, build, lint clean). Layer 2 Critic PASS (21/21 ACs verified against .gsd/active/M33_P5_feature_spec.md). Layer 3 regression clean across full test suite (2,198 passed across 121 files). Milestone 33 is complete across all 5 phases. Steering checkpoint presented."
-    },
-    {
-      "date": "2026-08-26",
-      "state": 4,
-      "agent": "claude-code",
-      "event": "/steer checkpoint: user selected Option D (Complete Milestone). Milestone 33 (Brew day stops improvising its buttons) completed in full across all 5 phases (M33_P1..M33_P5). M33_P5_feature_spec.md archived to .gsd/archive/specs/ and unlinked from .gsd/active/; manual verification screenshot M33_P5_batch_detail_buttons.png archived to .gsd/archive/manual_verification/M33_P5/. ROADMAP.md Milestone 33 section marked COMPLETE (2026-08-26) with a five-phase delivery summary. Rule-21 state_history archival performed: 33 M31 entries (2026-08-24..25, indices 0-32) archived to STATE_HISTORY.md; M32 and M33 entries (48) kept inline per rule 21 (current milestone M33 plus immediately-prior M32). STEERING_LOG.md M33_P5 Option D decision appended with a provenance note documenting an accidental overwrite of the M33_P4/P5 checkpoint entries (data-loss incident, per user direction not reconstructed). BUG-040/FEAT-005 remain open as multi-milestone umbrella items, not closed by this milestone. Advancing to Milestone 34 (Every dialog and panel is built from the same parts), Phase 1."
-    },
     {
       "date": "2026-08-26",
       "state": 2,
@@ -386,23 +290,36 @@
       "state": 4,
       "agent": "antigravity-gemini",
       "event": "State 4 /steer: M35_P4 Layer 1 four gates passing (tests, typecheck, build, lint clean). Layer 2 Critic PASS (23/23 ACs verified against .gsd/active/M35_P4_feature_spec.md, citing CRITIC_REPORT.md M35_P4 entry). Layer 3 regression clean across full test suite (2,262 passed across 121 files). Milestone 35 and the Living Design System initiative completed in full across all phases. Steering checkpoint presented."
+    },
+    {
+      "date": "2026-08-30",
+      "state": 4,
+      "agent": "antigravity-gemini",
+      "event": "/steer checkpoint: user selected Option D (Complete Milestone). Milestone 35 (\"Consistency that holds without anyone policing it\") and Living Design System initiative (Milestones 30–35) completed in full across all 4 phases (M35_P1..M35_P4, 113/113 ACs cumulative). M35_P4_feature_spec.md archived to .gsd/archive/specs/ and unlinked from .gsd/active/. ROADMAP.md Milestone 35 section marked COMPLETE (2026-08-30) with four-phase delivery summary. Rule 21 state_history archival performed: 16 M33 entries archived to STATE_HISTORY.md; M34 and M35 entries kept inline per rule 21 (current milestone M35 plus immediately-prior M34). Monorepo test suite green at 2,293 passed / 2 skipped across 122 files. Ready for next initiative roadmap / steer."
+    },
+    {
+      "date": "2026-08-30",
+      "state": 1,
+      "agent": "antigravity-gemini",
+      "event": "State 1 /map_codebase audit complete. Baseline monorepo stability verified 100% green (2,293 tests passing, typecheck clean across 4 workspaces, build in 1.00s, lint 0 errors). Living Design System (M30–M35) verified delivered and closed. Codebase mapped across shared-types, calculations, api, and web (79,341 total lines across 300 source/test files). Backlog audited and sequenced into candidate vertical-slice milestones."
     }
   ],
   "gate_approvals": {
     "intent_locked": true,
     "roadmap_approved": true,
-    "active_spec_approved": true
+    "active_spec_approved": false
   },
   "notes": {
     "mvp_completes_at": "Milestone 5",
     "next_action": "Living Design System roadmap drafted (Milestone 30 onward) and appended to .gsd/ROADMAP.md. /map halt gate reached: present the roadmap and await user confirmation or adjustment via /steer before /plan begins on the first milestone of this initiative.",
-    "state_integrity_warning": "STATE.json and STEERING_LOG.md went out of sync with actual repo state for roughly one hour (2026-08-06 16:10-17:21) while an out-of-band session worked without updating either. CRITIC_REPORT.md and VERIFICATION_REPORT.md were overwritten (not appended to) during that window, losing the original detailed M1_P1/M2_P1/M3_P1/M3_P2 audit trails - only narrative summaries survive, reconstructed into both files from this file's state_history. Recommend re-reading CLAUDE.md hard rule 6 (strict alternation) with whichever assistant works this repo next, and treating any un-timestamped claim of a passing verification with the same skepticism this session applied here. RESOLVED as of this entry: both CRITIC_REPORT.md and VERIFICATION_REPORT.md have been properly appended to (not overwritten) for the entire M4_P1 repair cycle. SECOND OCCURRENCE (2026-08-07, this /plan session): the antigravity-gemini session's final /steer entry left current_state at 3 (stale, should have been 2), gate_approvals.active_spec_approved at true (stale, no SPEC_APPROVED was ever recorded for M5_P1), and a fully-drafted .gsd/active/M5_P1_feature_spec.md sitting on disk with no state_history entry recording the planner draft that produced it - same undocumented-work pattern as the first occurrence, smaller blast radius. STATE.json was also found saved as UTF-8-with-BOM, violating hard rule 14. All four reconciled in this entry; the undocumented draft was discarded per user direction (backed up outside the repo, not merged) rather than reviewed, since its provenance could not be verified against any logged planner run. THIRD OCCURRENCE (2026-08-13, this /verify session): state_history has an undocumented gap between the M5.5_P4 repair-pass entry (2026-08-12) and M6_P1's SPEC_APPROVED entry (2026-08-13) covering an entire M5.5_P5 build+verify, a cumulative M5.5 (P1-P4) critic audit, an M5.5-overall /steer, and M6_P1's own /plan cycle -- all visible only in VERIFICATION_REPORT.md/STEERING_LOG.md, never logged to state_history. Compounding this, VERIFICATION_REPORT.md's M6_P1 entry cites a CRITIC_REPORT.md (2026-08-13 M6_P1) entry that does not exist on disk -- CRITIC_REPORT.md's last entry is M5.5_P3's, meaning M6_P1's claimed Layer-2 critic PASS has no backing artifact. Also found and cleaned up: a stray byte-identical duplicate of M6_P1_feature_spec.md left in .gsd/active/ after its proper archival, and an undocumented M7_P1_feature_spec.md planner draft (13 ACs, un-approved, halt-gate text intact) sitting in .gsd/active/ with no planner state_history entry -- retroactively logged per hard rule 11, provenance unclaimed. Per explicit user direction this occurrence was logged rather than resolved by re-running the missing critic audit; M6_P1's PASS verdict carries the same caveat the 2026-08-06 note already recommends. Recommend the next assistant to touch this repo actually run M6_P1's Layer 2 audit for real before relying on its verdict for anything load-bearing. FOURTH OCCURRENCE (2026-08-13, same /verify session, discovered immediately after logging the third): STATE.json itself was NOT valid JSON -- an out-of-band tool had pasted a complete second copy of the document raw into the middle of one entry's 'event' string (around the M5.5_P1-planning entry) without escaping or closing it, leaving a truncated stale duplicate prefix (lines 1-450 of the old file) glued to the real, current document (everything after), which was itself missing its own final closing brace. Every prior /verify and /plan session in this file's history that claimed to check 'STATE.json is valid UTF-8' (rule 10 point 4) was checking encoding only, never JSON-parseability, so this had been silently broken for an unknown number of prior sessions without being caught. Repaired by extracting the real (embedded) document, discarding the byte-identical-verified-redundant stale prefix, restoring the one missing closing brace, and correcting the embedded copy's own stale header fields (current_state/active_milestone/active_phase) to match reality. No content lost. Recommend hard rule 10 point 4 be amended (next time either assistant touches CLAUDE.md/AGENTS.md) to require an actual JSON.parse / json.load check, not just a UTF-8 decode, since UTF-8 validity and JSON validity are independent properties and this project has now been bitten by exactly that gap. SIXTH OCCURRENCE (2026-08-19, this /execute-handoff session): .gsd/active/M19_P1_feature_spec.md was found fully drafted with an intact halt-gate banner but zero corresponding state_history entry -- the antigravity-gemini session's last logged entry was a state:2 'Ready for /plan' note, not an AWAITING SPEC_APPROVED halt, triggering rule 10 point 2's hard-block. Per explicit user direction: spec content reviewed and found coherent, retroactively logged per rule 11, then SPEC_APPROVED accepted and handed to executor. No code touched by this session prior to handoff."
+    "state_integrity_warning": "STATE.json and STEERING_LOG.md went out of sync with actual repo state for roughly one hour (2026-08-06 16:10-17:21) while an out-of-band session worked without updating either. CRITIC_REPORT.md and VERIFICATION_REPORT.md were overwritten (not appended to) during that window, losing the original detailed M1_P1/M2_P1/M3_P1/M3_P2 audit trails - only narrative summaries survive, reconstructed into both files from this file's state_history. Recommend re-reading CLAUDE.md hard rule 6 (strict alternation) with whichever assistant works this repo next, and treating any un-timestamped claim of a passing verification with the same skepticism this session applied here. RESOLVED as of this entry: both CRITIC_REPORT.md and VERIFICATION_REPORT.md have been properly appended to (not overwritten) for the entire M4_P1 repair cycle. SECOND OCCURRENCE (2026-08-07, this /plan session): the antigravity-gemini session's final /steer entry left current_state at 3 (stale, should have been 2), gate_approvals.active_spec_approved at true (stale, no SPEC_APPROVED was ever recorded for M5_P1), and a fully-drafted .gsd/active/M5_P1_feature_spec.md sitting on disk with no state_history entry recording the planner draft that produced it - same undocumented-work pattern as the first occurrence, smaller blast radius. STATE.json was also found saved as UTF-8-with-BOM, violating hard rule 14. All four reconciled in this entry; the undocumented draft was discarded per user direction (backed up outside the repo, not merged) rather than reviewed, since its provenance could not be verified against any logged planner run. THIRD OCCURRENCE (2026-08-13, this /verify session): state_history has an undocumented gap between the M5.5_P4 repair-pass entry (2026-08-12) and M6_P1's SPEC_APPROVED entry (2026-08-13) covering an entire M5.5_P5 build+verify, a cumulative M5.5 (P1-P4) critic audit, an M5.5-overall /steer, and M6_P1's own /plan cycle -- all visible only in VERIFICATION_REPORT.md/STEERING_LOG.md, never logged to state_history. Compounding this, VERIFICATION_REPORT.md's M6_P1 entry cites a CRITIC_REPORT.md (2026-08-13 M6_P1) entry that does not exist on disk -- CRITIC_REPORT.md's last entry is M5.5_P3's, meaning M6_P1's claimed Layer-2 critic PASS has no backing artifact. Also found and cleaned up: a stray byte-identical duplicate of M6_P1_feature_spec.md left in .gsd/active/ after its proper archival, and an undocumented M7_P1_feature_spec.md planner draft (13 ACs, un-approved, halt-gate text intact) sitting in .gsd/active/ with no planner state_history entry -- retroactively logged per hard rule 11, provenance unclaimed. Per explicit user direction this occurrence was logged rather than resolved by re-running the missing critic audit; M6_P1's PASS verdict carries the same caveat the 2026-08-06 note already recommends. Recommend the next assistant to touch this repo actually run M6_P1's Layer 2 audit for real before relying on its verdict for anything load-bearing. FOURTH OCCURRENCE (2026-08-13, same /verify session, discovered immediately after logging the third): STATE.json itself was NOT valid JSON -- an out-of-band tool had pasted a complete second copy of the document raw into the middle of one entry's 'event' string (around the M5.5_P1-planning entry) without escaping or closing it, leaving a truncated stale duplicate prefix (lines 1-450 of the old file) glued to the real, current document (everything after), which was itself missing its own final closing brace. Every prior /verify and /plan session in this file's history that claimed to check 'STATE.json is valid UTF-8' (rule 10 point 4) was checking encoding only, never JSON-parseability, so this had been silently broken for an unknown number of prior sessions without being caught. Repaired by extracting the real (embedded) document, discarding the byte-identical-verified-redundant stale prefix, restoring the one missing closing brace, and correcting the embedded copy's own stale header fields (current_state/active_milestone/active_phase) to match reality. No content lost. Recommend hard rule 10 point 4 be amended (next time either assistant touches CLAUDE.md/AGENTS.md) to require an actual JSON.parse / json.load check, not just a UTF-8 decode, since UTF-8 validity and JSON validity are independent properties and this project has now been bitten by exactly that gap. SIXTH OCCURRENCE (2026-08-19, this /execute-handoff session): .gsd/active/M19_P1_feature_spec.md was found fully drafted with an intact halt-gate banner but zero corresponding state_history entry -- the antigravity-gemini session's last logged entry was a state:2 'Ready for /plan' note, not an AWAITING SPEC_APPROVED halt, triggering rule 10 point 2's hard-block. Per explicit user direction: spec content reviewed and found coherent, retroactively logged per rule 11, then SPEC_APPROVED accepted and handed to executor. No code touched by this session prior to handoff.",
+    "living_design_system_status": "COMPLETE (Milestones 30-35 delivered in full)"
   },
   "artifacts": {
     "discovery": ".gsd/DISCOVERY.md",
     "roadmap": ".gsd/ROADMAP.md",
-    "active_spec": "M35_P4_feature_spec.md",
+    "active_spec": "",
     "verification_report": ".gsd/archive/VERIFICATION_REPORT.md"
   },
-  "last_action": "State 4 /steer: Milestone 35 complete. Living Design System initiative complete. Steering checkpoint presented."
+  "last_action": "Codebase audit complete. Awaiting user steering to select the next milestone sequence."
 }

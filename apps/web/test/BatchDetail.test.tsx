@@ -88,6 +88,7 @@ const mockedGetBatchCost = vi.mocked(getBatchCost);
 const mockedUpdateBatchRecipeSnapshot = vi.mocked(updateBatchRecipeSnapshot);
 
 beforeEach(() => {
+  localStorage.clear();
   vi.stubGlobal(
     'fetch',
     vi.fn((input: RequestInfo | URL) => {
