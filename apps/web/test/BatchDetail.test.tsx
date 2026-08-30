@@ -5,8 +5,7 @@ import { BatchDetail } from '../src/pages/BatchDetail';
 import { ApiClientError } from '../src/api/client';
 import { ConfigProvider } from '../src/context/ConfigContext';
 import { baseBatchWithReadings } from './helpers/fixtures';
-import { STATUS_BADGE_WRAPPER_CLASS, STATUS_BADGE_CLASS } from '../src/components/designSystem';
-
+import { STATUS_BADGE_CLASS } from '../src/components/designSystem';
 // M15_P1 — BatchRecipeAdjustModal (mounted unconditionally by BatchDetail,
 // even while closed) pulls in FermentableSection/HopSection/YeastSection,
 // which all require CatalogContext. Same mock BatchRecipeAdjustModal.test.tsx
@@ -321,7 +320,10 @@ describe('AC-20/AC-21: status badge is single-source-of-truth and identical to B
     await waitForLoaded();
 
     const badge = screen.getByTestId('batch-status-badge');
-    expect(badge.className).toBe(`${STATUS_BADGE_WRAPPER_CLASS} ${STATUS_BADGE_CLASS.Fermenting}`);
+    for (const cls of STATUS_BADGE_CLASS.Fermenting.split(' ')) {
+      expect(badge).toHaveClass(cls);
+    }
+    expect(badge).toHaveTextContent('Fermenting');
   });
 });
 
@@ -1250,6 +1252,30 @@ describe('M33_P5: BatchDetail button primitive adoption (AC-2..AC-10, AC-13)', (
     const calBtn = screen.getByTestId('open-calibration-modal-btn');
     expect(calBtn).toHaveClass('inline-flex', 'items-center', 'justify-center', 'gap-1.5');
     expect(calBtn).toHaveClass('text-xs', 'px-3', 'py-1.5', 'bg-slate-800');
+  });
+});
+
+describe('Brew Day Tracker: Screen Navigation Persistence (FEAT-037)', () => {
+  it('restores active stage, checklist progress, and timer state from localStorage upon remounting', async () => {
+    const savedState = {
+      activeStageIndex: 2, // Boil
+      selectedMashStepIndex: 0,
+      remainingByKey: { 'stage-boil': 1800 },
+      targetEndByKey: {},
+      running: false,
+      checkedItemIds: ['prep-f-1'],
+      userAddedIds: ['hop-h-boil-60'],
+      firedBoilAlarms: ['hop-h-boil-60'],
+      savedAt: Date.now(),
+    };
+    localStorage.setItem('truchabrew_brewday_batch-1', JSON.stringify(savedState));
+
+    mockedGetBatch.mockResolvedValue(baseBatchWithReadings({ status: 'Brewing' }));
+    renderBatchDetail();
+    await waitForLoaded();
+
+    expect(screen.getByTestId('brew-day-stage-header').textContent).toMatch(/Boil/i);
+    expect(screen.getByTestId('brew-day-timer-display').textContent).toBe('30:00');
   });
 });
 

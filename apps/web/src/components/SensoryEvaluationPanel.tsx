@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import type { SensoryScoreInput } from '@truchabrew/calculations';
 import { calculateBJCPScore } from '@truchabrew/calculations';
 import { CARD_CLASS, SECTION_HEADING_CLASS, INPUT_CLASS } from './designSystem';
-import { Button } from './ui';
+import { Button, Badge } from './ui';
 import { Award, Star, CheckCircle2, FileText } from 'lucide-react';
 
 export interface SensoryEvaluationPanelProps {
@@ -89,12 +89,14 @@ export function SensoryEvaluationPanel({
                 />
               ))}
             </div>
-            <span
+            <Badge
+              variant="warning"
+              size="sm"
               data-testid="bjcp-tier-badge"
-              className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-700/80 inline-block mt-1"
+              className="font-bold inline-block mt-1"
             >
               {scoreResult.tier} ({scoreResult.totalScore}/50)
-            </span>
+            </Badge>
           </div>
         </div>
       </div>

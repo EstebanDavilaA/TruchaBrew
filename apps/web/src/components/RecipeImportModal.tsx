@@ -4,7 +4,7 @@ import { calculateRecipeStats } from '@truchabrew/calculations';
 import { X, FileDown, AlertCircle, CheckCircle2, Copy, RefreshCw } from 'lucide-react';
 import { createRecipe, updateRecipe } from '../api/client';
 import { Modal } from './Modal';
-import { Button, Select } from './ui';
+import { Button, Select, Badge } from './ui';
 
 export interface RecipeImportModalProps {
   isOpen: boolean;
@@ -276,16 +276,16 @@ export const RecipeImportModal: React.FC<RecipeImportModalProps> = ({
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold text-sm text-slate-100 truncate">{item.recipe.name}</h4>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                      <Badge variant="neutral" size="sm">
                         {item.recipe.styleName || 'Custom Style'}
-                      </span>
+                      </Badge>
                     </div>
 
                     {item.isDuplicate && (
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="px-2 py-0.5 rounded bg-amber-950/90 text-amber-300 border border-amber-600/70 font-semibold text-[10px]">
+                        <Badge variant="warning" size="sm" className="font-semibold text-[10px]">
                           Duplicate Detected
-                        </span>
+                        </Badge>
                       </div>
                     )}
                   </div>

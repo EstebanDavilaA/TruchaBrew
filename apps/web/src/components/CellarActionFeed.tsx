@@ -5,6 +5,7 @@ import {
   SECTION_HEADING_CLASS,
   EMPTY_STATE_CLASS,
 } from './designSystem';
+import { Badge } from './ui';
 import {
   CheckCircle2,
   Circle,
@@ -84,12 +85,12 @@ export function CellarActionFeed({
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 font-medium">
+          <Badge variant="neutral">
             {pendingCount} Pending
-          </span>
-          <span className="bg-emerald-950/60 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-800/60 font-medium">
+          </Badge>
+          <Badge variant="success">
             {completedCount} Completed
-          </span>
+          </Badge>
         </div>
       </div>
 
@@ -135,25 +136,25 @@ export function CellarActionFeed({
                     >
                       {event.title}
                     </span>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    <Badge variant="neutral" size="sm">
                       {event.type === 'temperature_step' && event.durationDays && event.durationDays > 0
                         ? `Day ${event.dayOffset}–${event.dayOffset + event.durationDays}`
                         : `Day ${event.dayOffset}`}
-                    </span>
+                    </Badge>
                     {event.isCompleted && (
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+                      <Badge variant="success" size="sm">
                         Done
-                      </span>
+                      </Badge>
                     )}
                     {!event.isCompleted && isOverdue && (
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800">
+                      <Badge variant="danger" size="sm">
                         {event.type === 'temperature_step' ? 'Concluded / Due' : 'Due'}
-                      </span>
+                      </Badge>
                     )}
                     {!event.isCompleted && !isOverdue && event.type === 'temperature_step' && event.durationDays && event.durationDays > 0 && (
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-sky-950/70 text-sky-300 border border-sky-800/60">
+                      <Badge variant="info" size="sm">
                         In Progress
-                      </span>
+                      </Badge>
                     )}
                   </div>
                   <p className="text-xs text-slate-400 mt-1">{event.description}</p>

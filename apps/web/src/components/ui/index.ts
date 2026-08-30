@@ -15,3 +15,6 @@ export type { NumberInputProps, NumberInputWidth } from './NumberInput';
 
 export { Table, TableHeaderCell, TableCell } from './Table';
 export type { TableProps, TableHeaderCellProps, TableCellProps, TableCellSize, TableCellVariant } from './Table';
+
+export { Badge } from './Badge';
+export type { BadgeProps, BadgeVariant, BadgeSize } from './Badge';

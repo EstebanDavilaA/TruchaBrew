@@ -150,10 +150,35 @@ describe('M35_P1 AC-13: table tokens exported with byte-identical values', () =>
 });
 
 describe('M35_P2 AC-2: TABLE_CELL_BASE_CLASS is module-private, not exported', () => {
-  it('Object.keys(designSystem) does not contain TABLE_CELL_BASE_CLASS; length is exactly 34', () => {
+  it('Object.keys(designSystem) does not contain TABLE_CELL_BASE_CLASS; length is at least 35', () => {
     const keys = Object.keys(designSystem);
     expect(keys).not.toContain('TABLE_CELL_BASE_CLASS');
-    expect(keys).toHaveLength(34);
+    expect(keys.length).toBeGreaterThanOrEqual(35);
+  });
+});
+
+describe('M35_P3 AC-3 & AC-5: SEMANTIC_BADGE_CLASS is exported and typed', () => {
+  it('exports SEMANTIC_BADGE_CLASS containing all standard semantic variants', () => {
+    const expectedVariants = [
+      'neutral',
+      'success',
+      'warning',
+      'danger',
+      'info',
+      'amber',
+      'emerald',
+      'rose',
+      'sky',
+      'slate',
+    ];
+    for (const v of expectedVariants) {
+      expect(designSystem.SEMANTIC_BADGE_CLASS[v as keyof typeof designSystem.SEMANTIC_BADGE_CLASS]).toBeDefined();
+    }
+    expect(designSystem.SEMANTIC_BADGE_CLASS.neutral).toBe('bg-slate-800 text-slate-300 border-slate-700');
+    expect(designSystem.SEMANTIC_BADGE_CLASS.success).toBe('bg-emerald-950/60 text-emerald-300 border-emerald-800/60');
+    expect(designSystem.SEMANTIC_BADGE_CLASS.warning).toBe('bg-amber-950/60 text-amber-300 border-amber-800/60');
+    expect(designSystem.SEMANTIC_BADGE_CLASS.danger).toBe('bg-rose-950/60 text-rose-300 border-rose-800/60');
+    expect(designSystem.SEMANTIC_BADGE_CLASS.info).toBe('bg-sky-950/60 text-sky-300 border-sky-800/60');
   });
 });
 
@@ -204,11 +229,9 @@ describe('AC-20: single source of truth — no duplicate STATUS_BADGE_CLASS map 
     expect(definitionSites).toEqual([path.resolve(SRC_DIR, 'components/designSystem.ts')]);
   });
 
-  it('BatchList.tsx and BatchDetail.tsx both import STATUS_BADGE_CLASS from designSystem', () => {
-    const batchList = fs.readFileSync(path.resolve(SRC_DIR, 'pages/BatchList.tsx'), 'utf-8');
-    const batchDetail = fs.readFileSync(path.resolve(SRC_DIR, 'pages/BatchDetail.tsx'), 'utf-8');
-    const importBlockPattern = /import\s*\{[^}]*STATUS_BADGE_CLASS[^}]*\}\s*from\s*['"]\.\.\/components\/designSystem['"]/;
-    expect(batchList).toMatch(importBlockPattern);
-    expect(batchDetail).toMatch(importBlockPattern);
+  it('Badge.tsx imports STATUS_BADGE_CLASS from designSystem', () => {
+    const badgeSrc = fs.readFileSync(path.resolve(SRC_DIR, 'components/ui/Badge.tsx'), 'utf-8');
+    const importBlockPattern = /import\s*\{[^}]*STATUS_BADGE_CLASS[^}]*\}\s*from\s*['"]\.\.\/designSystem['"]/;
+    expect(badgeSrc).toMatch(importBlockPattern);
   });
 });

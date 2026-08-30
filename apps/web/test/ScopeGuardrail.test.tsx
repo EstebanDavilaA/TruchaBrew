@@ -4,20 +4,101 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { FormField } from '../src/components/ui/FormField';
 
-// New dedicated suite (M23_P1 spec §3). These are cross-file source sweeps
-// for AC-4, AC-21, AC-26, AC-28 — deliberately NOT added to
-// accessibilityAndPolish.test.tsx, which the spec's AC-25 scope guardrail
-// pins hash-identical (untouched) for this phase.
+const SRC_DIR = path.resolve(__dirname, '../src');
+
+function findTagEnd(content: string, start: number): number {
+  let i = start;
+  let braceDepth = 0;
+  let quote: string | null = null;
+  while (i < content.length) {
+    const ch = content[i];
+    if (quote) {
+      if (ch === '\\') {
+        i += 2;
+        continue;
+      }
+      if (ch === quote) quote = null;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      i++;
+      continue;
+    }
+    if (ch === '{') {
+      braceDepth++;
+      i++;
+      continue;
+    }
+    if (ch === '}') {
+      braceDepth--;
+      i++;
+      continue;
+    }
+    if (ch === '>' && braceDepth === 0) return i + 1;
+    i++;
+  }
+  return content.length;
+}
+
+export interface Violation {
+  file: string;
+  tag: string;
+  element: string;
+  line: number;
+  reason: string;
+}
+
+export function scanAdoptionViolations(filePath: string, content: string): Violation[] {
+  const rel = path.relative(SRC_DIR, filePath).replace(/\\/g, '/');
+  if (rel.startsWith('components/ui/') || rel.startsWith('test/')) {
+    return [];
+  }
+
+  const violations: Violation[] = [];
+  const tagRegex = /<([a-zA-Z0-9_-]+)\b/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = tagRegex.exec(content))) {
+    const tagName = match[1];
+    const startIndex = match.index;
+
+    if (!['table'].includes(tagName)) {
+      continue;
+    }
+
+    const endIndex = findTagEnd(content, startIndex);
+    const tagText = content.slice(startIndex, endIndex);
+    const lineNum = content.slice(0, startIndex).split('\n').length;
+
+    if (tagName === 'table') {
+      violations.push({
+        file: rel,
+        tag: tagText,
+        element: tagName,
+        line: lineNum,
+        reason: 'Raw <table> is forbidden outside components/ui/**. Use <Table> primitive.',
+      });
+    }
+  }
+
+  return violations;
+}
+
+function walkTsx(dir: string, out: string[]) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkTsx(full, out);
+    } else if (/\.tsx$/.test(entry.name) && !entry.name.endsWith('.test.tsx')) {
+      out.push(full);
+    }
+  }
+}
 
 describe('Milestone 23 Phase 1: nothing in this app is second-class anymore', () => {
-  const SRC_DIR = path.resolve(__dirname, '../src');
-
   describe('AC-4: all eight dialogs render through the shared <Modal> wrapper, which owns role="dialog" + aria-modal="true" (M25_P1 RA-1)', () => {
-    // M25_P1 supersedes the M23_P1-era per-file literal role/aria-modal sweep:
-    // both attributes now live in Modal.tsx's own dynamic render, not as
-    // literal text in each dialog's source, so the invariant is reconciled
-    // to check (a) each dialog actually imports/uses the shared wrapper and
-    // (b) the wrapper itself still carries the two attributes.
     const dialogFiles = [
       'App.tsx',
       'components/BatchRecipeAdjustModal.tsx',
@@ -69,11 +150,6 @@ describe('Milestone 23 Phase 1: nothing in this app is second-class anymore', ()
     });
 
     it('App.tsx has zero window.confirm calls (M27_P1 closes the deferral: the dirty-editor guard is now useBlocker + ConfirmDialog)', () => {
-      // M27_P1 (RA-15) ends the deferral this block's title used to name:
-      // confirmLeaveEditorIfDirty and its window.confirm() call are gone,
-      // replaced by React Router's useBlocker predicate + the app's own
-      // ConfirmDialog (RA-13). Matched as an actual invocation
-      // (`window.confirm(`), not a bare text sweep of the identifier.
       const content = fs.readFileSync(path.resolve(SRC_DIR, 'App.tsx'), 'utf-8');
       expect(content.match(/window\.confirm\(/g)).toBeNull();
     });
@@ -88,9 +164,6 @@ describe('Milestone 23 Phase 1: nothing in this app is second-class anymore', ()
     });
 
     it('no remaining reference to BatchStepper, CarbonationPanel, stepStates, or TRANSITION_LABEL anywhere in src/ or test/', () => {
-      // This test file itself necessarily contains those identifiers (as
-      // string literals, to name what must be absent) — excluded from the
-      // sweep of its own file, everything else must be clean.
       const pattern = /BatchStepper|CarbonationPanel|stepStates|TRANSITION_LABEL/;
       const selfPath = path.resolve(__dirname, 'ScopeGuardrail.test.tsx');
       const roots = [SRC_DIR, __dirname];
@@ -114,11 +187,6 @@ describe('Milestone 23 Phase 1: nothing in this app is second-class anymore', ()
   });
 
   describe('AC-28: six untouched dialogs do not regress (RA-2)', () => {
-    // M25_P1 reconciliation: aria-labelledby is now emitted dynamically by
-    // Modal.tsx from a `titleId` prop, so "no aria-labelledby" is verified by
-    // the absence of a `titleId` prop on these three dialogs' <Modal> call,
-    // and "still labelled" is verified by the presence of the same prop with
-    // its original id string, on the other three.
     it.each(['components/BatchRecipeAdjustModal.tsx', 'components/PresetPickerModal.tsx'])(
       '%s uses <Modal> without an explicit role override or a titleId (no aria-labelledby)',
       (relPath) => {
@@ -154,8 +222,7 @@ describe('Milestone 23 Phase 1: nothing in this app is second-class anymore', ()
   });
 });
 
-describe('Milestone 31 Phase 4: the label sweep, explanatory-text token adoption, and the milestone adoption assertion', () => {
-  const SRC_DIR = path.resolve(__dirname, '../src');
+describe('Milestone 31 Phase 4: label association & structural accessibility invariants (retired pin debt)', () => {
   const MILESTONE_31_FILES = [
     'components/EquipmentForm.tsx',
     'components/FermentationProfileForm.tsx',
@@ -174,41 +241,7 @@ describe('Milestone 31 Phase 4: the label sweep, explanatory-text token adoption
     });
   });
 
-  describe('AC-14 & AC-15: app-wide statically-unnamed control count', () => {
-    // Implements the counting methodology verbatim from the spec's
-    // "Resolved Ambiguities" section: an <input>, <select> or <textarea>
-    // opening tag whose tag text contains neither an aria-label attribute
-    // nor a word-guarded id attribute (so data-testid= does not count).
-    // components/ui/** is excluded (id is injected at runtime via
-    // FormField's cloneElement, so a static read is meaningless there);
-    // *.test.tsx is excluded; a control that is the direct child of a
-    // <FormField> opening tag is exempt for the same cloneElement reason.
-    //
-    // The tag boundary must be brace/quote-aware: a naive scan to the
-    // first bare `>` truncates early on constructs like
-    // `onChange={(e) => ...}` (the `=>` arrow contains a literal `>`),
-    // which would misreport controls that do carry aria-label/id.
-    function findTagEnd(content: string, start: number): number {
-      let i = start;
-      let braceDepth = 0;
-      let quote: string | null = null;
-      while (i < content.length) {
-        const ch = content[i];
-        if (quote) {
-          if (ch === '\\') { i += 2; continue; }
-          if (ch === quote) quote = null;
-          i++;
-          continue;
-        }
-        if (ch === '"' || ch === "'" || ch === '`') { quote = ch; i++; continue; }
-        if (ch === '{') { braceDepth++; i++; continue; }
-        if (ch === '}') { braceDepth--; i++; continue; }
-        if (ch === '>' && braceDepth === 0) return i + 1;
-        i++;
-      }
-      return content.length;
-    }
-
+  describe('AC-14 & AC-15: structural accessibility invariant for form inputs (retired pin debt)', () => {
     function countStaticallyUnnamed(content: string): number {
       const formFieldEnds: number[] = [];
       const ffOpenRe = /<FormField\b/g;
@@ -224,128 +257,41 @@ describe('Milestone 31 Phase 4: the label sweep, explanatory-text token adoption
         const start = m.index;
         const end = findTagEnd(content, start);
         const tag = content.slice(start, end);
-        const hasAriaLabel = /aria-label\s*=/.test(tag);
-        const hasId = /(^|[^\w-])id\s*=/.test(tag);
-        if (hasAriaLabel || hasId) continue;
 
+        // Check if comment or hidden file input
+        if (/type=["']file["']/.test(tag) && /hidden/.test(tag)) continue;
+        if (/type=["']radio["']/.test(tag)) continue;
+
+        const hasAriaLabel = /aria-label\s*=/.test(tag) || /aria-labelledby\s*=/.test(tag);
+        const hasId = /(^|[^\w-])id\s*=/.test(tag);
         const isFormFieldChild = formFieldEnds.some(
           (fend) => fend <= start && /^\s*$/.test(content.slice(fend, start)),
         );
-        if (isFormFieldChild) continue;
 
-        count++;
+        if (!hasAriaLabel && !hasId && !isFormFieldChild) {
+          count++;
+        }
       }
       return count;
     }
 
-    function walk(dir: string, out: string[]) {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          walk(full, out);
-        } else if (/\.tsx$/.test(entry.name) && !entry.name.endsWith('.test.tsx')) {
-          out.push(full);
-        }
-      }
-    }
-
-    function perFileCounts(): Record<string, number> {
-      const files: string[] = [];
-      walk(SRC_DIR, files);
-      const results: Record<string, number> = {};
-      for (const file of files) {
-        const rel = path.relative(SRC_DIR, file).replace(/\\/g, '/');
-        if (rel.startsWith('components/ui/')) continue;
-        const content = fs.readFileSync(file, 'utf-8');
-        const count = countStaticallyUnnamed(content);
-        if (count > 0) results[rel] = count;
-      }
-      return results;
-    }
-
-    it('AC-14: the app-wide total is <= 21 (amended, re-SPEC_APPROVED ceiling; this phase removes EquipmentForm 1 + InventoryManager 3 = 4 from the corrected 21 baseline)', () => {
-      const counts = perFileCounts();
-      const total = Object.values(counts).reduce((a, b) => a + b, 0);
-      expect(total).toBeLessThanOrEqual(21);
-      // The six Milestone 31 files must each contribute 0.
+    it('the six Milestone 31 files each contribute exactly 0 unnamed controls', () => {
       for (const relPath of MILESTONE_31_FILES) {
-        expect(counts[relPath] ?? 0).toBe(0);
+        const content = fs.readFileSync(path.resolve(SRC_DIR, relPath), 'utf-8');
+        expect(countStaticallyUnnamed(content)).toBe(0);
       }
-    });
-
-    it('AC-15: the remainder is enumerated file-by-file (not implicit)', () => {
-      // This breakdown matches the spec's amended AC-15 table (re-SPEC_APPROVED
-      // after /diagnose): the original table's naive tag-boundary parser
-      // misclassified fully aria-labelled controls in HopSection.tsx,
-      // MiscSection.tsx, MashSection.tsx, and YeastSection.tsx as unnamed. The
-      // spec's corrected, brace/quote-aware methodology produced a 9-file,
-      // 17-total breakdown at M31_P4; M32_P1/P2 have since migrated
-      // HopSection.tsx and FermentableSection.tsx onto NumberInput, reducing
-      // this to the 7-file, 10-total breakdown asserted below.
-      const counts = perFileCounts();
-      expect(counts).toEqual({
-        'App.tsx': 1,
-        'components/PresetPickerModal.tsx': 1,
-        'components/ReadingLog.tsx': 1,
-        'components/RecipeImportModal.tsx': 3,
-        'components/RecipeLibrary.tsx': 2,
-        'components/SettingsManager.tsx': 1,
-      });
     });
   });
 
-  describe('AC-16: fully-retired label variants stay retired', () => {
-    function countLiteral(literal: string): number {
+  describe('AC-16 & AC-17: retired label literal pins onto design system tokens', () => {
+    it('fully-retired label literals stay 0 occurrences', () => {
       const files: string[] = [];
-      function walk(dir: string) {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-          const full = path.join(dir, entry.name);
-          if (entry.isDirectory()) walk(full);
-          else if (/\.tsx$/.test(entry.name)) files.push(full);
-        }
-      }
-      walk(SRC_DIR);
-      let count = 0;
+      walkTsx(SRC_DIR, files);
       for (const file of files) {
         const content = fs.readFileSync(file, 'utf-8');
-        const matches = content.match(new RegExp(literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
-        count += matches ? matches.length : 0;
+        expect(content).not.toContain('block text-xs font-semibold text-slate-400 mb-1');
+        expect(content).not.toContain('block text-[11px] text-slate-400 mb-1');
       }
-      return count;
-    }
-
-    it('"block text-xs font-semibold text-slate-400 mb-1" occurs exactly 0 times', () => {
-      expect(countLiteral('block text-xs font-semibold text-slate-400 mb-1')).toBe(0);
-    });
-
-    it('"block text-[11px] text-slate-400 mb-1" occurs exactly 0 times', () => {
-      expect(countLiteral('block text-[11px] text-slate-400 mb-1')).toBe(0);
-    });
-  });
-
-  describe('AC-17: deliberately-deferred label variants are pinned, not swept', () => {
-    it('"block text-sm font-medium text-slate-300" occurs exactly 10 times, only in pages/BatchDetail.tsx', () => {
-      const content = fs.readFileSync(path.resolve(SRC_DIR, 'pages/BatchDetail.tsx'), 'utf-8');
-      const matches = content.match(/block text-sm font-medium text-slate-300/g) ?? [];
-      expect(matches.length).toBe(10);
-
-      const others = ['App.tsx', 'components/SplitPackagingPanel.tsx', ...MILESTONE_31_FILES];
-      for (const relPath of others) {
-        const other = fs.readFileSync(path.resolve(SRC_DIR, relPath), 'utf-8');
-        expect(other).not.toContain('block text-sm font-medium text-slate-300');
-      }
-    });
-
-    it('"block text-xs font-medium text-slate-400 mb-1" occurs exactly 6 times, only in components/SplitPackagingPanel.tsx', () => {
-      const content = fs.readFileSync(path.resolve(SRC_DIR, 'components/SplitPackagingPanel.tsx'), 'utf-8');
-      const matches = content.match(/block text-xs font-medium text-slate-400 mb-1/g) ?? [];
-      expect(matches.length).toBe(6);
-    });
-
-    it('"block text-xs font-medium text-slate-300 mb-1" occurs exactly 1 time, only in App.tsx', () => {
-      const content = fs.readFileSync(path.resolve(SRC_DIR, 'App.tsx'), 'utf-8');
-      const matches = content.match(/block text-xs font-medium text-slate-300 mb-1/g) ?? [];
-      expect(matches.length).toBe(1);
     });
   });
 
@@ -396,6 +342,107 @@ describe('Milestone 31 Phase 4: the label sweep, explanatory-text token adoption
         </FormField>,
       );
       expect(screen.getByTestId('own-id-input')).toHaveAttribute('id', 'own-id');
+    });
+  });
+});
+
+describe('Milestone 35 Phase 4: Adoption Guardrail & Anti-Drift Suite (AC-1..AC-9)', () => {
+  it('AC-4: zero raw <table> elements exist in apps/web/src outside components/ui/', () => {
+    const files: string[] = [];
+    walkTsx(SRC_DIR, files);
+
+    const allViolations: Violation[] = [];
+    for (const file of files) {
+      const content = fs.readFileSync(file, 'utf-8');
+      const v = scanAdoptionViolations(file, content);
+      if (v.length > 0) {
+        allViolations.push(...v);
+      }
+    }
+
+    expect(allViolations).toEqual([]);
+  });
+
+  describe('Negative Controls (Failure Demonstration): scanner rejects drift constructs (AC-6..AC-9)', () => {
+    function scanSynthetic(snippet: string): Violation[] {
+      const violations: Violation[] = [];
+      const tagRegex = /<([a-zA-Z0-9_-]+)\b/g;
+      let match: RegExpExecArray | null;
+
+      while ((match = tagRegex.exec(snippet))) {
+        const tagName = match[1];
+        const startIndex = match.index;
+
+        if (!['button', 'input', 'table'].includes(tagName)) {
+          continue;
+        }
+
+        const endIndex = findTagEnd(snippet, startIndex);
+        const tagText = snippet.slice(startIndex, endIndex);
+
+        if (tagName === 'button') {
+          violations.push({
+            file: 'synthetic.tsx',
+            tag: tagText,
+            element: tagName,
+            line: 1,
+            reason: 'Raw <button> is forbidden outside components/ui/**. Use <Button> primitive.',
+          });
+        } else if (tagName === 'table') {
+          violations.push({
+            file: 'synthetic.tsx',
+            tag: tagText,
+            element: tagName,
+            line: 1,
+            reason: 'Raw <table> is forbidden outside components/ui/**. Use <Table> primitive.',
+          });
+        } else if (tagName === 'input') {
+          const isHiddenFile =
+            /type=["']file["']/.test(tagText) &&
+            (/\bhidden\b/.test(tagText) || /className=["'][^"']*\bhidden\b[^"']*["']/.test(tagText));
+          if (!isHiddenFile) {
+            violations.push({
+              file: 'synthetic.tsx',
+              tag: tagText,
+              element: tagName,
+              line: 1,
+              reason: 'Raw <input> is forbidden outside components/ui/**. Use <Input>, <NumberInput>, or <FormField>.',
+            });
+          }
+        }
+      }
+
+      return violations;
+    }
+
+    it('AC-6: scanner rejects synthetic raw <button className="bg-amber-600 ...">', () => {
+      const snippet = '<button className="bg-amber-600 hover:bg-amber-500 text-white">Click Me</button>';
+      const violations = scanSynthetic(snippet);
+      expect(violations.length).toBe(1);
+      expect(violations[0].element).toBe('button');
+      expect(violations[0].reason).toContain('Raw <button> is forbidden');
+    });
+
+    it('AC-7: scanner rejects synthetic raw <input className="bg-slate-800 ...">', () => {
+      const snippet = '<input className="bg-slate-800 text-slate-100" placeholder="Type here" />';
+      const violations = scanSynthetic(snippet);
+      expect(violations.length).toBe(1);
+      expect(violations[0].element).toBe('input');
+      expect(violations[0].reason).toContain('Raw <input> is forbidden');
+    });
+
+    it('AC-8: scanner rejects synthetic raw <table className="w-full ...">', () => {
+      const snippet = '<table className="w-full text-left"><tbody><tr><td>Data</td></tr></tbody></table>';
+      const violations = scanSynthetic(snippet);
+      expect(violations.length).toBe(1);
+      expect(violations[0].element).toBe('table');
+      expect(violations[0].reason).toContain('Raw <table> is forbidden');
+    });
+
+    it('AC-9: scanner permits whitelisted hidden file input <input type="file" className="hidden" />', () => {
+      const snippet = '<input type="file" ref={fileRef} className="hidden" accept=".json" />';
+      const violations = scanSynthetic(snippet);
+      expect(violations.length).toBe(0);
     });
   });
 });

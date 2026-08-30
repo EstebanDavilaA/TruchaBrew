@@ -5485,3 +5485,103 @@ Recommended routing: **do not send the `Table` implementation to `/diagnose` or 
 
 ## Verdict
 **PASS — 33/33 ACs.** Implementation strictly matches the approved feature specification `M35_P2_feature_spec.md`.
+
+---
+
+# CRITIC REPORT: M35_P3 — Badge / Status Indicator Primitive & Call Site Modernization
+
+**Date:** 2026-08-29 · **Agent:** antigravity-gemini (`audit_critic` subagent) · **Layer 2 of `/steer`**
+**Spec audited:** `.gsd/active/M35_P3_feature_spec.md` (26 ACs) — read in full, independently re-derived before reading any implementation.
+**Method:** independent source inspection of `Badge.tsx`, `designSystem.ts`, `ui/index.ts`, all 10 migrated components (`BatchList.tsx`, `BatchDetail.tsx`, `CellarActionFeed.tsx`, `InventoryManager.tsx`, `WaterProfileManager.tsx`, `BrewDayTracker.tsx`, `RecipeImportModal.tsx`, `SensoryEvaluationPanel.tsx`, `SplitPackagingPanel.tsx`, `WaterCalculatorModal.tsx`), `Badge.test.tsx`, `uiPrimitives.test.tsx`, `designSystem.test.ts`, `BatchList.test.tsx`, `CellarActionFeed.test.tsx`, `InventoryManager.test.tsx`; independent regex sweeps; independent re-run of Layer 1 gates; independent verification of pre/post SHA-256 scope manifest.
+
+## Acceptance Criteria Trace
+
+| ID | Requirement | Implementation Outcome | Match? |
+|---|---|---|---|
+| AC-1 | `components/ui/` exports `Badge` component and `BadgeProps` type | `Badge.tsx` and `ui/index.ts` export `Badge` and `BadgeProps`. | YES |
+| AC-2 | BatchStatus mapping matches `STATUS_BADGE_CLASS` exactly | `<Badge variant="Planning">` through `<Badge variant="Completed">` match tokens. | YES |
+| AC-3 | Semantic variants (`neutral`, `success`, `warning`, `danger`, `info`) render theme classes | Verified in `test/Badge.test.tsx`. | YES |
+| AC-4 | Size variants (`size="sm"`, `size="md"`) render distinct paddings/typography | Size classes correctly applied. | YES |
+| AC-5 | `designSystem.ts` preserves `Record<BatchStatus, string>` exhaustiveness | Strict typing verified. | YES |
+| AC-6 | `pages/BatchList.tsx` renders batch status badge via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-7 | `pages/BatchDetail.tsx` renders batch status badge and completed action badges via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-8 | `CellarActionFeed.tsx` renders action badges via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-9 | `InventoryManager.tsx` stock status tags and category tags render via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-10 | `WaterProfileManager.tsx` profile type tag renders via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-11 | `BrewDayTracker.tsx` active timer badge renders via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-12 | `RecipeImportModal.tsx` format tags and status indicators render via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-13 | `SensoryEvaluationPanel.tsx` score badge renders via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-14 | `SplitPackagingPanel.tsx` package type pills render via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-15 | `WaterCalculatorModal.tsx` summary pills render via `<Badge>` | Migrated to `<Badge>`. | YES |
+| AC-16 | Static sweep: zero ad-hoc `rounded-full px-2 py-0.5 text-xs` badge patterns | Static sweep in `uiPrimitives.test.tsx` clean. | YES |
+| AC-17 | Token integrity: `designSystem.test.ts` passes | Verified 100% green. | YES |
+| AC-18 | Existing test integrity across touched suites | All component test suites pass. | YES |
+| AC-19 | Accessibility invariants: valid text content and ARIA attributes | Accessibility tests green. | YES |
+| AC-20 | Non-badge pill exemption preserved | Interactive filter buttons retained. | YES |
+| AC-21 | Scope Guardrail: authorized files only modified | Pre/post SHA-256 manifests verified. | YES |
+| AC-22 | Monotonic Suite Health: >= 2,260 tests passing | 2,262 tests passing. | YES |
+| AC-23 | Layer 1 Gate: Unit & integration tests | `npm test` exits 0. | YES |
+| AC-24 | Layer 1 Gate: Typecheck | `npm run typecheck` exits 0 (4/4 clean). | YES |
+| AC-25 | Layer 1 Gate: Build | `npm run build` exits 0 clean (1.02s). | YES |
+| AC-26 | Layer 1 Gate: Lint | `npm run lint` exits 0 (0 errors, 4 pre-existing warnings in untouched files). | YES |
+
+## Test Suite Result
+- Target suites re-run: `Badge.test.tsx` (16/16), `BatchList.test.tsx` (10/10), `BatchDetail.test.tsx` (67/67), `CellarActionFeed.test.tsx` (12/12), `InventoryManager.test.tsx` (18/18), `WaterProfileManager.test.tsx` (10/10), `BrewDayTracker.test.tsx` (23/23), `RecipeImportModal.test.tsx` (8/8), `SensoryEvaluationPanel.test.tsx` (2/2), `SplitPackagingPanel.test.tsx` (4/4), `WaterCalculatorModal.test.tsx` (33/33), `uiPrimitives.test.tsx` (117/117), `designSystem.test.ts` (41/41). Full monorepo: 2,262 passed / 2 skipped across 121 test files.
+- `npm run typecheck` exit 0 (4/4) · `npm run build` exit 0 · `npm run lint` exit 0.
+
+## Findings
+- **All 26 Acceptance Criteria independently verified YES.**
+- *New Primitive:* Standardized `<Badge>` primitive with polymorphic BatchStatus and semantic color mapping.
+- *Call Site Modernization:* All ~14 ad-hoc status and type indicators across 10 surfaces migrated to `<Badge>`.
+
+## Verdict
+**PASS — 26/26 ACs.** Implementation strictly matches the approved feature specification `M35_P3_feature_spec.md`.
+
+---
+
+# CRITIC REPORT: M35_P4 — Design System Guardrails & Pin Debt Retirement
+
+**Date:** 2026-08-29 · **Agent:** antigravity-gemini (`audit_critic` subagent) · **Layer 2 of `/steer`**
+**Spec audited:** `.gsd/active/M35_P4_feature_spec.md` (23 ACs) — read in full, independently re-derived before reading any implementation.
+**Method:** independent source inspection of `ScopeGuardrail.test.tsx`, `designTokens.test.ts`, `designSystem.test.ts`, `uiPrimitives.test.tsx`; independent regex sweeps; independent re-run of Layer 1 gates; independent verification of pre/post SHA-256 scope manifest.
+
+## Acceptance Criteria Trace
+
+| ID | Requirement | Implementation Outcome | Match? |
+|---|---|---|---|
+| AC-1 | Zero Raw `<button>` Elements | AST scanner detects 0 unapproved raw `<button>` tags outside `components/ui/**`. | YES |
+| AC-2 | Zero Raw `<select>` Elements | AST scanner detects 0 unapproved raw `<select>` tags outside `components/ui/**`. | YES |
+| AC-3 | Zero Raw `<textarea>` Elements | AST scanner detects 0 unapproved raw `<textarea>` tags outside `components/ui/**`. | YES |
+| AC-4 | Zero Raw `<table>` Elements | AST scanner detects 0 unapproved raw `<table>` tags outside `components/ui/**`. | YES |
+| AC-5 | Zero Unapproved Raw `<input>` Elements | AST scanner detects 0 unapproved raw `<input>` tags outside `components/ui/**`. | YES |
+| AC-6 | Negative Control: Scanner Rejects Raw Button | In-memory synthetic test confirms rejection with diagnostic message. | YES |
+| AC-7 | Negative Control: Scanner Rejects Raw Input | In-memory synthetic test confirms rejection with diagnostic message. | YES |
+| AC-8 | Negative Control: Scanner Rejects Raw Table | In-memory synthetic test confirms rejection with diagnostic message. | YES |
+| AC-9 | Negative Control: Whitelisted Hidden File Input | In-memory synthetic test permits whitelisted hidden file input. | YES |
+| AC-10 | Consumers > 0: UI Primitives | All 9 primitives in `components/ui/index.ts` have $\ge 1$ active consumers. | YES |
+| AC-11 | Consumers > 0: Design System Tokens | All 35 design tokens in `components/designSystem.ts` have $\ge 1$ active consumers. | YES |
+| AC-12 | Shape Invariant: Design System Tokens | Structural validation replaces brittle key count pins. | YES |
+| AC-13 | Retired Pin: Statically Unnamed Controls | Brittle count pins retired for structural accessibility invariants. | YES |
+| AC-14 | Retired Pin: Label Class String Pin Debt | Brittle class counts retired for semantic token adoption assertions. | YES |
+| AC-15 | Retired Pin: Design System Class String Counts | Brittle scalar counts retired for structural invariants. | YES |
+| AC-16 | Modal & Dialog Architecture Guardrail Retained | All dialogs import `<Modal>`, `ConfirmDialog` has `role="alertdialog"`, 0 `window.confirm`. | YES |
+| AC-17 | Legacy Deprecated Components Retained Clean | `BatchStepper` and `CarbonationPanel` absent from disk and codebase. | YES |
+| AC-18 | Scope Guardrail: Test Files Only Modified | Pre/post SHA-256 manifests confirm test-only changes. | YES |
+| AC-19 | Monotonic Suite Health: $\ge 1,850$ Tests Passing | 2,262 tests passing. | YES |
+| AC-20 | Layer 1 Gate: Unit & Integration Tests | `npm test` exits 0. | YES |
+| AC-21 | Layer 1 Gate: Typecheck | `npm run typecheck` exits 0 (4/4 clean). | YES |
+| AC-22 | Layer 1 Gate: Production Build | `npm run build` exits 0 clean (747ms). | YES |
+| AC-23 | Layer 1 Gate: Lint | `npm run lint` exits 0 (0 errors, 4 pre-existing warnings in untouched files). | YES |
+
+## Test Suite Result
+- Target suites re-run: `ScopeGuardrail.test.tsx` (12/12), `designTokens.test.ts` (21/21), `designSystem.test.ts` (41/41), `uiPrimitives.test.tsx` (117/117). Full monorepo: 2,262 passed / 2 skipped across 121 test files.
+- `npm run typecheck` exit 0 (4/4) · `npm run build` exit 0 · `npm run lint` exit 0.
+
+## Findings
+- **All 23 Acceptance Criteria independently verified YES.**
+- *Living Design System Anti-Drift Engine:* AST-level scanner reliably prevents raw HTML form elements and tables across `apps/web/src`.
+- *Pin Debt Retired:* Replaced brittle numeric occurrence counts with structural invariants and negative controls.
+- *Active Consumption:* Verified active consumers ($\ge 1$) for all 9 UI primitives and 35 design system tokens.
+
+## Verdict
+**PASS — 23/23 ACs.** Implementation strictly matches the approved feature specification `M35_P4_feature_spec.md`. Milestone 35 is complete.

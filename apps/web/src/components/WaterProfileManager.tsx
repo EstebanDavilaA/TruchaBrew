@@ -6,7 +6,7 @@ import { TopBar } from './TopBar';
 import { PageContainer } from './PageContainer';
 import { ListRow, LIST_CONTAINER_CLASS } from './ListRow';
 import { BODY_TEXT_CLASS } from './designSystem';
-import { Button } from './ui';
+import { Button, Badge } from './ui';
 import { Plus, AlertTriangle, RotateCw, Droplets } from 'lucide-react';
 
 interface WaterProfileManagerProps {
@@ -146,9 +146,9 @@ export const WaterProfileManager: React.FC<WaterProfileManagerProps> = ({
                 primary={profile.name}
                 meta={
                   <>
-                    <span className="capitalize px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                    <Badge variant="neutral" size="sm" className="capitalize">
                       {profile.type}
-                    </span>
+                    </Badge>
                     <span>•</span>
                     <span>Ca: {profile.calcium} | Mg: {profile.magnesium} | Na: {profile.sodium}</span>
                     <span>•</span>

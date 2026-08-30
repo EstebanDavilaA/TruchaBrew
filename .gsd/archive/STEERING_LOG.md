@@ -1762,3 +1762,44 @@ Migrated the 10 remaining `<table>` elements across 9 files (`FermentableSection
 - **Selection:** Option B (Proceed Phase)
 - **Action:** Accept Milestone 35 Phase 2 delivery. Archive `M35_P2_feature_spec.md` to `.gsd/archive/specs/`. Advance to Milestone 35 Phase 3 ("Badge / Status Indicator Primitive & Call Site Modernization: BatchList, BatchDetail, CellarActionFeed, InventoryManager, WaterProfileManager, BrewDayTracker, RecipeImportModal, SensoryEvaluationPanel, SplitPackagingPanel, WaterCalculatorModal").
 - **Agent:** antigravity-gemini
+
+---
+
+## 2026-08-29 — Milestone 35 Phase 3: "Badge / Status Indicator Primitive & Call Site Modernization" (M35_P3)
+
+### Summary
+Delivered the standardized `<Badge>` UI primitive in `components/ui/Badge.tsx`, supported polymorphic `BatchStatus` and semantic variants with size options, and migrated ~14 ad-hoc status and pill call sites across 10 components (`BatchList.tsx`, `BatchDetail.tsx`, `CellarActionFeed.tsx`, `InventoryManager.tsx`, `WaterProfileManager.tsx`, `BrewDayTracker.tsx`, `RecipeImportModal.tsx`, `SensoryEvaluationPanel.tsx`, `SplitPackagingPanel.tsx`, `WaterCalculatorModal.tsx`).
+
+### Verification Reference
+
+- **Executor tests (Layer 1):** Target suites re-run cleanly (`Badge.test.tsx` 16/16, `BatchList.test.tsx` 10/10, `BatchDetail.test.tsx` 67/67, `CellarActionFeed.test.tsx` 12/12, `InventoryManager.test.tsx` 18/18, `WaterProfileManager.test.tsx` 10/10, `BrewDayTracker.test.tsx` 23/23, `RecipeImportModal.test.tsx` 8/8, `SensoryEvaluationPanel.test.tsx` 2/2, `SplitPackagingPanel.test.tsx` 4/4, `WaterCalculatorModal.test.tsx` 33/33, `uiPrimitives.test.tsx` 117/117, `designSystem.test.ts` 41/41, full monorepo 2,262 passed across 121 files). `npm run typecheck` (4/4 clean), `npm run build` clean (1.02s), `npm run lint` clean (0 errors, 5 pre-existing warnings in untouched files).
+- **Critic verdict (Layer 2):** PASS — 26/26 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry `M35_P3 — Badge / Status Indicator Primitive & Call Site Modernization (2026-08-29)`). Scope guardrail verified.
+- **Regression (Layer 3):** Monotonic test progression clean across full repository test suite.
+
+### Checkpoint Status
+- **Milestone progress:** Milestone 35 Phase 3 of 4 ("Consistency that holds without anyone policing it").
+- **Pending:** Steering decision.
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-08-29
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Accept Milestone 35 Phase 3 delivery. Archive `M35_P3_feature_spec.md` to `.gsd/archive/specs/`. Advance to Milestone 35 Phase 4 ("Design System Guardrails & Pin Debt Retirement: ScopeGuardrail.test.tsx AST rewrite, anti-regression structural linting, and milestone closure").
+- **Agent:** antigravity-gemini
+
+---
+
+## 2026-08-29 — Milestone 35 Phase 4: "Design System Guardrails & Pin Debt Retirement" (M35_P4) — MILESTONE COMPLETE
+
+### Summary
+Delivered the definitive anti-regression mechanism for the Living Design System initiative (Milestones 30–35). Implemented an AST-based adoption guardrail in `ScopeGuardrail.test.tsx` enforcing zero raw HTML elements (`<button>`, `<select>`, `<textarea>`, `<table>`, and non-whitelisted `<input>`) across `apps/web/src`, verified in-memory negative control proofs, retired brittle scalar occurrence pins in favor of structural invariants, confirmed active consumers ($> 0$) for all 9 UI primitives and 35 design tokens, and completed Milestone 35.
+
+### Verification Reference
+
+- **Executor tests (Layer 1):** Target suites re-run cleanly (`ScopeGuardrail.test.tsx` 12/12, `designTokens.test.ts` 21/21, `designSystem.test.ts` 41/41, `uiPrimitives.test.tsx` 117/117, full monorepo 2,262 passed across 121 files). `npm run typecheck` (4/4 clean), `npm run build` clean (747ms), `npm run lint` clean (0 errors, 4 pre-existing warnings in untouched files).
+- **Critic verdict (Layer 2):** PASS — 23/23 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry `M35_P4 — Design System Guardrails & Pin Debt Retirement (2026-08-29)`). Scope guardrail verified.
+- **Regression (Layer 3):** Monotonic test progression clean across full repository test suite.
+
+### Checkpoint Status
+- **Milestone progress:** Milestone 35 ("Consistency that holds without anyone policing it") is COMPLETE across all 4 phases (M35_P1..M35_P4).
+- **Living Design System Initiative:** Milestones 30 through 35 are COMPLETE.
+- **Pending:** Steering decision.

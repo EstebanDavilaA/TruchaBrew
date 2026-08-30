@@ -7,7 +7,7 @@ import { PresetPickerModal } from './PresetPickerModal';
 import { TopBar } from './TopBar';
 import { PageContainer } from './PageContainer';
 import { ListRow, LIST_CONTAINER_CLASS } from './ListRow';
-import { Button, Input } from './ui';
+import { Button, Input, Badge } from './ui';
 import { Plus, AlertTriangle, RotateCw, Boxes, Wheat, Flower2, FlaskConical, Sparkles, ChevronDown, ChevronRight, Search } from 'lucide-react';
 
 type FormTarget = { mode: 'create'; initialPreset?: InitialPreset } | { mode: 'edit'; item: InventoryStockView } | null;
@@ -366,9 +366,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenMobile
                                 primary={item.name}
                                 meta={
                                   <>
-                                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                                    <Badge variant="neutral" size="sm">
                                       {item.category}
-                                    </span>
+                                    </Badge>
                                     <span>•</span>
                                     <span data-testid={`inventory-onhand-${item.id}`}>
                                       {item.quantity} {item.unit}
@@ -389,20 +389,22 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenMobile
                                       </>
                                     )}
                                     {outOfStock && (
-                                      <span
+                                      <Badge
+                                        variant="warning"
+                                        size="sm"
                                         data-testid={`inventory-flag-out-of-stock-${item.id}`}
-                                        className="px-2 py-0.5 rounded text-xs font-medium bg-amber-900/40 text-amber-300 border border-amber-500/30"
                                       >
                                         Out of stock
-                                      </span>
+                                      </Badge>
                                     )}
                                     {negative && (
-                                      <span
+                                      <Badge
+                                        variant="danger"
+                                        size="sm"
                                         data-testid={`inventory-flag-negative-stock-${item.id}`}
-                                        className="px-2 py-0.5 rounded text-xs font-medium bg-rose-900/40 text-rose-300 border border-rose-500/30"
                                       >
                                         Negative stock
-                                      </span>
+                                      </Badge>
                                     )}
                                   </>
                                 }

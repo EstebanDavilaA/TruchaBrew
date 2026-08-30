@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import type { BatchWithReadings, BatchWriteInput, CalculatedStats } from '@truchabrew/shared-types';
 import { strikeTemperatureC, buildBrewDayTimeline, BREW_DAY_STAGE_KEYS, type BrewDayStageKey } from '@truchabrew/calculations';
 import { playStepAlert } from '../utils/audioAlerts';
 import { BrewDayTimelineBar } from './BrewDayTimelineBar';
 import { CARD_CLASS, SECTION_HEADING_CLASS, SUBPANEL_CLASS } from './designSystem';
-import { Button, NumberInput } from './ui';
+import { Button, NumberInput, Badge } from './ui';
 import {
   Play,
   Pause,
@@ -238,21 +238,28 @@ export function BrewDayTracker({
     [recipe, stats, strikeTempC],
   );
 
+  const prevBatchIdRef = useRef(batch.id);
+
   // Reset the whole tracker whenever a different batch mounts.
   useEffect(() => {
-    setActiveStageIndex(0);
-    setSelectedMashStepIndex(0);
-    setRemainingByKey({});
-    setTargetEndByKey({});
-    setRunning(false);
-    setLocalFiredBoilAlarms(new Set());
-    setLocalUserAddedIds(new Set());
-    setLocalCheckedItemIds(new Set());
-    setAdjustTimeOpen(false);
-    setAdjustTimeValue('');
-    handleGlobalReset();
+    if (prevBatchIdRef.current !== batch.id) {
+      prevBatchIdRef.current = batch.id;
+      if (controlledActiveStageIndex === undefined) {
+        setActiveStageIndex(0);
+        setSelectedMashStepIndex(0);
+        setRemainingByKey({});
+        setTargetEndByKey({});
+        setRunning(false);
+        setLocalFiredBoilAlarms(new Set());
+        setLocalUserAddedIds(new Set());
+        setLocalCheckedItemIds(new Set());
+        setAdjustTimeOpen(false);
+        setAdjustTimeValue('');
+        handleGlobalReset();
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batch.id]);
+  }, [batch.id, controlledActiveStageIndex]);
 
   const boilDurationMin = equipment.boilTimeMin;
 
@@ -615,16 +622,17 @@ export function BrewDayTracker({
           </div>
         )}
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2.5 w-full mt-4 [&>*]:flex-1 [&>*]:min-w-[120px] [&>*]:justify-center sm:[&>*]:min-w-[130px]">
           {stageKey === 'prep' ? (
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               type="button"
               data-testid="brew-day-skip-btn"
               onClick={handleSkip}
+              className="w-full justify-center text-sm py-2.5 font-semibold shadow-sm"
             >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Strike Water Ready
+              <CheckCircle2 className="w-4 h-4" /> Strike Water Ready
             </Button>
           ) : (
             <>
@@ -635,6 +643,7 @@ export function BrewDayTracker({
                   type="button"
                   data-testid="brew-day-previous-btn"
                   onClick={handlePreviousStep}
+                  className="w-full justify-center"
                 >
                   <SkipBack className="w-3.5 h-3.5" /> Previous Step
                 </Button>
@@ -646,6 +655,7 @@ export function BrewDayTracker({
                   type="button"
                   data-testid="brew-day-play-btn"
                   onClick={handlePlay}
+                  className="w-full justify-center font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-sm"
                 >
                   <Play className="w-3.5 h-3.5" /> Play
                 </Button>
@@ -656,6 +666,7 @@ export function BrewDayTracker({
                   type="button"
                   data-testid="brew-day-pause-btn"
                   onClick={handlePause}
+                  className="w-full justify-center font-semibold bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30"
                 >
                   <Pause className="w-3.5 h-3.5" /> Pause
                 </Button>
@@ -666,6 +677,7 @@ export function BrewDayTracker({
                 type="button"
                 data-testid="brew-day-fastforward-btn"
                 onClick={handleFastForward}
+                className="w-full justify-center"
               >
                 <FastForward className="w-3.5 h-3.5" /> Fast-Forward
               </Button>
@@ -675,6 +687,7 @@ export function BrewDayTracker({
                 type="button"
                 data-testid="brew-day-adjusttime-btn"
                 onClick={handleAdjustTimeToggle}
+                className="w-full justify-center"
               >
                 <Pencil className="w-3.5 h-3.5" /> Adjust Time
               </Button>
@@ -684,6 +697,7 @@ export function BrewDayTracker({
                 type="button"
                 data-testid="brew-day-reset-btn"
                 onClick={handleReset}
+                className="w-full justify-center"
               >
                 <RotateCcw className="w-3.5 h-3.5" /> Reset
               </Button>
@@ -693,6 +707,7 @@ export function BrewDayTracker({
                 type="button"
                 data-testid="brew-day-skip-btn"
                 onClick={handleSkip}
+                className="w-full justify-center"
               >
                 <SkipForward className="w-3.5 h-3.5" /> Skip
               </Button>
@@ -787,9 +802,9 @@ export function BrewDayTracker({
                         </div>
 
                         {isDueNow && (
-                          <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse flex-shrink-0">
+                          <Badge variant="warning" size="sm" pulse className="uppercase tracking-wider font-bold flex-shrink-0">
                             Add Now
-                          </span>
+                          </Badge>
                         )}
                       </button>
                     </li>

@@ -13,7 +13,7 @@ import {
 import { X, Droplets, Sparkles, FlaskConical, RotateCcw, Check } from 'lucide-react';
 import { SUBPANEL_CLASS } from './designSystem';
 import { Modal } from './Modal';
-import { Button, Select, NumberInput, FormField, Table, TableHeaderCell, TableCell } from './ui';
+import { Button, Select, NumberInput, FormField, Table, TableHeaderCell, TableCell, Badge } from './ui';
 
 export interface WaterCalculatorModalProps {
   isOpen: boolean;
@@ -418,18 +418,22 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
         {/* Global Toolbar Strip: pH Summary & Operational Actions */}
         <div className="px-5 py-3 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span
+            <Badge
+              variant="neutral"
+              size="sm"
               data-testid="modal-initial-mash-ph"
-              className="text-xs px-2.5 py-1 rounded-md font-medium bg-slate-800 text-slate-300 border border-slate-700"
+              className="rounded-md"
             >
               Initial Mash pH: <span className="font-bold text-slate-100 font-mono tabular-nums">{preAcidPredictedPh.toFixed(2)}</span>
-            </span>
-            <span
+            </Badge>
+            <Badge
+              variant="warning"
+              size="sm"
               data-testid="modal-predicted-mash-ph"
-              className="text-xs px-2.5 py-1 rounded-md font-medium bg-amber-950/70 text-amber-300 border border-amber-500/40"
+              className="rounded-md"
             >
               Adjusted Mash pH: <span className="font-bold font-mono tabular-nums">{liveMashPh.toFixed(2)}</span>
-            </span>
+            </Badge>
           </div>
 
           <div className="flex items-center gap-2">

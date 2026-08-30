@@ -79,4 +79,18 @@ describe('M17_P1 AC-7, AC-8 & AC-17: SplitPackagingPanel', () => {
 
     expect(screen.getByTestId('syringe-dose-ml-0')).toHaveTextContent('5 mL / btl');
   });
+
+  it('correctly calculates priming sugar with comma decimal input and null peak temp', () => {
+    render(<SplitPackagingPanel totalBeerVolumeL={28.0} peakFermentationTempC={null} />);
+
+    // Check volume and target CO2 with comma decimal input
+    const co2Input = screen.getByLabelText(/target co2 volumes/i);
+    fireEvent.change(co2Input, { target: { value: '2,4' } });
+
+    // For 28L @ 2.4 vols with 20°C fallback temp:
+    // residual CO2 = 2.14 vols, co2Needed = 0.26 vols -> ~29.1g sugar > 0
+    const sugarTotal = screen.getByTestId('priming-sugar-total-0');
+    expect(sugarTotal.textContent).not.toBe('0.0 g');
+    expect(parseFloat(sugarTotal.textContent || '0')).toBeGreaterThan(20);
+  });
 });

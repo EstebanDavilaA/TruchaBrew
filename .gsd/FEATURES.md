@@ -707,18 +707,6 @@ Every entry follows this status progression:
   - In `packages/calculations/src/carbonation.ts`, extended `calculatePrimingSolution` with `solutionBufferPct` option. Sugar and water scale proportionally by the buffer factor while keeping the per-bottle syringe injection concentration exact.
   - In `SplitPackagingPanel.tsx`, added an "Extra Buffer (+%)" input control and updated syringe instructions with clear batch preparation guidelines.
 
-### FEAT-043: Default Active Tab & Stage Stepper Alignment to Current Batch Status
-- **Date Logged**: 2026-08-28
-- **Status**: `CLOSED`
-- **Category**: Batch Lifecycle & Navigation / Stage Tabs
-- **Component**: `apps/web` (`pages/BatchDetail.tsx`)
-- **Summary**: When opening a batch, automatically set the active tab to the stage corresponding to the batch's current lifecycle status (`Planning` $\rightarrow$ `Planning`, `Brewing` $\rightarrow$ `Brewing`, `Fermenting` $\rightarrow$ `Fermentation`, `Conditioning` $\rightarrow$ `Packaging`, `Completed` $\rightarrow$ `Completed`) instead of always defaulting to Planning, and display all preceding stages as completed (with green checkmarks).
-- **Details**:
-  - Defined `STATUS_TO_TAB` map in `BatchDetail.tsx`.
-  - In `getBatch(batchId)` fetch completion, initialized `setActiveTab(STATUS_TO_TAB[b.status] ?? 'planning')`.
-  - Prior stages automatically render with check icons and emerald styling in `BatchStageTabs`.
-
-
 
 
 

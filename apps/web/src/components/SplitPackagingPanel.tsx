@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import type { PrimingSugarType, SplitPackageInput, SplitPackageType } from '@truchabrew/calculations';
 import { calculateSplitPackaging, calculatePrimingSolution, PRIMING_SUGAR_MULTIPLIERS } from '@truchabrew/calculations';
 import { CARD_CLASS, SECTION_HEADING_CLASS } from './designSystem';
-import { Button, Select, NumberInput } from './ui';
+import { Button, Select, NumberInput, Badge } from './ui';
 import { Wine, Plus, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export interface SplitPackagingPanelProps {
@@ -25,13 +25,21 @@ const SUGAR_TYPES: { type: PrimingSugarType; label: string; ratio: number }[] = 
   { type: 'honey', label: 'Honey', ratio: PRIMING_SUGAR_MULTIPLIERS.honey },
 ];
 
+function parseLocaleFloat(val: string | number | undefined | null, fallback = 0): number {
+  if (typeof val === 'number') return isNaN(val) ? fallback : val;
+  if (!val || typeof val !== 'string') return fallback;
+  const normalized = val.replace(',', '.').trim();
+  const parsed = parseFloat(normalized);
+  return !isNaN(parsed) ? parsed : fallback;
+}
+
 export function SplitPackagingPanel({
   totalBeerVolumeL,
   peakFermentationTempC,
   onPackagingChange,
 }: SplitPackagingPanelProps) {
   const effectiveTotalVolume = totalBeerVolumeL ?? 20.0;
-  // If peak fermentation temp was not logged or is 0 (or null), default to standard room temperature 20°C
+  // If peak fermentation temp was not logged or is <= 0 (or null), default to standard room temperature 20°C
   const effectivePeakTemp = peakFermentationTempC !== null && peakFermentationTempC > 0 ? peakFermentationTempC : 20.0;
 
   const [packages, setPackages] = useState<SplitPackageInput[]>([
@@ -150,9 +158,9 @@ export function SplitPackagingPanel({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-200 uppercase">
+                  <Badge variant="neutral" size="sm" className="font-bold uppercase">
                     {res.type === 'keg' ? 'Keg / Force Carbonation' : 'Bottling / Priming Sugar'}
-                  </span>
+                  </Badge>
                   <span className="text-sm font-semibold text-slate-100">
                     Package #{index + 1} ({res.volumeL.toFixed(1)} L)
                   </span>
@@ -199,7 +207,7 @@ export function SplitPackagingPanel({
                     step="0.1"
                     min="0"
                     value={pkg.volumeL}
-                    onChange={(e) => updatePackage(res.id, { volumeL: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => updatePackage(res.id, { volumeL: parseLocaleFloat(e.target.value, 0) })}
                     aria-label={`Package ${index + 1} volume in liters`}
                   />
                 </div>
@@ -217,7 +225,7 @@ export function SplitPackagingPanel({
                     min="1.0"
                     max="4.5"
                     value={pkg.targetVolumesCO2}
-                    onChange={(e) => updatePackage(res.id, { targetVolumesCO2: parseFloat(e.target.value) || 2.4 })}
+                    onChange={(e) => updatePackage(res.id, { targetVolumesCO2: parseLocaleFloat(e.target.value, 2.4) })}
                     aria-label={`Package ${index + 1} target CO2 volumes`}
                   />
                 </div>
@@ -234,7 +242,7 @@ export function SplitPackagingPanel({
                       type="number"
                       step="0.5"
                       value={pkg.tempC ?? 4.0}
-                      onChange={(e) => updatePackage(res.id, { tempC: parseFloat(e.target.value) || 4.0 })}
+                      onChange={(e) => updatePackage(res.id, { tempC: parseLocaleFloat(e.target.value, 4.0) })}
                       aria-label={`Package ${index + 1} serving temperature in celsius`}
                     />
                   </div>
@@ -366,7 +374,7 @@ export function SplitPackagingPanel({
                                 step="10"
                                 value={(pkg as any).solutionWaterMl ?? 200}
                                 onChange={(e) => {
-                                  const val = parseFloat(e.target.value) || 200;
+                                  const val = parseLocaleFloat(e.target.value, 200);
                                   updatePackage(res.id, {
                                     solutionWaterMl: val,
                                     targetSyringeDoseMl: undefined,
@@ -391,7 +399,7 @@ export function SplitPackagingPanel({
                                 placeholder={sol.syringeDosePerBottleMl.toFixed(2)}
                                 value={(pkg as any).targetSyringeDoseMl ?? ''}
                                 onChange={(e) => {
-                                  const val = e.target.value ? parseFloat(e.target.value) : undefined;
+                                  const val = e.target.value ? parseLocaleFloat(e.target.value) : undefined;
                                   updatePackage(res.id, {
                                     targetSyringeDoseMl: val,
                                     solutionWaterMl: undefined,
@@ -418,7 +426,7 @@ export function SplitPackagingPanel({
                                 placeholder="0%"
                                 value={(pkg as any).solutionBufferPct ?? ''}
                                 onChange={(e) => {
-                                  const val = e.target.value ? parseFloat(e.target.value) || 0 : undefined;
+                                  const val = e.target.value ? parseLocaleFloat(e.target.value, 0) : undefined;
                                   updatePackage(res.id, {
                                     solutionBufferPct: val,
                                   } as any);

@@ -59,7 +59,7 @@ import { PageContainer } from '../components/PageContainer';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { BatchStageTabs, type BatchStageTab } from '../components/BatchStageTabs';
 import { ArrowLeft, RefreshCw, CornerDownRight, CheckCircle2, Sliders } from 'lucide-react';
-import { Button, Input, NumberInput } from '../components/ui';
+import { Button, Input, NumberInput, Badge } from '../components/ui';
 import {
   CARD_CLASS,
   CARD_STACK_GAP_CLASS,
@@ -71,8 +71,6 @@ import {
   EMPTY_STATE_CLASS,
   LOADING_STATE_CLASS,
   ERROR_STATE_CLASS,
-  STATUS_BADGE_WRAPPER_CLASS,
-  STATUS_BADGE_CLASS,
 } from '../components/designSystem';
 
 import type { EquipmentProfile, Recipe, EquipmentUpdateInput } from '@truchabrew/shared-types';
@@ -201,7 +199,38 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
   // NEW in M17_P1 — Calibration Modal state.
   const [isCalibrationModalOpen, setIsCalibrationModalOpen] = useState(false);
 
-  // Persistent brew day checked additions and checklist items across tab navigation (FEAT-037).
+  // Persistent brew day checked additions and checklist items across tab navigation & screen navigation (FEAT-037).
+  const BREW_DAY_STORAGE_KEY_PREFIX = 'truchabrew_brewday_';
+
+  const loadSavedBrewDayState = (bId: string) => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      const raw = localStorage.getItem(`${BREW_DAY_STORAGE_KEY_PREFIX}${bId}`);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  };
+
+  const saveBrewDayState = (bId: string, stateData: Record<string, unknown>) => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      localStorage.setItem(`${BREW_DAY_STORAGE_KEY_PREFIX}${bId}`, JSON.stringify(stateData));
+    } catch {
+      // ignore
+    }
+  };
+
+  const clearSavedBrewDayState = (bId: string) => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      localStorage.removeItem(`${BREW_DAY_STORAGE_KEY_PREFIX}${bId}`);
+    } catch {
+      // ignore
+    }
+  };
+
   const [brewDayCheckedItemIds, setBrewDayCheckedItemIds] = useState<Set<string>>(new Set());
   const [brewDayUserAddedIds, setBrewDayUserAddedIds] = useState<Set<string>>(new Set());
   const [brewDayActiveStageIndex, setBrewDayActiveStageIndex] = useState<number>(0);
@@ -253,6 +282,7 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
   };
 
   const handleResetBrewDayTracker = () => {
+    clearSavedBrewDayState(batchId);
     setBrewDayActiveStageIndex(0);
     setBrewDaySelectedMashStepIndex(0);
     setBrewDayRemainingByKey({});
@@ -280,17 +310,88 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
     setFermentationError(null);
     setConditioningError(null);
     setIsCalibrationModalOpen(false);
-    handleResetBrewDayTracker();
+
+    // Restore saved brew day tracker state if available
+    const saved = loadSavedBrewDayState(batchId);
+    if (saved) {
+      setBrewDayActiveStageIndex(typeof saved.activeStageIndex === 'number' ? saved.activeStageIndex : 0);
+      setBrewDaySelectedMashStepIndex(typeof saved.selectedMashStepIndex === 'number' ? saved.selectedMashStepIndex : 0);
+      setBrewDayRemainingByKey(saved.remainingByKey ?? {});
+      setBrewDayTargetEndByKey(saved.targetEndByKey ?? {});
+      setBrewDayRunning(Boolean(saved.running));
+      setBrewDayCheckedItemIds(new Set(Array.isArray(saved.checkedItemIds) ? saved.checkedItemIds : []));
+      setBrewDayUserAddedIds(new Set(Array.isArray(saved.userAddedIds) ? saved.userAddedIds : []));
+      setBrewDayFiredBoilAlarms(new Set(Array.isArray(saved.firedBoilAlarms) ? saved.firedBoilAlarms : []));
+    } else {
+      setBrewDayActiveStageIndex(0);
+      setBrewDaySelectedMashStepIndex(0);
+      setBrewDayRemainingByKey({});
+      setBrewDayTargetEndByKey({});
+      setBrewDayRunning(false);
+      setBrewDayFiredBoilAlarms(new Set());
+      setBrewDayUserAddedIds(new Set());
+      setBrewDayCheckedItemIds(new Set());
+    }
 
     getBatch(batchId)
       .then((b) => {
         setBatch(b);
         setActiveTab(STATUS_TO_TAB[b.status] ?? 'planning');
+        setActiveTab(saved?.activeTab ?? STATUS_TO_TAB[b.status] ?? 'planning');
         setFormData(projectFormData(b));
         syncInputStringsFromBatch(b);
       })
       .catch((err: unknown) => setError(err instanceof ApiClientError ? err.message : 'Failed to load batch.'));
   }, [batchId]);
+
+  useEffect(() => {
+    if (!batchId) return;
+    const hasAnyProgress =
+      brewDayActiveStageIndex > 0 ||
+      brewDaySelectedMashStepIndex > 0 ||
+      brewDayRunning ||
+      Object.keys(brewDayRemainingByKey).length > 0 ||
+      brewDayCheckedItemIds.size > 0 ||
+      brewDayUserAddedIds.size > 0 ||
+      brewDayFiredBoilAlarms.size > 0;
+
+    if (hasAnyProgress) {
+      saveBrewDayState(batchId, {
+        activeStageIndex: brewDayActiveStageIndex,
+        selectedMashStepIndex: brewDaySelectedMashStepIndex,
+        remainingByKey: brewDayRemainingByKey,
+        targetEndByKey: brewDayTargetEndByKey,
+        running: brewDayRunning,
+        checkedItemIds: Array.from(brewDayCheckedItemIds),
+        userAddedIds: Array.from(brewDayUserAddedIds),
+        firedBoilAlarms: Array.from(brewDayFiredBoilAlarms),
+        savedAt: Date.now(),
+      });
+    }
+    saveBrewDayState(batchId, {
+      activeTab,
+      activeStageIndex: brewDayActiveStageIndex,
+      selectedMashStepIndex: brewDaySelectedMashStepIndex,
+      remainingByKey: brewDayRemainingByKey,
+      targetEndByKey: brewDayTargetEndByKey,
+      running: brewDayRunning,
+      checkedItemIds: Array.from(brewDayCheckedItemIds),
+      userAddedIds: Array.from(brewDayUserAddedIds),
+      firedBoilAlarms: Array.from(brewDayFiredBoilAlarms),
+      savedAt: Date.now(),
+    });
+  }, [
+    batchId,
+    activeTab,
+    brewDayActiveStageIndex,
+    brewDaySelectedMashStepIndex,
+    brewDayRemainingByKey,
+    brewDayTargetEndByKey,
+    brewDayRunning,
+    brewDayCheckedItemIds,
+    brewDayUserAddedIds,
+    brewDayFiredBoilAlarms,
+  ]);
 
   // M5.5_P5: formData is populated from the load path (not only while
   // editing) and stays non-null for the entire lifetime of a loaded batch.
@@ -789,9 +890,9 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
   };
 
   const statusBadge = (
-    <span data-testid="batch-status-badge" className={`${STATUS_BADGE_WRAPPER_CLASS} ${STATUS_BADGE_CLASS[batch.status]}`}>
+    <Badge data-testid="batch-status-badge" variant={batch.status}>
       {batch.status}
-    </span>
+    </Badge>
   );
 
   const latestReading = batch.readings.length > 0 ? batch.readings[batch.readings.length - 1] : null;
@@ -1214,9 +1315,9 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
                         <h4 className="text-sm font-bold text-emerald-200">
                           Specific Gravity is Stable (FG Ready)
                         </h4>
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-900 text-emerald-300 border border-emerald-700">
+                        <Badge variant="success" size="sm" className="font-semibold">
                           ΔSG ≤ 0.001 ({fgStability.elapsedHours}h)
-                        </span>
+                        </Badge>
                       </div>
                       <p className="text-xs text-emerald-400/90 mt-0.5">
                         Latest reading {fgStability.latestSg?.toFixed(3)} matches prior reading {fgStability.priorSg?.toFixed(3)}. Ready for cold crash, packaging, or conditioning.

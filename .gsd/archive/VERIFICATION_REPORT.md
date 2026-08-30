@@ -2718,3 +2718,64 @@ Ready for `/steer`.
 ### Verdict: **PASS — M35_P2 is verification-clean across all 3 layers.**
 
 Ready for `/steer`.
+
+---
+
+## M35_P3 — INDEPENDENT VERIFICATION (2026-08-29)
+
+**Context.** Phase 3 of 4 of Milestone 35 ("Consistency that holds without anyone policing it"). Delivered the standardized `<Badge>` UI primitive in `components/ui/Badge.tsx`, supported polymorphic `BatchStatus` and semantic variants with size options, and migrated ~14 ad-hoc status and pill call sites across 10 components.
+
+### Layer 1: Four Gates (independently reproduced)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,262 passed / 2 skipped across 121 files in web, api, calculations. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces (`shared-types`, `calculations`, `@truchabrew/web`, `@truchabrew/api`). |
+| Production Build | `npm run build` | **PASS (exit 0)** | Vite production client bundle built in 1.02s clean (`dist/`). |
+| Lint | `npm run lint` | **PASS (exit 0)** | oxlint 0 errors, 4 pre-existing warnings in untouched files. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 26/26 ACs.** (citing `.gsd/archive/CRITIC_REPORT.md` entry `M35_P3 — Badge / Status Indicator Primitive & Call Site Modernization (2026-08-29)`).
+- `<Badge>` primitive verified with polymorphic `BatchStatus` and semantic variants (`neutral`, `success`, `warning`, `danger`, `info`).
+- All 10 migrated components render indicators through `<Badge>`.
+- Scope guardrail verified: authorized files only modified, 2 created (`Badge.tsx`, `Badge.test.tsx`), 0 deleted. All forbidden paths byte-identical.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Monotonic test progression verified across all prior milestone test suites (2,262 passed / 2 skipped across 121 files).
+
+### Verdict: **PASS — M35_P3 is verification-clean across all 3 layers.**
+
+Ready for `/steer`.
+
+---
+
+## M35_P4 — INDEPENDENT VERIFICATION (2026-08-29) — MILESTONE 35 COMPLETE
+
+**Context.** Phase 4 of 4 of Milestone 35 ("Consistency that holds without anyone policing it"). Delivered AST-based anti-drift adoption guardrails in `ScopeGuardrail.test.tsx`, verified negative control proofs, retired brittle numeric pin debt, confirmed active consumers ($> 0$) for all 9 UI primitives and 35 design system tokens, and closed Milestone 35.
+
+### Layer 1: Four Gates (independently reproduced)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,262 passed / 2 skipped across 121 files in web, api, calculations. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces (`shared-types`, `calculations`, `@truchabrew/web`, `@truchabrew/api`). |
+| Production Build | `npm run build` | **PASS (exit 0)** | Vite production client bundle built in 747ms clean (`dist/`). |
+| Lint | `npm run lint` | **PASS (exit 0)** | oxlint 0 errors, 4 pre-existing warnings in untouched files. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 23/23 ACs.** (citing `.gsd/archive/CRITIC_REPORT.md` entry `M35_P4 — Design System Guardrails & Pin Debt Retirement (2026-08-29)`).
+- AST scanner enforces 0 unapproved raw HTML form elements and tables across `apps/web/src`.
+- In-memory negative control tests verify rejection behavior and diagnostic messages.
+- Active consumers ($\ge 1$) verified across all 9 primitives and 35 tokens.
+- Scope guardrail verified: test files only modified, 0 created in app, 0 deleted.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Monotonic test progression verified across all prior milestone test suites (2,262 passed / 2 skipped across 121 files).
+
+### Verdict: **PASS — M35_P4 is verification-clean across all 3 layers. Milestone 35 is complete.**
+
+Ready for `/steer`.

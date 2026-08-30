@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
-import { FormField, Input, Select, Button, NumberInput, Table, TableHeaderCell, TableCell } from '../src/components/ui';
+import { FormField, Input, Select, Button, NumberInput, Table, TableHeaderCell, TableCell, Badge } from '../src/components/ui';
 import type { NumberInputWidth as UiNumberInputWidth } from '../src/components/ui';
 import type { NumberInputWidth as DirectNumberInputWidth } from '../src/components/ui/NumberInput';
 import {
@@ -2064,6 +2064,85 @@ describe('M35_P2: the 10-table migration — TableCell axes, per-file adoption, 
         />,
       );
       expect(container.querySelectorAll('table').length).toBe(0);
+    });
+  });
+
+  describe('M35_P3: Badge UI Primitive & Static Sweeps (AC-1, AC-16)', () => {
+    it('AC-1: exports Badge component from ui/index.ts', () => {
+      expect(typeof Badge).toBe('function');
+    });
+
+    it('AC-16: static sweep — all 10 migrated components import and use Badge', () => {
+      const componentsDir = path.resolve(__dirname, '../src/components');
+      const pagesDir = path.resolve(__dirname, '../src/pages');
+
+      const filesToCheck = [
+        path.join(pagesDir, 'BatchList.tsx'),
+        path.join(pagesDir, 'BatchDetail.tsx'),
+        path.join(componentsDir, 'CellarActionFeed.tsx'),
+        path.join(componentsDir, 'InventoryManager.tsx'),
+        path.join(componentsDir, 'WaterProfileManager.tsx'),
+        path.join(componentsDir, 'BrewDayTracker.tsx'),
+        path.join(componentsDir, 'RecipeImportModal.tsx'),
+        path.join(componentsDir, 'SensoryEvaluationPanel.tsx'),
+        path.join(componentsDir, 'SplitPackagingPanel.tsx'),
+        path.join(componentsDir, 'WaterCalculatorModal.tsx'),
+      ];
+
+      for (const filePath of filesToCheck) {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        expect(content).toMatch(/<Badge\b/);
+      }
+    });
+  });
+
+  describe('M35_P4 AC-10: consumers > 0 for all UI primitives', () => {
+    it('every export in components/ui/index.ts has at least 1 consumer in apps/web/src outside components/ui/', () => {
+      const srcDir = path.resolve(__dirname, '../src');
+      function walk(dir: string): string[] {
+        return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) return walk(full);
+          if (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) return [full];
+          return [];
+        });
+      }
+
+      const allSrcFiles = walk(srcDir);
+      const allContents = allSrcFiles.map((file) => ({
+        file,
+        content: fs.readFileSync(file, 'utf-8'),
+      }));
+
+      const primitives = [
+        'FormField',
+        'Input',
+        'NumberInput',
+        'Select',
+        'Button',
+        'Table',
+        'TableHeaderCell',
+        'TableCell',
+        'Badge',
+      ];
+
+      const unconsumed: string[] = [];
+
+      for (const prim of primitives) {
+        let count = 0;
+        for (const { file, content } of allContents) {
+          if (file.includes('components/ui/')) continue;
+          const pattern = new RegExp(`\\b${prim}\\b`);
+          if (pattern.test(content)) {
+            count++;
+          }
+        }
+        if (count === 0) {
+          unconsumed.push(prim);
+        }
+      }
+
+      expect(unconsumed).toEqual([]);
     });
   });
 });

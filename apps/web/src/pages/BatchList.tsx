@@ -4,9 +4,8 @@ import { listBatches, ApiClientError } from '../api/client';
 import { TopBar } from '../components/TopBar';
 import { PageContainer } from '../components/PageContainer';
 import { ListRow, LIST_CONTAINER_CLASS } from '../components/ListRow';
+import { Badge } from '../components/ui';
 import {
-  STATUS_BADGE_CLASS,
-  STATUS_BADGE_WRAPPER_CLASS,
   EMPTY_STATE_CLASS,
   LOADING_STATE_CLASS,
   ERROR_STATE_CLASS,
@@ -82,9 +81,9 @@ export function BatchList({ onViewBatch, onOpenMobileNav }: BatchListProps) {
                 primary={batch.name}
                 meta={<span>Recipe: {batch.recipeSnapshot.name}</span>}
                 trailing={
-                  <p className={`${STATUS_BADGE_WRAPPER_CLASS} ${STATUS_BADGE_CLASS[batch.status]}`}>
+                  <Badge variant={batch.status}>
                     {batch.status}
-                  </p>
+                  </Badge>
                 }
               />
             ))}

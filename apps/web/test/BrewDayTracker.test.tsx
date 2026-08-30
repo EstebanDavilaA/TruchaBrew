@@ -448,3 +448,14 @@ describe('M18_P1 AC-41: hopstand temperature reads the equipment profile', () =>
     expect(screen.getByTestId('brew-day-guidance').textContent).toContain('79');
   });
 });
+
+describe('Brewing Controls: full-width responsive layout', () => {
+  it('renders timer controls in a full-width responsive container with justified action buttons', () => {
+    renderTracker();
+    fireEvent.click(screen.getByTestId('brew-day-stage-mash'));
+    const playBtn = screen.getByTestId('brew-day-play-btn');
+    const container = playBtn.parentElement;
+    expect(container).toHaveClass('w-full', 'flex-wrap');
+    expect(playBtn).toHaveClass('w-full', 'justify-center');
+  });
+});
