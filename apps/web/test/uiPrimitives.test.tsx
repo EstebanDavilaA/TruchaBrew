@@ -2096,6 +2096,50 @@ describe('M35_P2: the 10-table migration — TableCell axes, per-file adoption, 
     });
   });
 
+  describe('M36_P1 AC-17: Database Backup & Export card uses only components/ui/ primitives', () => {
+    const COMPONENTS_DIR = path.resolve(__dirname, '../src/components');
+
+    function backupCardSection(content: string): string {
+      const start = content.indexOf('data-testid="settings-backup-section"');
+      expect(start, 'settings-backup-section not found in SettingsManager.tsx').toBeGreaterThan(-1);
+      // The card is the last section in the settings grid (M22_P1/M36_P1
+      // ordering) — slicing to the closing `</div>\n          </div>\n        )}`
+      // of the ready-state wrapper is brittle, so instead this takes a
+      // generous fixed-size window from the testid forward, comfortably
+      // larger than the card's own markup, and relies on the whole-file
+      // sweep below to catch anything a narrower window might miss.
+      return content.slice(start, start + 2000);
+    }
+
+    it('renders zero raw <button>, <select>, or text/number <input> elements inside the backup card', () => {
+      const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'SettingsManager.tsx'), 'utf-8');
+      const cardMarkup = backupCardSection(content);
+      const cleanCard = cardMarkup.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+      expect(cleanCard.match(/<button\b/g) || []).toEqual([]);
+      expect(cleanCard.match(/<select\b/g) || []).toEqual([]);
+      expect(cleanCard.match(/<input\b[^>]*type=["'](?:text|number)["']/g) || []).toEqual([]);
+    });
+
+    it('the export trigger is built from the Button primitive with the expected props', () => {
+      const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'SettingsManager.tsx'), 'utf-8');
+      expect(content).toMatch(/import\s*\{[^}]*\bButton\b[^}]*\}\s*from\s*['"]\.\/ui['"]/);
+      expect(content).toMatch(
+        /<Button\s+variant="primary"\s+size="sm"[\s\S]*?data-testid="settings-export-backup-btn"/,
+      );
+    });
+
+    it('zero raw buttons, selects, or text/number inputs across the whole of SettingsManager.tsx (whole-file regression, supersedes the M34_P5 AC-9..12 sweep)', () => {
+      const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'SettingsManager.tsx'), 'utf-8');
+      const clean = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+      const buttons = clean.match(/<button\b/g) || [];
+      const selects = clean.match(/<select\b/g) || [];
+      const inputs = (clean.match(/<input\b[^>]*>/g) || []).filter((i) => !/type=["'](checkbox|radio|file|range)["']/.test(i));
+      expect(buttons).toEqual([]);
+      expect(selects).toEqual([]);
+      expect(inputs).toEqual([]);
+    });
+  });
+
   describe('M35_P4 AC-10: consumers > 0 for all UI primitives', () => {
     it('every export in components/ui/index.ts has at least 1 consumer in apps/web/src outside components/ui/', () => {
       const srcDir = path.resolve(__dirname, '../src');
@@ -2143,6 +2187,39 @@ describe('M35_P2: the 10-table migration — TableCell axes, per-file adoption, 
       }
 
       expect(unconsumed).toEqual([]);
+    });
+  });
+
+  describe('M36_P2 AC-19: BackupRestoreModal and the Settings restore dropzone use only components/ui/ primitives', () => {
+    const COMPONENTS_DIR = path.resolve(__dirname, '../src/components');
+
+    function rawControlsM36(content: string) {
+      const clean = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+      const buttons = clean.match(/<button\b[^>]*>/g) || [];
+      const selects = clean.match(/<select\b[^>]*>/g) || [];
+      // The dropzone's own hidden <input type="file"> is RA-4's established
+      // exemption (native file inputs are never abstracted by ui/) — same
+      // precedent as the M22_P1 recipe-import dropzone's own file input.
+      const inputs = (clean.match(/<input\b[^>]*>/g) || []).filter((el) => !/type=["']file["']/.test(el));
+      return { buttons, selects, inputs };
+    }
+
+    it('zero raw buttons, selects, or non-file inputs in BackupRestoreModal.tsx', () => {
+      const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'BackupRestoreModal.tsx'), 'utf-8');
+      const { buttons, selects, inputs } = rawControlsM36(content);
+      expect(buttons).toEqual([]);
+      expect(selects).toEqual([]);
+      expect(inputs).toEqual([]);
+      expect(content).toMatch(/import\s*\{[^}]*\bButton\b[^}]*\bBadge\b[^}]*\}\s*from\s*'\.\/ui'/);
+    });
+
+    it('SettingsManager.tsx still has zero raw buttons/selects/non-file text-inputs after the M36_P2 restore dropzone addition', () => {
+      const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'SettingsManager.tsx'), 'utf-8');
+      const { buttons, selects, inputs } = rawControlsM36(content);
+      expect(buttons).toEqual([]);
+      expect(selects).toEqual([]);
+      expect(inputs).toEqual([]);
+      expect(content).toMatch(/import\s*\{\s*BackupRestoreModal\s*\}\s*from\s*'\.\/BackupRestoreModal'/);
     });
   });
 });

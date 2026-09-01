@@ -30,6 +30,9 @@ import type {
   BatchCostBreakdown,
   CheckoffWriteInput,
   Recipe,
+  DatabaseBackup,
+  RestoreRequest,
+  RestoreSummary,
 } from '@truchabrew/shared-types';
 
 export class ApiClientError extends Error {
@@ -325,6 +328,54 @@ export function updateBatchRecipeSnapshot(batchId: string, recipeSnapshot: Recip
   return request<BatchWithReadings>(`/api/batches/${batchId}/recipe-snapshot`, {
     method: 'PUT',
     body: JSON.stringify({ recipeSnapshot, syncToMasterRecipe }),
+  });
+}
+
+// NEW in M36_P1 — full-database JSON backup export (spec §1.3).
+
+export function exportDatabaseBackup(): Promise<DatabaseBackup> {
+  return request<DatabaseBackup>('/api/backup/export');
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+/** `truchabrew_backup_YYYY-MM-DD.json`, UTC-dated — mirrors the server's own filename format (AC-15). */
+function backupFilename(now: Date): string {
+  return `truchabrew_backup_${now.getUTCFullYear()}-${pad2(now.getUTCMonth() + 1)}-${pad2(now.getUTCDate())}.json`;
+}
+
+/**
+ * Triggers a browser file download of the full-database backup (RA-3):
+ * fetches the payload, wraps it in an ephemeral object URL, and clicks a
+ * hidden anchor with a `download` attribute — revoking the URL immediately
+ * after the click is dispatched, since the download itself is asynchronous
+ * from the browser's perspective but the anchor/URL are no longer needed
+ * once the click has fired.
+ */
+export async function downloadDatabaseBackup(): Promise<void> {
+  const backup = await exportDatabaseBackup();
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = backupFilename(new Date());
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+
+  URL.revokeObjectURL(url);
+}
+
+// NEW in M36_P2 — full-database JSON restore (spec §1.3 / RA-2).
+
+export function restoreDatabaseBackup(req: RestoreRequest): Promise<RestoreSummary> {
+  return request<RestoreSummary>('/api/backup/restore', {
+    method: 'POST',
+    body: JSON.stringify(req),
   });
 }
 

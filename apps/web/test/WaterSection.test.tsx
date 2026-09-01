@@ -150,7 +150,8 @@ describe('M21_P1 AC-2..AC-10: WaterCalculatorModal Interactive Features', () => 
 
     expect(screen.getByLabelText('Source Profile')).toHaveValue('wp-src-tap');
     expect(screen.getByLabelText('Target Profile')).toHaveValue('wp-tgt-hoppy');
-    expect(screen.getByText(/SO₄²⁻ : Cl⁻ Ratio:/)).toBeInTheDocument();
+    // M37_P2: the SO4:Cl ratio now renders as a badge with the water-calc-so4-cl-ratio testid.
+    expect(screen.getByTestId('water-calc-so4-cl-ratio')).toBeInTheDocument();
   });
 
   it('AC-7 & AC-8: clicking AUTO populates mineral salt additions to match target profile', () => {
@@ -170,7 +171,7 @@ describe('M21_P1 AC-2..AC-10: WaterCalculatorModal Interactive Features', () => 
       />
     );
 
-    const autoBtn = screen.getByTestId('water-auto-btn');
+    const autoBtn = screen.getByTestId('water-calc-auto-dose-btn');
     expect(autoBtn).not.toBeDisabled();
     fireEvent.click(autoBtn);
 
@@ -206,7 +207,7 @@ describe('M21_P1 AC-2..AC-10: WaterCalculatorModal Interactive Features', () => 
     fireEvent.change(screen.getByLabelText('Mash Acid Dosage'), { target: { value: '3.5' } });
 
     // Click Save
-    const saveBtn = screen.getByTestId('save-water-adjustments-btn');
+    const saveBtn = screen.getByTestId('water-calc-save-btn');
     fireEvent.click(saveBtn);
 
     expect(onSaveAdjustments).toHaveBeenCalledTimes(1);
@@ -255,7 +256,7 @@ describe('M21_P1 AC-2..AC-10: WaterCalculatorModal Interactive Features', () => 
     fireEvent.change(screen.getByLabelText('Mash Gypsum'), { target: { value: '5.0' } });
     expect((screen.getByLabelText('Mash Gypsum') as HTMLInputElement).value).toBe('5.0');
 
-    fireEvent.click(screen.getByTestId('water-reset-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-reset-btn'));
     expect((screen.getByLabelText('Mash Gypsum') as HTMLInputElement).value).toBe('');
   });
 });

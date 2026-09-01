@@ -5,6 +5,7 @@
  */
 import type { FermentableItem, WaterProfile, AcidAdditionResult } from '@truchabrew/shared-types';
 import type { MiscItem } from '@truchabrew/shared-types';
+import { optimizeWaterProfile } from './waterOptimization';
 
 // ---------------------------------------------------------------------------
 // Ion contribution constants (per gram per litre of water)
@@ -156,93 +157,19 @@ export function predictMashPh(
 /**
  * Auto-suggest salt additions to bridge source-to-target ion deltas.
  *
- * Greedy priority (M6_P1 spec, Resolved Ambiguities §3):
- * 1. Calcium Chloride for Cl⁻
- * 2. Gypsum for SO₄²⁻
- * 3. Epsom Salt for Mg²⁺
- * 4. Baking Soda for HCO₃⁻
- * 5. Table Salt for Na⁺
- *
- * All amounts are non-negative (max(0, grams)).
+ * M37_P1: delegates to the bounded multi-ion least-squares solver
+ * (`waterOptimization.ts`), which simultaneously balances all six ions and
+ * replaces the old sequential greedy fixed-order heuristic that overshot
+ * ions later in the priority chain (BUG-024). Signature and return shape are
+ * unchanged (AC-15) — an array of `{ saltName, amountGrams }` in canonical
+ * salt order, all amounts non-negative and rounded to 2 decimal places.
  */
 export function suggestSaltAdditions(
   source: WaterProfile | null,
   target: WaterProfile | null,
   waterVolumeL: number,
 ): { saltName: string; amountGrams: number }[] {
-  if (!target || waterVolumeL <= 0) {
-    return SALT_CONTRIBUTIONS.map((s) => ({ saltName: s.name, amountGrams: 0 }));
-  }
-
-  const src: IonConcentrations = {
-    calcium: source?.calcium ?? 0,
-    magnesium: source?.magnesium ?? 0,
-    sodium: source?.sodium ?? 0,
-    chloride: source?.chloride ?? 0,
-    sulfate: source?.sulfate ?? 0,
-    bicarbonate: source?.bicarbonate ?? 0,
-  };
-
-  // Track running ion deltas — each salt addition may contribute to multiple ions
-  const deltas: IonConcentrations = {
-    calcium: target.calcium - src.calcium,
-    magnesium: target.magnesium - src.magnesium,
-    sodium: target.sodium - src.sodium,
-    chloride: target.chloride - src.chloride,
-    sulfate: target.sulfate - src.sulfate,
-    bicarbonate: target.bicarbonate - src.bicarbonate,
-  };
-
-  const results: { saltName: string; amountGrams: number }[] = [];
-
-  // Helper: compute grams of a salt to close a specific ion delta
-  function gramsForDelta(deltaPpm: number, ppmPerGPerL: number): number {
-    if (ppmPerGPerL <= 0 || deltaPpm <= 0) return 0;
-    return (deltaPpm / ppmPerGPerL) * waterVolumeL;
-  }
-
-  // Helper: subtract the contributions of `grams` of salt from remaining deltas
-  function applyContributions(salt: SaltContribution, grams: number) {
-    const gramsPerL = grams / waterVolumeL;
-    deltas.calcium -= salt.calcium * gramsPerL;
-    deltas.magnesium -= salt.magnesium * gramsPerL;
-    deltas.sodium -= salt.sodium * gramsPerL;
-    deltas.chloride -= salt.chloride * gramsPerL;
-    deltas.sulfate -= salt.sulfate * gramsPerL;
-    deltas.bicarbonate -= salt.bicarbonate * gramsPerL;
-  }
-
-  // 1. Calcium Chloride for Cl⁻
-  const cacl2 = SALT_CONTRIBUTIONS.find((s) => s.name === 'Calcium Chloride')!;
-  const cacl2Grams = Math.max(0, gramsForDelta(deltas.chloride, cacl2.chloride));
-  applyContributions(cacl2, cacl2Grams);
-  results.push({ saltName: cacl2.name, amountGrams: Math.round(cacl2Grams * 100) / 100 });
-
-  // 2. Gypsum for SO₄²⁻
-  const gypsum = SALT_CONTRIBUTIONS.find((s) => s.name === 'Gypsum')!;
-  const gypsumGrams = Math.max(0, gramsForDelta(deltas.sulfate, gypsum.sulfate));
-  applyContributions(gypsum, gypsumGrams);
-  results.push({ saltName: gypsum.name, amountGrams: Math.round(gypsumGrams * 100) / 100 });
-
-  // 3. Epsom Salt for Mg²⁺
-  const epsom = SALT_CONTRIBUTIONS.find((s) => s.name === 'Epsom Salt')!;
-  const epsomGrams = Math.max(0, gramsForDelta(deltas.magnesium, epsom.magnesium));
-  applyContributions(epsom, epsomGrams);
-  results.push({ saltName: epsom.name, amountGrams: Math.round(epsomGrams * 100) / 100 });
-
-  // 4. Baking Soda for HCO₃⁻
-  const bakingSoda = SALT_CONTRIBUTIONS.find((s) => s.name === 'Baking Soda')!;
-  const bakingSodaGrams = Math.max(0, gramsForDelta(deltas.bicarbonate, bakingSoda.bicarbonate));
-  applyContributions(bakingSoda, bakingSodaGrams);
-  results.push({ saltName: bakingSoda.name, amountGrams: Math.round(bakingSodaGrams * 100) / 100 });
-
-  // 5. Table Salt for Na⁺
-  const tableSalt = SALT_CONTRIBUTIONS.find((s) => s.name === 'Table Salt')!;
-  const tableSaltGrams = Math.max(0, gramsForDelta(deltas.sodium, tableSalt.sodium));
-  applyContributions(tableSalt, tableSaltGrams);
-  results.push({ saltName: tableSalt.name, amountGrams: Math.round(tableSaltGrams * 100) / 100 });
-
-  return results;
+  return optimizeWaterProfile(source, target, waterVolumeL).salts;
 }
 
 // ---------------------------------------------------------------------------

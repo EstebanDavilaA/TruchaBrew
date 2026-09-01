@@ -559,6 +559,46 @@ Three specific orderings are deliberate: the **calculators hub goes first** beca
 
 ---
 
+
+---
+
+### Milestone 36: Full JSON Database Backup, Restore & Data Portability — COMPLETE (2026-08-31)
+- **User-visible outcome:** Brewers can download a single-file JSON backup of their entire brewing database (recipes, batches, equipment profiles, mash/fermentation/water profiles, inventory items, and user settings) and restore or migrate it on any machine with validation and conflict resolution.
+- **Builds on:** Milestone 35 (clean unified database schema and Living Design System forms).
+- **Estimated phases:** 2
+  - **P1 — Full-Database JSON Export & Download.** Fastify endpoint `GET /api/backup/export` bundling all tables into a versioned payload (`schemaVersion: 1`, timestamp, entity arrays) + client API wrapper and download helper + dedicated "Database Backup & Export" card in `SettingsManager.tsx` with a single-click download trigger. ~4 files.
+  - **P2 — Database Restore, Validation & Conflict Resolution.** Fastify endpoint `POST /api/backup/restore` supporting `replace` and `merge` modes + drag-and-drop JSON restore dropzone in `SettingsManager.tsx` + pre-flight validation modal previewing entity counts before committing. ~5 files.
+
+---
+
+### Milestone 37: Multi-Ion Water Chemistry Solver & Target Tuning
+- **User-visible outcome:** Clicking "AUTO" in the Water Chemistry Calculator produces mathematically optimal salt doses that balance Sulfate ($SO_4^{2-}$), Chloride ($Cl^-$), Calcium ($Ca^{2+}$), Magnesium ($Mg^{2+}$), and Sodium ($Na^+$) against target water profiles without overshooting Calcium or producing impossible mineral ratios (`BUG-024`).
+- **Builds on:** Milestone 36.
+- **Estimated phases:** 2
+  - **P1 — Bounded Multi-Ion Least-Squares Solver.** Pure linear solver / bounded optimizer in `packages/calculations/src/water.ts` replacing the sequential greedy heuristic in `suggestSaltAdditions`, accounting for dual-ion contributions ($CaCl_2$, $CaSO_4$, $MgSO_4$, $NaCl$, $NaHCO_3$) with penalty weighting. ~3 files.
+  - **P2 — Water Calculator Modal Integration & Target Balance Gauge.** Integrates the new solver into `WaterCalculatorModal.tsx`, adds visual in-range / delta match chips using `<Badge>`, and provides a 1-click "Apply Optimized Dosing" action. ~3 files.
+
+---
+
+### Milestone 38: Recipe Folders, Tags & BJCP 2021 Style Targets
+- **User-visible outcome:** Brewers can organize large recipe libraries into custom folders and tags, while viewing real-time BJCP style guideline comparison gauges (OG, FG, ABV, IBU, SRM color) directly inside the Recipe Designer and Recipe Library.
+- **Builds on:** Milestone 37.
+- **Estimated phases:** 3
+  - **P1 — Recipe Folders & Tag Taxonomy.** Schema migration adding `folder` and `tags` to `recipes` + API CRUD updates + folder filter sidebar/pill strip and tag search in `RecipeLibrary.tsx`. ~5 files.
+  - **P2 — BJCP 2021 Style Guide Dataset & Evaluator.** Comprehensive typed dataset of BJCP 2021 beer styles in `packages/calculations/src/bjcp/` with `evaluateStyleMatch` function. ~4 files.
+  - **P3 — Real-Time Style Target Gauges in Recipe Designer.** Style selector and visual in-range comparison gauges for vitals in `RecipeEditor.tsx` / `StatsHeader.tsx`. ~4 files.
+
+---
+
+### Milestone 39: Form Sectioning, Sticky Navigation & Contextual Field Captions
+- **User-visible outcome:** Complex data entry forms (Recipe Editor, Equipment Form, Water Profile Form, Settings) gain clean accordion section cards, sticky jump navigation bars for instant section focus, and helpful brewing guidance captions under inputs (`FEAT-005`).
+- **Builds on:** Milestone 38.
+- **Estimated phases:** 3
+  - **P1 — `SectionCard` & Sticky Jump-Nav Primitives.** `SectionCard.tsx` and `StickyJumpNav.tsx` in `components/ui/` with collapsible headers, status badges, and sub-card dividers. ~4 files.
+  - **P2 — Recipe Editor & Equipment Form Sectioning.** Overhauls `RecipeEditor.tsx` and `EquipmentForm.tsx` into categorized groups with descriptive helper captions. ~4 files.
+  - **P3 — Water, Mash & Fermentation Profile Form Sectioning.** Completes sectioning across `WaterProfileForm.tsx`, `MashProfileForm.tsx`, and `FermentationProfileForm.tsx`. ~4 files.
+
+
 ## Deferred / not scheduled
 
 Real spec scope, intentionally unplaced rather than padded into thin milestones — to be slotted at a future `/steer`:

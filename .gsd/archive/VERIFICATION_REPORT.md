@@ -2779,3 +2779,96 @@ Ready for `/steer`.
 ### Verdict: **PASS — M35_P4 is verification-clean across all 3 layers. Milestone 35 is complete.**
 
 Ready for `/steer`.
+
+---
+
+## M36_P1 — INDEPENDENT VERIFICATION (2026-08-31)
+
+**Context.** Phase 1 of 2 of Milestone 36 ("Full JSON Database Backup, Restore & Data Portability"). Implemented full-database JSON export with `DatabaseBackup` schema version 1 payload encompassing all 8 entity families, Fastify endpoint `GET /api/backup/export`, client download helpers, and a dedicated "Database Backup & Export" settings card.
+
+### Layer 1: Four Gates (independently reproduced)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,317 passed / 2 skipped across 123 files in web, api, calculations. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces (`shared-types`, `calculations`, `@truchabrew/web`, `@truchabrew/api`). |
+| Production Build | `npm run build` | **PASS (exit 0)** | Vite production client bundle built in 1.37s clean (`dist/`). |
+| Lint | `npm run lint` | **PASS (exit 0)** | oxlint 0 errors, 4 pre-existing warnings in untouched files. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 22/22 ACs.** (citing `.gsd/archive/CRITIC_REPORT.md` entry `M36_P1 — Full-Database JSON Export & Download (2026-08-31)`).
+- `DatabaseBackup` schema and Fastify endpoint `GET /api/backup/export` verified with 100% entity serialization integrity.
+- Read-only safety verified.
+- SettingsManager export card renders with `<Button>` primitive and handles loading/error states cleanly.
+- Scope guardrail verified: authorized files only modified, 3 created in app, 0 deleted.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Monotonic test progression verified across all prior milestone test suites (2,317 passed / 2 skipped across 123 files).
+
+### Verdict: **PASS — M36_P1 is verification-clean across all 3 layers.**
+
+Ready for `/steer`.
+
+---
+
+## M36_P2 — INDEPENDENT VERIFICATION (2026-08-31) — MILESTONE 36 COMPLETE
+
+**Context.** Phase 2 of 2 of Milestone 36 ("Full JSON Database Backup, Restore & Data Portability"). Implemented transactional database restoration (`POST /api/backup/restore`) supporting both `replace` and `merge` conflict resolution modes, pre-flight schema validation, drag-and-drop file upload in `SettingsManager.tsx`, `BackupRestoreModal.tsx` confirmation dialog with entity count previews, and milestone closure.
+
+### Layer 1: Four Gates (independently reproduced)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,355 passed / 2 skipped across 125 files in web, api, calculations. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces (`shared-types`, `calculations`, `@truchabrew/web`, `@truchabrew/api`). |
+| Production Build | `npm run build` | **PASS (exit 0)** | Vite production client bundle built in 817ms clean (`dist/`). |
+| Lint | `npm run lint` | **PASS (exit 0)** | oxlint 0 errors, 4 pre-existing warnings in untouched files. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 24/24 ACs.** (citing `.gsd/archive/CRITIC_REPORT.md` entry `M36_P2 — Database JSON Restore, Validation & Conflict Resolution (2026-08-31)`).
+- `POST /api/backup/restore` transactionality and rollback on error verified.
+- Reverse FK dependency order for replace mode and UUID remapping for merge mode verified.
+- `BackupRestoreModal.tsx` and drag-and-drop dropzone verified with zero raw HTML primitive violations.
+- Scope guardrail verified: authorized files only modified, 3 created in app (`BackupRestoreModal.tsx`, `backup.restore.test.ts`, `BackupRestoreModal.test.tsx`), 0 deleted.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Monotonic test progression verified across all prior milestone test suites (2,355 passed / 2 skipped across 125 files).
+
+### Verdict: **PASS — M36_P2 is verification-clean across all 3 layers. Milestone 36 is complete.**
+
+Ready for `/steer`.
+
+---
+
+## M37_P1 — INDEPENDENT VERIFICATION (2026-08-31)
+
+**Context.** Phase 1 of 2 of Milestone 37 ("Multi-Ion Water Chemistry Solver & Target Tuning"). Implemented bounded non-negative least-squares multi-ion water optimization in `packages/calculations/src/waterOptimization.ts`, refactored `suggestSaltAdditions` to delegate to the optimizer, exported convergence metrics (`optimizeWaterProfile`), resolved `BUG-024`, and verified across 10 world-water profile fixtures.
+
+### Layer 1: Four Gates (independently reproduced)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,374 passed / 2 skipped across 126 files in web, api, calculations. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces (`shared-types`, `calculations`, `@truchabrew/web`, `@truchabrew/api`). |
+| Production Build | `npm run build` | **PASS (exit 0)** | Vite production client bundle built in 817ms clean (`dist/`). |
+| Lint | `npm run lint` | **PASS (exit 0)** | oxlint 0 errors, 4 pre-existing warnings in untouched files. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 20/20 ACs.** (citing `.gsd/archive/CRITIC_REPORT.md` entry `M37_P1 — Bounded Multi-Ion Least-Squares Solver (2026-08-31)`).
+- Bounded coordinate descent multi-ion optimizer verified.
+- `BUG-024` resolved with 0 Calcium overshoot on Balanced IPA fixture.
+- Non-negativity invariants ($g \ge 0$) and Sulfate-to-Chloride ratio preservation verified.
+- Scope guardrail verified: authorized files only modified, 0 created in web/api, 0 deleted.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Monotonic test progression verified across all prior milestone test suites (2,374 passed / 2 skipped across 126 files).
+
+### Verdict: **PASS — M37_P1 is verification-clean across all 3 layers.**
+
+Ready for `/steer`.

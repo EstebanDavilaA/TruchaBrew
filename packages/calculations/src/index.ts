@@ -10,6 +10,7 @@ export * from './carbonation';
 export * from './batchClosing';
 export * from './equipmentDriven';
 export * from './water';
+export * from './waterOptimization';
 export * from './hydrometry';
 export * from './pressure';
 export * from './yeast';

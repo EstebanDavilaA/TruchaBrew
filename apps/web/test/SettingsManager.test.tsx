@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import type { UserConfig } from '@truchabrew/shared-types';
+import type { UserConfig, DatabaseBackup } from '@truchabrew/shared-types';
 import { SettingsManager } from '../src/components/SettingsManager';
 import { ConfigProvider, useConfig } from '../src/context/ConfigContext';
 import { CARD_CLASS, SETTINGS_ROW_CLASS, LOADING_STATE_CLASS } from '../src/components/designSystem';
@@ -412,5 +412,240 @@ describe('AC-16 (M26_P1 Amendment 1): SettingsManager forwards onOpenMobileNav t
     renderSettings();
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
     expect(screen.queryByRole('button', { name: 'Open navigation menu' })).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M36_P1 — Database Backup & Export card (AC-13 through AC-16).
+// ---------------------------------------------------------------------------
+
+describe('M36_P1: Database Backup & Export card', () => {
+  const MOCK_BACKUP: DatabaseBackup = {
+    schemaVersion: 1,
+    exportedAt: '2026-08-30T12:00:00.000Z',
+    appVersion: '0.0.0',
+    data: {
+      recipes: [],
+      batches: [],
+      equipmentProfiles: [],
+      mashProfiles: [],
+      fermentationProfiles: [],
+      waterProfiles: [],
+      inventoryItems: [],
+      config: DEFAULT_CONFIG,
+    },
+  };
+
+  let anchorClickSpy: ReturnType<typeof vi.fn>;
+  // `document.createElement`'s overloaded signature does not collapse into a
+  // single MockInstance type — this spy is only ever read via `.mock.results`.
+  let createElementSpy: any;
+
+  beforeEach(() => {
+    // jsdom implements neither URL.createObjectURL/revokeObjectURL nor a
+    // real click-driven navigation for blob: URLs — both are stubbed so
+    // downloadDatabaseBackup()'s RA-3 mechanism can be exercised without
+    // jsdom's "not implemented" navigation warnings.
+    URL.createObjectURL = vi.fn(() => 'blob:mock-backup-url');
+    URL.revokeObjectURL = vi.fn();
+
+    anchorClickSpy = vi.fn();
+    const originalCreateElement = document.createElement.bind(document);
+    createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(((tagName: string, options?: ElementCreationOptions) => {
+      const el = originalCreateElement(tagName, options);
+      if (tagName === 'a') {
+        (el as HTMLAnchorElement).click = anchorClickSpy;
+      }
+      return el;
+    }) as typeof document.createElement);
+  });
+
+  afterEach(() => {
+    createElementSpy.mockRestore();
+  });
+
+  describe('AC-13: renders the Database Backup & Export card', () => {
+    it('applies CARD_CLASS and shows descriptive copy using BODY_TEXT_CLASS', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+
+      await waitFor(() => expect(screen.getByTestId('settings-backup-section')).toBeInTheDocument());
+      const section = screen.getByTestId('settings-backup-section');
+      expect(section.className).toBe(CARD_CLASS);
+      expect(screen.getByText('Database Backup & Export')).toBeInTheDocument();
+
+      const copy = Array.from(section.querySelectorAll('p')).find((p) => p.textContent?.includes('Download a complete JSON snapshot'));
+      expect(copy).toBeDefined();
+      expect(copy?.className).toContain('text-sm');
+      expect(copy?.className).toContain('text-slate-300');
+    });
+  });
+
+  describe('AC-14: export trigger is a Button primitive with the expected testid and shows a loading state', () => {
+    it('renders as <Button variant="primary" size="sm"> with data-testid="settings-export-backup-btn"', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+
+      await waitFor(() => expect(screen.getByTestId('settings-export-backup-btn')).toBeInTheDocument());
+      const btn = screen.getByTestId('settings-export-backup-btn');
+      expect(btn.tagName).toBe('BUTTON');
+      expect(btn).toHaveAttribute('type', 'button');
+      // primary variant
+      expect(btn).toHaveClass('bg-amber-600', 'hover:bg-amber-500', 'text-white');
+      // sm size
+      expect(btn).toHaveClass('text-xs', 'px-3', 'py-1.5');
+    });
+
+    it('disables the button and shows a loading label while the export is in flight, then clears it', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+      await waitFor(() => expect(screen.getByTestId('settings-export-backup-btn')).toBeInTheDocument());
+
+      let resolveExport: (value: Response) => void = () => {};
+      vi.mocked(fetch).mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          resolveExport = resolve;
+        }),
+      );
+
+      fireEvent.click(screen.getByTestId('settings-export-backup-btn'));
+
+      await waitFor(() => expect(screen.getByTestId('settings-export-backup-btn')).toBeDisabled());
+      expect(screen.getByText('Exporting…')).toBeInTheDocument();
+
+      resolveExport(jsonResponse(MOCK_BACKUP));
+
+      await waitFor(() => expect(screen.getByTestId('settings-export-backup-btn')).not.toBeDisabled());
+      expect(screen.getByText('Export Database Backup')).toBeInTheDocument();
+    });
+  });
+
+  describe('AC-15: download filename format', () => {
+    it('clicking the export button downloads a file named truchabrew_backup_YYYY-MM-DD.json', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+      await waitFor(() => expect(screen.getByTestId('settings-export-backup-btn')).toBeInTheDocument());
+
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(MOCK_BACKUP));
+
+      fireEvent.click(screen.getByTestId('settings-export-backup-btn'));
+
+      await waitFor(() => expect(anchorClickSpy).toHaveBeenCalledTimes(1));
+
+      const anchorResults = createElementSpy.mock.results.filter((r: { value: unknown }) => (r.value as HTMLElement).tagName === 'A');
+      const anchor = anchorResults[anchorResults.length - 1]?.value as HTMLAnchorElement;
+      expect(anchor.download).toMatch(/^truchabrew_backup_\d{4}-\d{2}-\d{2}\.json$/);
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-backup-url');
+    });
+  });
+
+  describe('AC-16: recoverable error banner on export failure', () => {
+    it('shows an error banner (not a crash) when the export API call fails, and the button remains usable', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+      await waitFor(() => expect(screen.getByTestId('settings-export-backup-btn')).toBeInTheDocument());
+
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: { code: 'INTERNAL', message: 'export failed' } }, 500));
+
+      fireEvent.click(screen.getByTestId('settings-export-backup-btn'));
+
+      await waitFor(() => expect(screen.getByTestId('settings-backup-export-error')).toBeInTheDocument());
+      expect(screen.getByText(/export failed/)).toBeInTheDocument();
+
+      // Recoverable: the rest of the page is intact and the button is
+      // enabled again, not a crashed/blank page.
+      expect(screen.getByTestId('settings-export-backup-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('settings-export-backup-btn')).not.toBeDisabled();
+      expect(anchorClickSpy).not.toHaveBeenCalled();
+    });
+
+    it('a subsequent successful export clears the error banner', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+      await waitFor(() => expect(screen.getByTestId('settings-export-backup-btn')).toBeInTheDocument());
+
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: { code: 'INTERNAL', message: 'export failed' } }, 500));
+      fireEvent.click(screen.getByTestId('settings-export-backup-btn'));
+      await waitFor(() => expect(screen.getByTestId('settings-backup-export-error')).toBeInTheDocument());
+
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(MOCK_BACKUP));
+      fireEvent.click(screen.getByTestId('settings-export-backup-btn'));
+
+      await waitFor(() => expect(screen.queryByTestId('settings-backup-export-error')).not.toBeInTheDocument());
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // M36_P2 — the restore dropzone (AC-13) and the modal it launches (AC-14).
+  // ---------------------------------------------------------------------------
+
+  function dropFile(dropzone: HTMLElement, content: string, name = 'truchabrew_backup_2026-08-30.json') {
+    const file = new File([content], name, { type: 'application/json' });
+    Object.defineProperty(file, 'text', { value: () => Promise.resolve(content) });
+    fireEvent.drop(dropzone, { dataTransfer: { files: [file] } });
+  }
+
+  describe('AC-13: renders the restore dropzone', () => {
+    it('renders a drag-and-drop zone with data-testid="settings-restore-dropzone" inside the backup section', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+
+      await waitFor(() => expect(screen.getByTestId('settings-backup-section')).toBeInTheDocument());
+      const section = screen.getByTestId('settings-backup-section');
+      const dropzone = screen.getByTestId('settings-restore-dropzone');
+      expect(section.contains(dropzone)).toBe(true);
+      // The Export card (M36_P1) is undisturbed — its own button is still there too.
+      expect(screen.getByTestId('settings-export-backup-btn')).toBeInTheDocument();
+    });
+  });
+
+  describe('AC-14: dropping a valid backup file opens BackupRestoreModal', () => {
+    it('parses a dropped .json file and opens the modal with data-testid="backup-restore-modal"', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+      await waitFor(() => expect(screen.getByTestId('settings-restore-dropzone')).toBeInTheDocument());
+
+      expect(screen.queryByTestId('backup-restore-modal')).not.toBeInTheDocument();
+      dropFile(screen.getByTestId('settings-restore-dropzone'), JSON.stringify(MOCK_BACKUP));
+
+      await waitFor(() => expect(screen.getByTestId('backup-restore-modal')).toBeInTheDocument());
+    });
+
+    it('shows a recoverable error, and does not open the modal, for a file that is valid JSON but not a recognized backup', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+      await waitFor(() => expect(screen.getByTestId('settings-restore-dropzone')).toBeInTheDocument());
+
+      dropFile(screen.getByTestId('settings-restore-dropzone'), JSON.stringify({ hello: 'world' }));
+
+      await waitFor(() => expect(screen.getByTestId('settings-restore-error')).toBeInTheDocument());
+      expect(screen.getByText(/not a recognized TruchaBrew database backup/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('backup-restore-modal')).not.toBeInTheDocument();
+    });
+
+    it('shows a recoverable error for a dropped file that is not valid JSON at all', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+      await waitFor(() => expect(screen.getByTestId('settings-restore-dropzone')).toBeInTheDocument());
+
+      dropFile(screen.getByTestId('settings-restore-dropzone'), 'not json at all {{{');
+
+      await waitFor(() => expect(screen.getByTestId('settings-restore-error')).toBeInTheDocument());
+      expect(screen.getByText(/not valid JSON/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('backup-restore-modal')).not.toBeInTheDocument();
+    });
+
+    it('selecting a valid backup file via the hidden file input also opens the modal', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(DEFAULT_CONFIG));
+      renderSettings();
+      await waitFor(() => expect(screen.getByTestId('settings-restore-file-input')).toBeInTheDocument());
+
+      const input = screen.getByTestId('settings-restore-file-input') as HTMLInputElement;
+      const file = new File([JSON.stringify(MOCK_BACKUP)], 'backup.json', { type: 'application/json' });
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => expect(screen.getByTestId('backup-restore-modal')).toBeInTheDocument());
+    });
   });
 });

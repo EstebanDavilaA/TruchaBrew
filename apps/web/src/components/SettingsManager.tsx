@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import type { UserConfig, UserConfigInput, RecipeWriteInput, EquipmentProfile } from '@truchabrew/shared-types';
+import type { UserConfig, UserConfigInput, RecipeWriteInput, EquipmentProfile, DatabaseBackup } from '@truchabrew/shared-types';
 import { TopBar } from './TopBar';
 import { PageContainer } from './PageContainer';
 import { useConfig, putConfig, ConfigApiError } from '../context/ConfigContext';
@@ -22,10 +22,13 @@ import {
   FileDown,
   UploadCloud,
   CheckCircle2,
+  Database,
+  Download,
 } from 'lucide-react';
 import { parseBrewfatherRecipe, parseBeerXml } from '@truchabrew/calculations';
-import { listEquipmentProfiles, listRecipes } from '../api/client';
+import { listEquipmentProfiles, listRecipes, downloadDatabaseBackup } from '../api/client';
 import { RecipeImportModal } from './RecipeImportModal';
+import { BackupRestoreModal } from './BackupRestoreModal';
 
 // GET/PUT /api/config helpers MOVED into ConfigContext.tsx (not duplicated)
 // per the M7_P1 amendment §1.4 — imported above rather than redefined here.
@@ -116,6 +119,19 @@ export function SettingsManager({ onOpenMobileNav }: SettingsManagerProps = {}) 
   const [importSuccessMessage, setImportSuccessMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Database Backup & Export (M36_P1)
+  const [isExportingBackup, setIsExportingBackup] = useState(false);
+  const [backupExportError, setBackupExportError] = useState<string | null>(null);
+
+  // Database Restore (M36_P2) — the dropzone parses/validates a dropped or
+  // selected .json file client-side (AC-14) and, once it looks like a real
+  // TruchaBrew backup, hands it to BackupRestoreModal, which owns the
+  // mode-selection/confirm/execute flow (RA-2/RA-3) from there.
+  const [restoreBackupFile, setRestoreBackupFile] = useState<DatabaseBackup | null>(null);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [restoreDropError, setRestoreDropError] = useState<string | null>(null);
+  const restoreFileInputRef = useRef<HTMLInputElement>(null);
+
   const handleChange = async <K extends keyof UserConfigInput>(key: K, value: NonNullable<UserConfig[K]>) => {
     const previous = config;
     const optimistic: UserConfig = { ...config, [key]: value };
@@ -138,6 +154,74 @@ export function SettingsManager({ onOpenMobileNav }: SettingsManagerProps = {}) 
     } finally {
       setSavingField(null);
     }
+  };
+
+  const handleExportBackup = async () => {
+    setIsExportingBackup(true);
+    setBackupExportError(null);
+    try {
+      await downloadDatabaseBackup();
+    } catch (err: unknown) {
+      setBackupExportError(err instanceof Error ? err.message : 'An unexpected error occurred while exporting the backup.');
+    } finally {
+      setIsExportingBackup(false);
+    }
+  };
+
+  /**
+   * Client-side pre-flight (AC-14): a shallow shape check only — the same
+   * "type/schemaVersion here, real referential-integrity checks left to the
+   * server's own DB constraints" split routes/backup.ts's restore route
+   * schema already uses. A payload that passes this still goes through the
+   * server's own AC-11 validation on submit.
+   */
+  function parseAndOpenRestoreFile(content: string) {
+    setRestoreDropError(null);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      setRestoreDropError('That file is not valid JSON.');
+      return;
+    }
+
+    const candidate = parsed as Partial<DatabaseBackup> | null;
+    if (!candidate || typeof candidate !== 'object' || candidate.schemaVersion !== 1 || !candidate.data || typeof candidate.data !== 'object') {
+      setRestoreDropError('That file is not a recognized TruchaBrew database backup.');
+      return;
+    }
+
+    setRestoreBackupFile(candidate as DatabaseBackup);
+    setIsRestoreModalOpen(true);
+  }
+
+  const handleRestoreFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      parseAndOpenRestoreFile(event.target?.result as string);
+      if (restoreFileInputRef.current) restoreFileInputRef.current.value = '';
+    };
+    reader.onerror = () => {
+      setRestoreDropError('Error reading the selected file.');
+      if (restoreFileInputRef.current) restoreFileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleRestoreDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      parseAndOpenRestoreFile(event.target?.result as string);
+    };
+    reader.onerror = () => setRestoreDropError('Error reading the dropped file.');
+    reader.readAsText(file);
   };
 
   const processFileContent = async (filename: string, content: string) => {
@@ -378,6 +462,71 @@ export function SettingsManager({ onOpenMobileNav }: SettingsManagerProps = {}) 
                 />
               </div>
             </div>
+
+            {/* Section 4: Database Backup & Export */}
+            <div className={CARD_CLASS} data-testid="settings-backup-section">
+              <div className="flex items-center gap-2 mb-3">
+                <Database className="w-5 h-5 text-amber-500" />
+                <h2 className={SECTION_HEADING_CLASS}>Database Backup &amp; Export</h2>
+              </div>
+              <p className={`${BODY_TEXT_CLASS} mb-4`}>
+                Download a complete JSON snapshot of your recipes, batches, equipment, mash &amp; fermentation profiles, water
+                profiles, inventory, and settings — everything needed to restore or migrate your TruchaBrew data.
+              </p>
+
+              {backupExportError && (
+                <div className={`${ERROR_STATE_CLASS} flex items-center gap-3 mb-4`} data-testid="settings-backup-export-error">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                  Couldn't export your backup: {backupExportError}
+                </div>
+              )}
+
+              <Button
+                variant="primary"
+                size="sm"
+                type="button"
+                data-testid="settings-export-backup-btn"
+                disabled={isExportingBackup}
+                onClick={handleExportBackup}
+              >
+                {isExportingBackup ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                {isExportingBackup ? 'Exporting…' : 'Export Database Backup'}
+              </Button>
+
+              {/* M36_P2 — restore dropzone (AC-13/AC-14), alongside the export card. */}
+              <div className="mt-5 pt-4 border-t border-slate-800">
+                <h3 className="text-xs font-semibold text-slate-300 mb-2">Restore from Backup</h3>
+
+                {restoreDropError && (
+                  <div className={`${ERROR_STATE_CLASS} flex items-center gap-3 mb-3`} data-testid="settings-restore-error">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                    <span>{restoreDropError}</span>
+                  </div>
+                )}
+
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleRestoreDrop}
+                  onClick={() => restoreFileInputRef.current?.click()}
+                  data-testid="settings-restore-dropzone"
+                  className="border-2 border-dashed border-slate-700 hover:border-amber-500/80 bg-slate-950/50 hover:bg-slate-950/80 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                >
+                  <div className="p-3 rounded-full bg-slate-800 group-hover:bg-amber-500/20 text-slate-400 group-hover:text-amber-400 transition-colors">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <div className="text-xs font-semibold text-slate-200">Browse for or drop a TruchaBrew backup file here</div>
+                  <div className="text-[11px] text-slate-400">Accepts a TruchaBrew database backup .json file</div>
+                  <input
+                    ref={restoreFileInputRef}
+                    type="file"
+                    accept=".json,application/json"
+                    onChange={handleRestoreFileSelect}
+                    data-testid="settings-restore-file-input"
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </PageContainer>
@@ -400,6 +549,13 @@ export function SettingsManager({ onOpenMobileNav }: SettingsManagerProps = {}) 
           }}
         />
       )}
+
+      {/* Database Restore Modal (M36_P2) */}
+      <BackupRestoreModal
+        isOpen={isRestoreModalOpen}
+        backup={restoreBackupFile}
+        onClose={() => setIsRestoreModalOpen(false)}
+      />
     </>
   );
 }

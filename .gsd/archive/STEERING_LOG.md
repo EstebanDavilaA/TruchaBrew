@@ -1815,3 +1815,73 @@ Delivered the definitive anti-regression mechanism for the Living Design System 
   - **M35_P4:** Guardrail rewrite alone — raw elements outside `components/ui/` fail the build, positive fail demonstration confirmed, zero consumers > 0 debt, occurrence-count pins retired (23/23 ACs, Critic PASS).
 - **Living Design System Cumulative Delivery (Milestones 30–35):** 6 milestones, 25 phases, 100% component primitive adoption across all 8 dialogs, 5 batch surfaces, 4 recipe sections, 10 calculators, 6 managers, and all navigation chrome. Full monorepo quality gates green (2,293 tests passing, typecheck clean, build in 1.00s, lint clean).
 - **Agent:** antigravity-gemini
+
+---
+
+## 2026-08-31 — Milestone 36 Phase 1: "Full-Database JSON Export & Download" (M36_P1)
+
+### Summary
+Delivered full-database JSON export capabilities with `DatabaseBackup` schema version 1 payload encompassing all 8 entity families (recipes with line items, batches with readings and notes, equipment profiles, mash profiles with steps, fermentation profiles with steps, water profiles, inventory items with stock levels, and user configuration), a dedicated Fastify endpoint `GET /api/backup/export`, client API integration in `apps/web/src/api/client.ts`, and a dedicated "Database Backup & Export" card in `apps/web/src/components/SettingsManager.tsx` with a single-click download trigger.
+
+### Verification Reference
+
+- **Executor tests (Layer 1):** Target suites re-run cleanly (`backup.export.test.ts` 15/15, `SettingsManager.test.tsx` 16/16, `uiPrimitives.test.tsx` 117/117, full monorepo 2,317 passed across 123 files). `npm run typecheck` (4/4 clean), `npm run build` clean (1.37s), `npm run lint` clean (0 errors, 4 pre-existing warnings in untouched files).
+- **Critic verdict (Layer 2):** PASS — 22/22 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry `M36_P1 — Full-Database JSON Export & Download (2026-08-31)`). Scope guardrail verified.
+- **Regression (Layer 3):** Monotonic test progression clean across full repository test suite.
+
+### Checkpoint Status
+- **Milestone progress:** Milestone 36 Phase 1 of 2 ("Full JSON Database Backup, Restore & Data Portability").
+- **Pending:** Steering decision.
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-08-31
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Accept Milestone 36 Phase 1 delivery. Archive `M36_P1_feature_spec.md` to `.gsd/archive/specs/`. Advance to Milestone 36 Phase 2 ("Database JSON Restore, Validation & Conflict Resolution: POST /api/backup/restore, atomic transactions, validation modal in SettingsManager, and milestone closure").
+- **Agent:** antigravity-gemini
+
+---
+
+## 2026-08-31 — Milestone 36 Phase 2: "Database JSON Restore, Validation & Conflict Resolution" (M36_P2) — MILESTONE COMPLETE
+
+### Summary
+Delivered full-database JSON restore capabilities completing Milestone 36. Implemented pre-flight schema validation, transactional database restoration (`POST /api/backup/restore`) supporting both `replace` and `merge` conflict resolution strategies, drag-and-drop file upload in `SettingsManager.tsx`, an accessible `BackupRestoreModal.tsx` confirmation dialog with entity count previews and mode selection, and client API integration in `apps/web/src/api/client.ts`.
+
+### Verification Reference
+
+- **Executor tests (Layer 1):** Target suites re-run cleanly (`backup.restore.test.ts` 20/20, `BackupRestoreModal.test.tsx` 18/18, `SettingsManager.test.tsx` 16/16, `uiPrimitives.test.tsx` 117/117, full monorepo 2,355 passed across 125 files). `npm run typecheck` (4/4 clean), `npm run build` clean (817ms), `npm run lint` clean (0 errors, 4 pre-existing warnings in untouched files).
+- **Critic verdict (Layer 2):** PASS — 24/24 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry `M36_P2 — Database JSON Restore, Validation & Conflict Resolution (2026-08-31)`). Scope guardrail verified.
+- **Regression (Layer 3):** Monotonic test progression clean across full repository test suite.
+
+### Checkpoint Status
+- **Milestone progress:** Milestone 36 ("Full JSON Database Backup, Restore & Data Portability") is COMPLETE across all 2 phases (M36_P1..M36_P2).
+- **Pending:** Steering decision.
+
+### Steering Decision (Option D: Complete Milestone 36)
+- **Date:** 2026-08-31
+- **Selection:** Option D (Complete Milestone)
+- **Action:** Mark Milestone 36 ("Full JSON Database Backup, Restore & Data Portability") COMPLETE. Archive `M36_P2_feature_spec.md` to `.gsd/archive/specs/`. Perform Rule 21 state history milestone boundary archival (moving Milestone 34 entries to `.gsd/archive/STATE_HISTORY.md` and retaining Milestones 35 & 36 inline). Update `.gsd/ROADMAP.md` and prepare to advance to Milestone 37 ("Multi-Ion Water Chemistry Solver & Target Tuning").
+- **Agent:** antigravity-gemini
+
+---
+
+## 2026-08-31 — Milestone 37 Phase 1: "Bounded Multi-Ion Least-Squares Solver" (M37_P1)
+
+### Summary
+Delivered a constrained multi-ion water chemistry optimization solver in `packages/calculations/src/waterOptimization.ts`, replacing the sequential greedy dosing heuristic in `suggestSaltAdditions` with a bounded non-negative least-squares optimization algorithm that simultaneously balances all 6 core brewing ions ($Ca^{2+}$, $Mg^{2+}$, $Na^+$, $Cl^-$, $SO_4^{2-}$, $HCO_3^-$) against target water profiles without Calcium overshoots or impossible mineral ratios, resolving `BUG-024`.
+
+### Verification Reference
+
+- **Executor tests (Layer 1):** Target suites re-run cleanly (`waterOptimization.test.ts` 19/19, `water.test.ts` 35/35, `WaterCalculatorModal.test.tsx` 33/33, full monorepo 2,374 passed across 126 files). `npm run typecheck` (4/4 clean), `npm run build` clean (817ms), `npm run lint` clean (0 errors, 4 pre-existing warnings in untouched files).
+- **Critic verdict (Layer 2):** PASS — 20/20 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry `M37_P1 — Bounded Multi-Ion Least-Squares Solver (2026-08-31)`). Scope guardrail verified.
+- **Regression (Layer 3):** Monotonic test progression clean across full repository test suite.
+
+### Checkpoint Status
+- **Milestone progress:** Milestone 37 Phase 1 of 2 ("Multi-Ion Water Chemistry Solver & Target Tuning").
+- **Defects resolved:** `BUG-024` (Greedy salt additions cause Calcium overshoot on high-Cl/high-SO4 targets).
+- **Pending:** Steering decision.
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-08-31
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Accept Milestone 37 Phase 1 delivery. Archive `M37_P1_feature_spec.md` to `.gsd/archive/specs/`. Advance to Milestone 37 Phase 2 ("Target Auto-Tuning UI, Fit Score Visualization & WaterCalculatorModal Integration: Live fit score ring/bar, interactive salt sliders, optimization presets, and milestone closure").
+- **Agent:** antigravity-gemini

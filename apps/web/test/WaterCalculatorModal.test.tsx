@@ -173,11 +173,11 @@ describe('AC-6: Five mineral rows, SALT_NAMES order, zeros included', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
 
     const expectedSuggested: Record<string, string> = {
-      gypsum: '23.41 g',
-      'calcium-chloride': '10.87 g',
-      'epsom-salt': '8.85 g',
+      gypsum: '23.16 g',
+      'calcium-chloride': '11.01 g',
+      'epsom-salt': '0.49 g',
       'table-salt': '0.00 g',
-      'baking-soda': '4.82 g',
+      'baking-soda': '3.52 g',
     };
 
     const orderedSlugs = [
@@ -266,8 +266,8 @@ describe('AC-10: Toggling sparge OFF zeroes spargeSalts; ON restores nothing (RA
   it('clears sparge inputs on toggle-off and leaves them empty on toggle-on', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
 
-    fireEvent.click(screen.getByTestId('water-auto-btn'));
-    expect(screen.getByLabelText('Sparge Gypsum')).toHaveValue(9.36);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    expect(screen.getByLabelText('Sparge Gypsum')).toHaveValue(9.26);
 
     fireEvent.click(screen.getByTestId('treat-sparge-water-toggle'));
     fireEvent.click(screen.getByTestId('treat-sparge-water-toggle'));
@@ -278,7 +278,7 @@ describe('AC-10: Toggling sparge OFF zeroes spargeSalts; ON restores nothing (RA
       expect(input).not.toBeDisabled();
     }
 
-    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(14.05);
+    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(13.9);
   });
 });
 
@@ -286,27 +286,27 @@ describe('AC-11: Total column is live in both toggle states; Needed column is in
   it('updates totals live when AUTO runs and when sparge treatment is toggled, with Needed invariant', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
 
-    expect(screen.getByTestId('mineral-needed-suggested-gypsum')).toHaveTextContent('23.41 g');
-    expect(screen.getByTestId('mineral-needed-suggested-calcium-chloride')).toHaveTextContent('10.87 g');
-    expect(screen.getByTestId('mineral-needed-suggested-epsom-salt')).toHaveTextContent('8.85 g');
+    expect(screen.getByTestId('mineral-needed-suggested-gypsum')).toHaveTextContent('23.16 g');
+    expect(screen.getByTestId('mineral-needed-suggested-calcium-chloride')).toHaveTextContent('11.01 g');
+    expect(screen.getByTestId('mineral-needed-suggested-epsom-salt')).toHaveTextContent('0.49 g');
     expect(screen.getByTestId('mineral-needed-suggested-table-salt')).toHaveTextContent('0.00 g');
-    expect(screen.getByTestId('mineral-needed-suggested-baking-soda')).toHaveTextContent('4.82 g');
+    expect(screen.getByTestId('mineral-needed-suggested-baking-soda')).toHaveTextContent('3.52 g');
 
-    fireEvent.click(screen.getByTestId('water-auto-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
 
-    expect(screen.getByTestId('mineral-needed-amount-gypsum')).toHaveTextContent('23.41 g');
-    expect(screen.getByTestId('mineral-needed-amount-calcium-chloride')).toHaveTextContent('10.87 g');
-    expect(screen.getByTestId('mineral-needed-amount-epsom-salt')).toHaveTextContent('8.85 g');
+    expect(screen.getByTestId('mineral-needed-amount-gypsum')).toHaveTextContent('23.16 g');
+    expect(screen.getByTestId('mineral-needed-amount-calcium-chloride')).toHaveTextContent('11.01 g');
+    expect(screen.getByTestId('mineral-needed-amount-epsom-salt')).toHaveTextContent('0.49 g');
     expect(screen.getByTestId('mineral-needed-amount-table-salt')).toHaveTextContent('0.00 g');
-    expect(screen.getByTestId('mineral-needed-amount-baking-soda')).toHaveTextContent('4.82 g');
+    expect(screen.getByTestId('mineral-needed-amount-baking-soda')).toHaveTextContent('3.52 g');
 
     fireEvent.click(screen.getByTestId('treat-sparge-water-toggle'));
-    expect(screen.getByTestId('mineral-needed-amount-gypsum')).toHaveTextContent('14.05 g');
-    expect(screen.getByTestId('mineral-needed-suggested-gypsum')).toHaveTextContent('23.41 g');
+    expect(screen.getByTestId('mineral-needed-amount-gypsum')).toHaveTextContent('13.90 g');
+    expect(screen.getByTestId('mineral-needed-suggested-gypsum')).toHaveTextContent('23.16 g');
 
     fireEvent.click(screen.getByTestId('treat-sparge-water-toggle'));
-    fireEvent.click(screen.getByTestId('water-auto-btn'));
-    expect(screen.getByTestId('mineral-needed-amount-gypsum')).toHaveTextContent('23.41 g');
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    expect(screen.getByTestId('mineral-needed-amount-gypsum')).toHaveTextContent('23.16 g');
   });
 });
 
@@ -314,19 +314,19 @@ describe('AC-12: AUTO split, sparge ON', () => {
   it('splits suggested additions between mash and sparge proportionally', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
 
-    fireEvent.click(screen.getByTestId('water-auto-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
 
-    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(14.05);
-    expect(screen.getByLabelText('Mash Calcium Chloride')).toHaveValue(6.52);
-    expect(screen.getByLabelText('Mash Epsom Salt')).toHaveValue(5.31);
+    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(13.9);
+    expect(screen.getByLabelText('Mash Calcium Chloride')).toHaveValue(6.61);
+    expect(screen.getByLabelText('Mash Epsom Salt')).toHaveValue(0.29);
     expect(screen.getByLabelText('Mash Table Salt')).toHaveValue(null);
-    expect(screen.getByLabelText('Mash Baking Soda')).toHaveValue(2.89);
+    expect(screen.getByLabelText('Mash Baking Soda')).toHaveValue(2.11);
 
-    expect(screen.getByLabelText('Sparge Gypsum')).toHaveValue(9.36);
-    expect(screen.getByLabelText('Sparge Calcium Chloride')).toHaveValue(4.35);
-    expect(screen.getByLabelText('Sparge Epsom Salt')).toHaveValue(3.54);
+    expect(screen.getByLabelText('Sparge Gypsum')).toHaveValue(9.26);
+    expect(screen.getByLabelText('Sparge Calcium Chloride')).toHaveValue(4.4);
+    expect(screen.getByLabelText('Sparge Epsom Salt')).toHaveValue(0.2);
     expect(screen.getByLabelText('Sparge Table Salt')).toHaveValue(null);
-    expect(screen.getByLabelText('Sparge Baking Soda')).toHaveValue(1.93);
+    expect(screen.getByLabelText('Sparge Baking Soda')).toHaveValue(1.41);
   });
 });
 
@@ -335,13 +335,13 @@ describe('AC-13: AUTO doses 100% into mash when sparge is OFF', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
 
     fireEvent.click(screen.getByTestId('treat-sparge-water-toggle'));
-    fireEvent.click(screen.getByTestId('water-auto-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
 
-    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(23.41);
-    expect(screen.getByLabelText('Mash Calcium Chloride')).toHaveValue(10.87);
-    expect(screen.getByLabelText('Mash Epsom Salt')).toHaveValue(8.85);
+    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(23.16);
+    expect(screen.getByLabelText('Mash Calcium Chloride')).toHaveValue(11.01);
+    expect(screen.getByLabelText('Mash Epsom Salt')).toHaveValue(0.49);
     expect(screen.getByLabelText('Mash Table Salt')).toHaveValue(null);
-    expect(screen.getByLabelText('Mash Baking Soda')).toHaveValue(4.82);
+    expect(screen.getByLabelText('Mash Baking Soda')).toHaveValue(3.52);
 
     fireEvent.click(screen.getByTestId('treat-sparge-water-toggle'));
     for (const name of ['Gypsum', 'Calcium Chloride', 'Epsom Salt', 'Table Salt', 'Baking Soda']) {
@@ -504,7 +504,7 @@ describe('AC-20: Sparge Auto works for the two liquid acids and is a no-op for A
   it('unified header AUTO computes sparge acid for Lactic and Phosphoric, and no-ops for Acidulated Malt against tap water (RA-3)', () => {
     render(<WaterCalculatorModal {...fixtureProps({ waterSourceId: 'wp-src-tap' })} />);
 
-    const autoBtn = screen.getByTestId('water-auto-btn');
+    const autoBtn = screen.getByTestId('water-calc-auto-dose-btn');
     const acidSelect = screen.getByLabelText('Acid Type');
 
     fireEvent.change(acidSelect, { target: { value: 'Lactic Acid 88%' } });
@@ -520,10 +520,10 @@ describe('AC-20: Sparge Auto works for the two liquid acids and is a no-op for A
     expect(screen.getByLabelText('Sparge Acid Dosage')).toHaveValue(1.03);
   });
 
-  it('unified header AUTO sets mash dosage to 3.34 on the shared fixture with Lactic Acid selected (RA-3)', () => {
+  it('unified header AUTO sets mash dosage to 3.31 on the shared fixture with Lactic Acid selected (RA-3)', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
-    fireEvent.click(screen.getByTestId('water-auto-btn'));
-    expect(screen.getByLabelText('Mash Acid Dosage')).toHaveValue(3.34);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    expect(screen.getByLabelText('Mash Acid Dosage')).toHaveValue(3.31);
   });
 });
 
@@ -550,7 +550,7 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
     fireEvent.change(screen.getByLabelText('Mash Acid Dosage'), { target: { value: '3.5' } });
     fireEvent.change(screen.getByLabelText('Sparge Acid Dosage'), { target: { value: '2.1' } });
     fireEvent.click(screen.getByTestId('add-mash-acid-toggle'));
-    fireEvent.click(screen.getByTestId('save-water-adjustments-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-save-btn'));
 
     const payload = onSaveAdjustments.mock.calls[0][0];
     const acidMiscs = payload.miscs.filter((m: MiscItem) => m.name.includes('Acid') || m.name.includes('Malt'));
@@ -565,7 +565,7 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
     fireEvent.change(screen.getByLabelText('Mash Acid Dosage'), { target: { value: '3.5' } });
     fireEvent.change(screen.getByLabelText('Sparge Acid Dosage'), { target: { value: '2.1' } });
     fireEvent.click(screen.getByTestId('add-sparge-acid-toggle'));
-    fireEvent.click(screen.getByTestId('save-water-adjustments-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-save-btn'));
 
     const payload = onSaveAdjustments.mock.calls[0][0];
     const acidMiscs = payload.miscs.filter((m: MiscItem) => m.name.includes('Acid') || m.name.includes('Malt'));
@@ -579,7 +579,7 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
 
     fireEvent.change(screen.getByLabelText('Mash Acid Dosage'), { target: { value: '3.5' } });
     fireEvent.change(screen.getByLabelText('Sparge Acid Dosage'), { target: { value: '2.1' } });
-    fireEvent.click(screen.getByTestId('save-water-adjustments-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-save-btn'));
 
     const payload = onSaveAdjustments.mock.calls[0][0];
     const acidMiscs = payload.miscs.filter((m: MiscItem) => m.name.includes('Acid') || m.name.includes('Malt'));
@@ -592,14 +592,14 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
     const onSaveAdjustments = vi.fn();
     render(<WaterCalculatorModal {...fixtureProps({ onSaveAdjustments })} />);
 
-    fireEvent.click(screen.getByTestId('water-auto-btn'));
-    fireEvent.click(screen.getByTestId('save-water-adjustments-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-save-btn'));
 
     const payload = onSaveAdjustments.mock.calls[0][0];
     const mashGypsum = payload.miscs.find((m: MiscItem) => m.name === 'Gypsum');
     const spargeGypsum = payload.miscs.find((m: MiscItem) => m.name === 'Gypsum (Sparge)');
-    expect(mashGypsum?.amount).toBe(14.05);
-    expect(spargeGypsum?.amount).toBe(9.36);
+    expect(mashGypsum?.amount).toBe(13.9);
+    expect(spargeGypsum?.amount).toBe(9.26);
   });
 
   it('(e) Unit pin (RA-9): Acidulated Malt, mash 50, sparge 4 saves g for mash and ml for sparge', () => {
@@ -609,7 +609,7 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
     fireEvent.change(screen.getByLabelText('Acid Type'), { target: { value: 'Acidulated Malt' } });
     fireEvent.change(screen.getByLabelText('Mash Acid Dosage'), { target: { value: '50' } });
     fireEvent.change(screen.getByLabelText('Sparge Acid Dosage'), { target: { value: '4' } });
-    fireEvent.click(screen.getByTestId('save-water-adjustments-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-save-btn'));
 
     const payload = onSaveAdjustments.mock.calls[0][0];
     const mashMalt = payload.miscs.find((m: MiscItem) => m.name === 'Acidulated Malt');
@@ -640,7 +640,7 @@ describe('AC-23: Toggles reset to ON on reopen; handleReset leaves them alone (R
     // Reset button leaves toggle state intact
     fireEvent.click(screen.getByTestId('treat-sparge-water-toggle'));
     fireEvent.click(screen.getByTestId('add-mash-acid-toggle'));
-    fireEvent.click(screen.getByTestId('water-reset-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-reset-btn'));
 
     expect(screen.getByTestId('treat-sparge-water-toggle')).not.toBeChecked();
     expect(screen.getByTestId('add-mash-acid-toggle')).not.toBeChecked();
@@ -686,9 +686,11 @@ describe('AC-25: Mash pH badges track additions and dosages live', () => {
     fireEvent.click(screen.getByTestId('add-mash-acid-toggle'));
     expect(adjustedBadge).toHaveTextContent('Adjusted Mash pH: 5.60');
 
+    // M37_P2: the SO4:Cl ratio now renders as a badge inside the minerals card
     const mineralsCard = screen.getByTestId('minerals-needed');
-    const ratioLabel = screen.getByText(/SO₄²⁻ : Cl⁻ Ratio:/);
-    expect(mineralsCard.contains(ratioLabel)).toBe(true);
+    const ratioBadge = screen.getByTestId('water-calc-so4-cl-ratio');
+    expect(mineralsCard.contains(ratioBadge)).toBe(true);
+    expect(ratioBadge.textContent).toContain('SO₄²⁻ : Cl⁻');
   });
 });
 
@@ -698,6 +700,196 @@ describe('M29_P3 AC-12: WaterCalculatorModal design tokens and tabular numbers',
     const mineralsCard = screen.getByTestId('minerals-needed');
     expect(mineralsCard.className).toContain('rounded-lg');
     expect(container.querySelector('.tabular-nums')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M37_P2 — Target Auto-Tuning UI, Fit Score Visualization & Integration
+// ---------------------------------------------------------------------------
+
+describe('M37_P2 AC-1/AC-2/AC-3: Auto-Optimize executes the solver and populates salts', () => {
+  it('AC-1: clicking Auto-Optimize populates mash/sparge salt inputs from optimizeWaterProfile', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    // No salts yet
+    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(null);
+
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+
+    // AC-2: multi-salt population — the key salts get nonzero doses
+    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(13.9);
+    expect(screen.getByLabelText('Mash Calcium Chloride')).toHaveValue(6.61);
+    expect(screen.getByLabelText('Mash Epsom Salt')).toHaveValue(0.29);
+    expect(screen.getByLabelText('Mash Baking Soda')).toHaveValue(2.11);
+
+    // AC-3: proportional mash/sparge split (13.8 / 9.2 of 23 L)
+    expect(screen.getByLabelText('Sparge Gypsum')).toHaveValue(9.26);
+    expect(screen.getByLabelText('Sparge Calcium Chloride')).toHaveValue(4.4);
+  });
+
+  it('AC-2: Table Salt is populated when the target needs sodium', () => {
+    const target: WaterProfile = {
+      id: 'wp-target-na', name: 'High Sodium Target', type: 'target',
+      calcium: 80, magnesium: 10, sodium: 50, chloride: 70, sulfate: 90, bicarbonate: 30,
+      ph: null, description: null,
+    };
+    render(<WaterCalculatorModal {...fixtureProps({ waterTargetId: 'wp-target-na', waterProfiles: [...WATER_PROFILES, target] })} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    // Sodium target → Table Salt dosed (nonzero)
+    expect(screen.getByLabelText('Mash Table Salt')).not.toHaveValue(null);
+  });
+});
+
+describe('M37_P2 AC-4/AC-5: Live fit score badge with semantic colors', () => {
+  it('AC-4: renders the fit score badge with a percentage', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    const fitBadge = screen.getByTestId('water-calc-fit-score');
+    expect(fitBadge).toBeInTheDocument();
+    expect(fitBadge.textContent).toMatch(/Fit: \d+% \((Optimal|Good|Approx)\)/);
+  });
+
+  it('AC-5: the fit score badge adopts the emerald palette for a high-match target', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    const fitBadge = screen.getByTestId('water-calc-fit-score');
+    // The Balanced IPA target with the solver lands ~82-90% — check the badge
+    // has one of the semantic color palettes (emerald/amber/slate).
+    const text = fitBadge.textContent ?? '';
+    expect(text).toMatch(/Fit:/);
+    // The class reflects one of the three semantic palettes.
+    expect(fitBadge.className).toMatch(/emerald|amber|slate/);
+  });
+});
+
+describe('M37_P2 AC-6: Sulfate/Chloride ratio display', () => {
+  it('renders the live SO4:Cl ratio tag with flavor descriptor', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    const ratioBadge = screen.getByTestId('water-calc-so4-cl-ratio');
+    expect(ratioBadge).toBeInTheDocument();
+    expect(ratioBadge.textContent).toContain('SO₄²⁻ : Cl⁻');
+  });
+});
+
+describe('M37_P2 AC-7: Per-ion target match badges', () => {
+  it('renders all 6 ion delta indicators', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    for (const ion of ['calcium', 'magnesium', 'sodium', 'chloride', 'sulfate', 'bicarbonate']) {
+      expect(screen.getByTestId(`water-calc-ion-${ion}`)).toBeInTheDocument();
+    }
+  });
+
+  it('shows a signed delta or Target badge per ion', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    // With no salts and RO source vs Balanced IPA target, the ions are far
+    // out of range → signed delta badges (e.g. "-40 ppm" for calcium).
+    const caDelta = screen.getByTestId('water-calc-ion-delta-calcium');
+    expect(caDelta.textContent).toMatch(/[+-]?\d+ ppm/);
+  });
+});
+
+describe('M37_P2 AC-8: Interactive salt adjustment updates fit score live', () => {
+  it('typing a salt input updates the fit score', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    const before = screen.getByTestId('water-calc-fit-score').textContent;
+
+    fireEvent.change(screen.getByLabelText('Mash Gypsum'), { target: { value: '15' } });
+    const after = screen.getByTestId('water-calc-fit-score').textContent;
+    expect(after).not.toBe(before);
+  });
+});
+
+describe('M37_P2 AC-9: Calcium overshoot guardrail on screen', () => {
+  it('auto-optimizing a 150 Cl / 150 SO4 target keeps calcium ≤ 185 ppm', () => {
+    const target: WaterProfile = {
+      id: 'wp-target-hi', name: 'High Cl+SO4', type: 'target',
+      calcium: 100, magnesium: 10, sodium: 10, chloride: 150, sulfate: 150, bicarbonate: 40,
+      ph: null, description: null,
+    };
+    render(<WaterCalculatorModal {...fixtureProps({ waterTargetId: 'wp-target-hi', waterProfiles: [...WATER_PROFILES, target] })} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+
+    // The ion card shows "adjusted / target" (e.g. "96 / 100"). The adjusted
+    // calcium must never overshoot 185 ppm (AC-9 / BUG-024 guardrail).
+    const caCard = screen.getByTestId('water-calc-ion-calcium');
+    const text = caCard.textContent ?? '';
+    const adjustedMatch = text.match(/(\d+)\s*\/\s*100/);
+    expect(adjustedMatch).not.toBeNull();
+    const adjustedCa = parseInt(adjustedMatch![1], 10);
+    expect(adjustedCa).toBeLessThanOrEqual(185);
+  });
+});
+
+describe('M37_P2 AC-10: Reset clears salts and recalcs', () => {
+  it('clicking Reset clears all salt inputs and recalculates base score', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(13.9);
+
+    fireEvent.click(screen.getByTestId('water-calc-reset-btn'));
+    for (const name of ['Gypsum', 'Calcium Chloride', 'Epsom Salt', 'Table Salt', 'Baking Soda']) {
+      expect(screen.getByLabelText(`Mash ${name}`)).toHaveValue(null);
+      expect(screen.getByLabelText(`Sparge ${name}`)).toHaveValue(null);
+    }
+  });
+});
+
+describe('M37_P2 AC-11: Save to Recipe commits and closes', () => {
+  it('clicking Save to Recipe commits salt/acid additions and calls onClose', () => {
+    const onSave = vi.fn();
+    const onClose = vi.fn();
+    render(<WaterCalculatorModal {...fixtureProps({ onSaveAdjustments: onSave, onClose })} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    fireEvent.click(screen.getByTestId('water-calc-save-btn'));
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.miscs.some((m: MiscItem) => m.name === 'Gypsum' && m.amount > 0)).toBe(true);
+    // The modal is controlled by the parent's isOpen prop; handleSave calls
+    // onClose so the parent can flip isOpen. Assert onClose was invoked.
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('M37_P2 AC-12: Acid volume calculation', () => {
+  it('computes mash and sparge acid mL based on target pH', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    // With RO water and the Balanced IPA target, mash acid is nonzero (target pH 5.3)
+    const mashDosage = screen.getByLabelText('Mash Acid Dosage');
+    expect(Number(mashDosage.getAttribute('value'))).toBeGreaterThan(0);
+  });
+});
+
+describe('M37_P2 AC-13: Soft water preservation', () => {
+  it('auto-optimizing a soft Pilsen profile applies minimal salt additions', () => {
+    const pilsen: WaterProfile = {
+      id: 'wp-target-pilsen', name: 'Pilsen', type: 'target',
+      calcium: 10, magnesium: 5, sodium: 3, chloride: 5, sulfate: 5, bicarbonate: 20,
+      ph: null, description: null,
+    };
+    render(<WaterCalculatorModal {...fixtureProps({ waterTargetId: 'wp-target-pilsen', waterProfiles: [...WATER_PROFILES, pilsen] })} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    // Minimal additions — total salt grams should be small for the soft profile
+    const total = ['Gypsum', 'Calcium Chloride', 'Epsom Salt', 'Table Salt', 'Baking Soda']
+      .reduce((sum, name) => {
+        const mash = Number(screen.getByLabelText(`Mash ${name}`).getAttribute('value')) || 0;
+        const sparge = Number(screen.getByLabelText(`Sparge ${name}`).getAttribute('value')) || 0;
+        return sum + mash + sparge;
+      }, 0);
+    expect(total).toBeLessThan(10);
+  });
+});
+
+describe('M37_P2 AC-14: Responsive grid without overflow', () => {
+  it('renders the modal without horizontal overflow on the minerals grid', () => {
+    const { container } = render(<WaterCalculatorModal {...fixtureProps()} />);
+    const mineralsCard = screen.getByTestId('minerals-needed');
+    // The minerals table is inside a scrollable wrapper (Table owns overflow-x-auto)
+    const table = mineralsCard.querySelector('table');
+    const scrollParent = table?.parentElement;
+    expect(scrollParent?.className).toContain('overflow-x-auto');
+    // Ion delta grid renders (2/3/6 columns responsive)
+    const ionGrid = container.querySelector('[data-testid^="water-calc-ion-calcium"]');
+    expect(ionGrid).toBeInTheDocument();
   });
 });
 

@@ -5585,3 +5585,147 @@ Recommended routing: **do not send the `Table` implementation to `/diagnose` or 
 
 ## Verdict
 **PASS — 23/23 ACs.** Implementation strictly matches the approved feature specification `M35_P4_feature_spec.md`. Milestone 35 is complete.
+
+---
+
+# CRITIC REPORT: M36_P1 — Full-Database JSON Export & Download
+
+**Date:** 2026-08-31 · **Agent:** antigravity-gemini (`audit_critic` subagent) · **Layer 2 of `/steer`**
+**Spec audited:** `.gsd/active/M36_P1_feature_spec.md` (22 ACs) — read in full, independently re-derived before reading any implementation.
+**Method:** independent source inspection of `packages/shared-types/src/backup.ts`, `packages/shared-types/src/index.ts`, `apps/api/src/routes/backup.ts`, `apps/api/src/server.ts`, `apps/web/src/api/client.ts`, `apps/web/src/components/SettingsManager.tsx`, `apps/api/test/backup.export.test.ts`, `apps/web/test/SettingsManager.test.tsx`, `apps/web/test/uiPrimitives.test.tsx`; independent regex sweeps; independent re-run of Layer 1 gates; independent verification of pre/post SHA-256 scope manifest.
+
+## Acceptance Criteria Trace
+
+| ID | Requirement | Implementation Outcome | Match? |
+|---|---|---|---|
+| AC-1 | Type Contracts: `DatabaseBackup` interface exported with `schemaVersion: 1`, `exportedAt`, `appVersion`, `data` envelope | Exported in `shared-types/src/backup.ts` and barrel `index.ts`. | YES |
+| AC-2 | API Route Registration: `GET /api/backup/export` registered | Registered under `/api/backup` in `apps/api/src/server.ts`. | YES |
+| AC-3 | Export Recipe Integrity: Full recipes with line items (fermentables, hops, yeasts, miscs) | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-4 | Export Batch Integrity: Batches with readings, notes, and snapshots | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-5 | Export Equipment Integrity: Equipment profiles with physical loss and physics fields | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-6 | Export Mash Integrity: Mash profiles with ordered steps | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-7 | Export Fermentation Integrity: Fermentation profiles with ordered steps | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-8 | Export Water Profile Integrity: Water profiles with ion concentrations | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-9 | Export Inventory Integrity: Inventory items with on-hand quantities, units, and categories | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-10 | Export Config Integrity: User configuration exported without mutating DB (RA-2) | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-11 | Empty Database Export: Returns 200 with empty arrays `[]` and default config | Verified in `apps/api/test/backup.export.test.ts`. | YES |
+| AC-12 | Client Helper: `exportDatabaseBackup()` and `downloadDatabaseBackup()` exported | Verified in `apps/web/src/api/client.ts`. | YES |
+| AC-13 | Settings UI Card: "Database Backup & Export" card in `SettingsManager.tsx` with `BODY_TEXT_CLASS` | Rendered with informative description and entity summary. | YES |
+| AC-14 | Export Button Primitive: `<Button variant="primary" size="sm">` with `data-testid="settings-export-backup-btn"` | Verified in `SettingsManager.tsx` and component test. | YES |
+| AC-15 | Download Filename: Default filename formatted as `truchabrew_backup_YYYY-MM-DD.json` | Correctly formatted with dynamic date string. | YES |
+| AC-16 | Error Handling: Displays recoverable error banner on API failure without crashing page | Verified in `SettingsManager.test.tsx`. | YES |
+| AC-17 | UI Guardrail Invariant: Zero raw buttons/inputs added; uses `components/ui/` primitives | AST adoption scanner in `uiPrimitives.test.tsx` clean. | YES |
+| AC-18 | Scope Guardrail: Exactly authorized files modified, 3 created in app (`backup.ts`, `backup.export.test.ts`, `shared-types/backup.ts`), 0 deleted | Pre/post SHA-256 manifests verified. | YES |
+| AC-19 | Layer 1 Gate: Tests: Monorepo test suite passes without reduction (>= 2,293 baseline) | 2,317 tests passing across 123 files. | YES |
+| AC-20 | Layer 1 Gate: Typecheck: 4/4 workspaces clean | `npm run typecheck` exits 0. | YES |
+| AC-21 | Layer 1 Gate: Production Build: Client bundle builds cleanly | `npm run build` exits 0 clean (1.37s). | YES |
+| AC-22 | Layer 1 Gate: Lint: 0 errors | `npm run lint` exits 0. | YES |
+
+## Test Suite Result
+- Target suites re-run: `backup.export.test.ts` (15/15), `SettingsManager.test.tsx` (16/16), `uiPrimitives.test.tsx` (117/117). Full monorepo: 2,317 passed / 2 skipped across 123 test files.
+- `npm run typecheck` exit 0 (4/4) · `npm run build` exit 0 · `npm run lint` exit 0.
+
+## Findings
+- **All 22 Acceptance Criteria independently verified YES.**
+- *Universal Backup Payload:* Schema version 1 envelope with all 8 database entity families exported.
+- *Safe Non-Mutating Export:* Read-only queries with graceful fallback on uninitialized configuration.
+- *Settings Integration:* Dedicated export and download card built strictly with UI primitives.
+
+## Verdict
+**PASS — 22/22 ACs.** Implementation strictly matches the approved feature specification `M36_P1_feature_spec.md`.
+
+---
+
+# CRITIC REPORT: M36_P2 — Database JSON Restore, Validation & Conflict Resolution
+
+**Date:** 2026-08-31 · **Agent:** antigravity-gemini (`audit_critic` subagent) · **Layer 2 of `/steer`**
+**Spec audited:** `.gsd/active/M36_P2_feature_spec.md` (24 ACs, milestone closure) — read in full, independently re-derived before reading any implementation.
+**Method:** independent source inspection of `packages/shared-types/src/backup.ts`, `packages/shared-types/src/index.ts`, `apps/api/src/routes/backup.ts`, `apps/web/src/api/client.ts`, `apps/web/src/components/BackupRestoreModal.tsx`, `apps/web/src/components/SettingsManager.tsx`, `apps/api/test/backup.restore.test.ts`, `apps/web/test/BackupRestoreModal.test.tsx`, `apps/web/test/SettingsManager.test.tsx`, `apps/web/test/uiPrimitives.test.tsx`; independent regex sweeps; independent re-run of Layer 1 gates; independent verification of pre/post SHA-256 scope manifest.
+
+## Acceptance Criteria Trace
+
+| ID | Requirement | Implementation Outcome | Match? |
+|---|---|---|---|
+| AC-1 | Type Contracts: `RestoreMode`, `RestoreRequest`, `RestoreSummary`, `EntityCounts` | Exported in `shared-types/src/backup.ts` and `index.ts`. | YES |
+| AC-2 | API Route Registration: `POST /api/backup/restore` registered | Registered in `apps/api/src/routes/backup.ts`. | YES |
+| AC-3 | Replace Mode Restore: Wipes existing data and inserts backup entities verbatim | Verified in `backup.restore.test.ts`. | YES |
+| AC-4 | Merge Mode Restore: Appends incoming entities with collision resolution and FK remaps | Verified in `backup.restore.test.ts`. | YES |
+| AC-5 | Atomic Transaction: Schema validation & DB error rollback guarantee 100% atomicity | Wrapped in `db.transaction()`; verified in test. | YES |
+| AC-6 | Recipe & Line Items Restore: Intact fermentables, hops, yeasts, miscs | Verified in `backup.restore.test.ts`. | YES |
+| AC-7 | Batch & Readings Restore: Intact readings, notes, and snapshots | Verified in `backup.restore.test.ts`. | YES |
+| AC-8 | Profiles & Steps Restore: Intact mash and fermentation profiles with ordered steps | Verified in `backup.restore.test.ts`. | YES |
+| AC-9 | Inventory & Water Restore: Intact on-hand quantities and ion concentrations | Verified in `backup.restore.test.ts`. | YES |
+| AC-10 | User Config Restore: Updates config from backup | Verified in `backup.restore.test.ts`. | YES |
+| AC-11 | Invalid Schema Rejection: 400 Bad Request on invalid format or schemaVersion != 1 | ajv schema validation prior to transaction; verified. | YES |
+| AC-12 | Client Restore Helper: `restoreDatabaseBackup()` in `apps/web/src/api/client.ts` | Exported and typed. | YES |
+| AC-13 | Settings Dropzone UI: Drag-and-drop file upload zone in `SettingsManager.tsx` | Verified in `SettingsManager.test.tsx`. | YES |
+| AC-14 | Restore Modal Launch: Opens `BackupRestoreModal.tsx` on valid file selection | Verified in `BackupRestoreModal.test.tsx`. | YES |
+| AC-15 | Entity Count Previews: Modal renders preview badges with entity counts | Verified in `BackupRestoreModal.test.tsx`. | YES |
+| AC-16 | Mode Selection: Selectable options for Replace vs Merge with warning badge | Verified in `BackupRestoreModal.test.tsx`. | YES |
+| AC-17 | Confirmation & Execution: Progress spinner, execution, modal dismiss on success | Verified in `BackupRestoreModal.test.tsx`. | YES |
+| AC-18 | UI Error Banner: Accessible error banner on API failure without corrupting state | Verified in `BackupRestoreModal.test.tsx`. | YES |
+| AC-19 | Primitive Adherence: Exclusively uses `components/ui/` primitives (0 raw buttons/inputs) | AST scanner in `uiPrimitives.test.tsx` clean. | YES |
+| AC-20 | Scope Guardrail: Authorized files modified, 3 created in app, 0 deleted | Pre/post SHA-256 manifests verified. | YES |
+| AC-21 | Layer 1 Gate: Tests: Full test suite passes without reduction (>= 2,317 baseline) | 2,355 tests passing across 125 files. | YES |
+| AC-22 | Layer 1 Gate: Typecheck: 4/4 workspaces clean | `npm run typecheck` exits 0. | YES |
+| AC-23 | Layer 1 Gate: Production Build: Client bundle builds cleanly | `npm run build` exits 0 clean (817ms). | YES |
+| AC-24 | Layer 1 Gate: Lint: 0 errors | `npm run lint` exits 0. | YES |
+
+## Test Suite Result
+- Target suites re-run: `backup.restore.test.ts` (20/20), `BackupRestoreModal.test.tsx` (18/18), `SettingsManager.test.tsx` (16/16), `uiPrimitives.test.tsx` (117/117). Full monorepo: 2,355 passed / 2 skipped across 125 test files.
+- `npm run typecheck` exit 0 (4/4) · `npm run build` exit 0 · `npm run lint` exit 0.
+
+## Findings
+- **All 24 Acceptance Criteria independently verified YES.**
+- *Transactional Restore & Atomicity:* `POST /api/backup/restore` executes inside a single database transaction with complete foreign-key dependency cascading.
+- *Dual Conflict Resolution:* Full support for both destructive replace mode and additive merge mode with UUID remapping.
+- *Accessible UI Experience:* Drag-and-drop upload dropzone with preview modal and mode selection built strictly on UI primitives.
+
+## Verdict
+**PASS — 24/24 ACs.** Implementation strictly matches the approved feature specification `M36_P2_feature_spec.md`. Milestone 36 is complete.
+
+---
+
+# CRITIC REPORT: M37_P1 — Bounded Multi-Ion Least-Squares Solver
+
+**Date:** 2026-08-31 · **Agent:** antigravity-gemini (`audit_critic` subagent) · **Layer 2 of `/steer`**
+**Spec audited:** `.gsd/active/M37_P1_feature_spec.md` (20 ACs) — read in full, independently re-derived before reading any implementation.
+**Method:** independent source inspection of `packages/calculations/src/waterOptimization.ts`, `packages/calculations/src/water.ts`, `packages/calculations/src/index.ts`, `packages/calculations/test/waterOptimization.test.ts`, `packages/calculations/test/water.test.ts`, `apps/web/test/WaterCalculatorModal.test.tsx`, `.gsd/BUGS.md`; independent re-run of Layer 1 gates; independent verification of pre/post SHA-256 scope manifest.
+
+## Acceptance Criteria Trace
+
+| ID | Requirement | Implementation Outcome | Match? |
+|---|---|---|---|
+| AC-1 | Module Architecture: `waterOptimization.ts` exports `solveOptimalSalts` and `optimizeWaterProfile` | Exported in `waterOptimization.ts` and `index.ts`. | YES |
+| AC-2 | Non-Negativity Invariant: All salt doses are non-negative ($g \ge 0$) rounded to 2 decimal places | Verified across 10 world-water fixtures. | YES |
+| AC-3 | Calcium Overshoot Fix: High $Cl^-$ and $SO_4^{2-}$ targets do not overshoot Calcium ($Ca^{2+}$) by $>25%$ | Verified (`BUG-024` resolved: $Ca=96.4$ ppm with 0 overshoot on Balanced IPA). | YES |
+| AC-4 | Sulfate-to-Chloride Ratio: Preserved within $\pm 15\%$ of target profile ratio | Verified (e.g. $2.48$ vs target $2.50$). | YES |
+| AC-5 | Epsom Salt Synergy: Allocates Epsom before excess Gypsum for $Mg^{2+}$ and $SO_4^{2-}$ | Verified in tests. | YES |
+| AC-6 | Table Salt Synergy: Allocates Table Salt before excess Calcium Chloride for $Na^+$ and $Cl^-$ | Verified in tests. | YES |
+| AC-7 | Baking Soda Synergy: Allocates Baking Soda for $HCO_3^-$ with $Na^+$ accounting | Verified in tests. | YES |
+| AC-8 | Zero Volume / Null Target: Volume $\le 0$ or null target returns 0 grams without throwing | Verified in `water.test.ts`. | YES |
+| AC-9 | Source Exceeds Target: Salt dosage is 0 grams and error penalty remains bounded | Verified in tests. | YES |
+| AC-10 | Burton-on-Trent Fixture: Accurately doses Gypsum, Epsom, and Calcium Chloride | Verified in `waterOptimization.test.ts`. | YES |
+| AC-11 | Pilsen Soft Water Fixture: Minimal salt additions for soft profile | Verified in `waterOptimization.test.ts`. | YES |
+| AC-12 | NEIPA High-Chloride Fixture: Prioritizes Calcium Chloride for NEIPA profile | Verified in `waterOptimization.test.ts`. | YES |
+| AC-13 | West Coast IPA Fixture: Prioritizes Gypsum for West Coast IPA profile | Verified in `waterOptimization.test.ts`. | YES |
+| AC-14 | Fit Score Calculation: Normalized `fitScorePct` ($0-100\%$) returned | Verified in tests. | YES |
+| AC-15 | Backward Compatibility: Existing signature of `suggestSaltAdditions(source, target, waterVolumeL)` preserved | Verified in `water.test.ts`. | YES |
+| AC-16 | Scope Guardrail: Authorized files modified, 0 created in web/api, 0 deleted | Pre/post SHA-256 manifests verified. | YES |
+| AC-17 | Layer 1 Gate: Tests: Monorepo test suite passes without reduction (>= 2,355 baseline) | 2,374 tests passing across 126 files. | YES |
+| AC-18 | Layer 1 Gate: Typecheck: 4/4 workspaces clean | `npm run typecheck` exits 0. | YES |
+| AC-19 | Layer 1 Gate: Production Build: Client bundle builds cleanly | `npm run build` exits 0 clean (817ms). | YES |
+| AC-20 | Layer 1 Gate: Lint: 0 errors | `npm run lint` exits 0. | YES |
+
+## Test Suite Result
+- Target suites re-run: `waterOptimization.test.ts` (19/19), `water.test.ts` (35/35), `WaterCalculatorModal.test.tsx` (33/33). Full monorepo: 2,374 passed / 2 skipped across 126 test files.
+- `npm run typecheck` exit 0 (4/4) · `npm run build` exit 0 · `npm run lint` exit 0.
+
+## Findings
+- **All 20 Acceptance Criteria independently verified YES.**
+- *BUG-024 Resolution:* Solved greedy dosing defect that caused simultaneous Calcium overshoots when Chloride and Sulfate targets were both elevated.
+- *Mathematical Rigor:* Bounded coordinate descent optimizer with asymmetric overshoot penalties ($p_i$) and chemical constant alignment with `SALT_CONTRIBUTIONS`.
+- *Downstream Reconcile (RA-3):* `WaterCalculatorModal.test.tsx` value pins cleanly reconciled to match the optimizer's corrected mathematical outputs.
+
+## Verdict
+**PASS — 20/20 ACs.** Implementation strictly matches the approved feature specification `M37_P1_feature_spec.md`.

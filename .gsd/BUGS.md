@@ -329,7 +329,7 @@ This document tracks implementation defects and regressions recorded via `/log`.
 ### [BUG-024] `suggestSaltAdditions` greedy fixed-order dosing overshoots ions later in the priority chain
 
 - **Date Logged:** 2026-08-20
-- **Status:** `DEFERRED_TO_MILESTONE`
+- **Status:** `RESOLVED_M37_P1`
 - **Category:** Type B (Engine / Calculation Accuracy)
 - **Component:** `packages/calculations` (`src/water.ts` — `suggestSaltAdditions`), surfaced through `apps/web` (`WaterCalculatorModal.tsx`'s AUTO button)
 - **Reported Issue:** Clicking AUTO in the Water Chemistry modal produces a salt dose whose finished ion profile does not land on the selected target profile — several ions overshoot the target by a brewing-significant margin.
@@ -342,6 +342,8 @@ This document tracks implementation defects and regressions recorded via `/log`.
   - Candidate fixes span a wide effort range — reordering the greedy chain (cheap, partial), iterating the chain to convergence, an explicit least-squares / constrained-solve over the five salts (correct, largest change), or a UI-level "residual vs target" disclosure that keeps the current dosing but stops presenting it as exact. Choosing among these is a design decision, not a bug-fix detail.
   - `suggestSaltAdditions` is pinned by existing assertions in `packages/calculations/test/water.test.ts`; any change here updates that suite with it.
 - **Resolution Path:** **Explicitly deferred.** Logged during `/plan` for M23_P2 (Simplify the Water Calculator modal) at the user's direct instruction, so the finding is not lost. M23_P2 is a content/UX simplification of `WaterCalculatorModal.tsx` only and its hard constraints forbid touching `packages/calculations/src/water.ts` at all — see `M23_P2_feature_spec.md` RA-25. Needs its own `/diagnose` pass to pick a fix strategy, then a scoped phase in a future milestone.
+- **Resolution (M37_P1, 2026-08-31):** `suggestSaltAdditions` now delegates to a bounded multi-ion least-squares / constrained coordinate-descent solver (`packages/calculations/src/waterOptimization.ts`, `optimizeWaterProfile`). The fixed greedy chain was replaced by simultaneous optimization over all 5 salts with dynamic ion weighting and asymmetric overshoot penalties (Ca 2.5, Na 3.0, Mg 2.0). The measured M23_P2 fixture (target Ca 100 / Mg 10 / Na 10 / Cl 60 / SO4 150 / HCO3 40, 23 L) now lands SO4 within ±15 ppm of 150 (was +39.6), Na ≤ 20 (was +6.8), and Ca within 25% of target with no overshoot. The SO4:Cl ratio badge no longer reads 3.16 vs the intended 2.50 for the reproduction case. Signature and return shape of `suggestSaltAdditions` unchanged (AC-15); the Water Calculator AUTO button needs no code change. New `optimizeWaterProfile` API exposed with convergence metrics and a 0-100 fit score for the P2 target-tuning phase.
+- **End-to-end verification (M37_P2, 2026-08-31):** verified by user workflow through the modal — `WaterCalculatorModal.test.tsx` AC-9 auto-optimizes a 150 ppm Cl / 150 ppm SO4 target and asserts the on-screen adjusted calcium stays ≤ 185 ppm; the fit-score badge (`water-calc-fit-score`), SO4:Cl ratio tag (`water-calc-so4-cl-ratio`), and per-ion delta badges render live from the solver's finished water. Closed.
 
 ### [BUG-025] `apps/web/test/setup.ts`'s M27_P1 `Request`/`AbortSignal` shim strips `signal` unconditionally
 

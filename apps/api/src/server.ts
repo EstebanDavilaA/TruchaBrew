@@ -20,6 +20,10 @@ import { registerConfigRoutes } from './routes/config';
 // reachable without a registration call here. Also registers
 // GET /api/batches/:batchId/stock-check (Resolved Ambiguity 8).
 import { registerInventoryRoutes } from './routes/inventory';
+// NEW in M36_P1 — same forced, narrow exception class as
+// registerConfigRoutes/registerInventoryRoutes above: no route in this repo
+// is reachable without a registration call here.
+import { registerBackupRoutes } from './routes/backup';
 import { sendApiError } from './errors';
 
 export interface ServerDeps {
@@ -40,6 +44,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   registerWaterProfileRoutes(app, deps.db);
   registerConfigRoutes(app, deps.db);
   registerInventoryRoutes(app, deps.db);
+  registerBackupRoutes(app, deps.db);
 
   // Every non-2xx response is exactly ApiErrorBody — no HTML error page, no
   // bare string, ever.

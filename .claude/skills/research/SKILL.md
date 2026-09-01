@@ -17,6 +17,12 @@ description: Use to check technical feasibility of features, query codebase abst
    - Is the user asking if a feature is possible?
    - Exploring architectural trade-offs (e.g. Canvas vs SVG, Web Audio vs HTML5 audio)?
    - Asking for help crafting/refining a prompt or subagent instruction?
+   - Asking about **market viability, monetization, pricing, competitive positioning, launch-readiness, ICP/TAM/SAM, or unit economics**? If so, this is a commercial audit, not a technical one — spawn the `product-strategist` subagent (step 1b) and skip the technical-report steps below.
+
+1b. **Commercial & Market Audit** (when the query is about business, not code):
+   - Spawn the `product-strategist` subagent with the query and any intake data the user provided (problem, current state, monetization thesis, competitors).
+   - It audits the app for market viability, launch-readiness, profitability, and positioning, and returns its six-section report (Strategic Verdict, Launch-Critical Scope, Target Market & Positioning, Monetization Engine, Vulnerabilities & Pivot Alternatives, Immediate Action Protocol).
+   - This path is still read-only: the strategist may inspect code/docs to ground its audit, but never edits code or writes `.gsd/` artifacts.
 
 2. **Empirical Codebase Inspection**:
    - Use search and view tools (`grep_search`, `view_file`, `list_dir`) to inspect existing types, functions, schemas, and dependencies.
