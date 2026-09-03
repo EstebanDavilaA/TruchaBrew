@@ -8,7 +8,7 @@ import {
 } from '../designSystem';
 
 export type BadgeVariant = BatchStatus | SemanticBadgeVariant;
-export type BadgeSize = 'sm' | 'md';
+export type BadgeSize = 'xs' | 'sm' | 'md';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
@@ -30,9 +30,11 @@ export const Badge: React.FC<BadgeProps> = ({
   ...rest
 }) => {
   const sizeClasses =
-    size === 'sm'
-      ? 'px-2 py-0.5 text-[11px] font-medium rounded-full border inline-flex items-center gap-1'
-      : `${STATUS_BADGE_WRAPPER_CLASS} inline-flex items-center gap-1.5`;
+    size === 'xs'
+      ? 'px-1.5 py-0.5 text-[10px] font-medium rounded-full border inline-flex items-center gap-1'
+      : size === 'sm'
+        ? 'px-2 py-0.5 text-[11px] font-medium rounded-full border inline-flex items-center gap-1'
+        : `${STATUS_BADGE_WRAPPER_CLASS} inline-flex items-center gap-1.5`;
   const resolvedVariant = status ?? variant;
 
   let colorClasses = SEMANTIC_BADGE_CLASS.neutral;

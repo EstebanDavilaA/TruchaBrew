@@ -2,16 +2,17 @@ import React, { useState } from 'react';
 import type { YeastItem } from '../types/brewing';
 import { useCatalog } from '../context/CatalogContext';
 import { Plus, Trash2, FlaskConical } from 'lucide-react';
-import { CARD_CLASS, SECTION_HEADING_CLASS } from './designSystem';
-import { Button, NumberInput, Table, TableHeaderCell, TableCell } from './ui';
+import { Button, NumberInput, Table, TableHeaderCell, TableCell, SectionCard } from './ui';
 import { PresetPickerModal } from './PresetPickerModal';
 
 interface YeastSectionProps {
   yeasts: YeastItem[];
   onUpdate: (updated: YeastItem[]) => void;
+  /** Optional stable anchor id (jump-nav target). Defaults to 'recipe-yeast'. */
+  sectionId?: string;
 }
 
-export const YeastSection: React.FC<YeastSectionProps> = ({ yeasts, onUpdate }) => {
+export const YeastSection: React.FC<YeastSectionProps> = ({ yeasts, onUpdate, sectionId }) => {
   const { error: catalogError } = useCatalog();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
@@ -24,13 +25,13 @@ export const YeastSection: React.FC<YeastSectionProps> = ({ yeasts, onUpdate }) 
   };
 
   return (
-    <div className={CARD_CLASS}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={SECTION_HEADING_CLASS}>
-          <FlaskConical className="w-5 h-5 text-purple-400" /> Yeast Strain & Fermentation
-        </h3>
-      </div>
-
+    <SectionCard
+      id={sectionId ?? 'recipe-yeast'}
+      title="Yeast Strain & Fermentation"
+      headingLevel={3}
+      icon={<FlaskConical className="w-5 h-5 text-purple-400" />}
+      collapsible
+    >
       {/* Yeast Table */}
       <Table>
         <thead className="bg-slate-800/80 border-b border-slate-700">
@@ -133,6 +134,6 @@ export const YeastSection: React.FC<YeastSectionProps> = ({ yeasts, onUpdate }) 
           setIsPickerOpen(false);
         }}
       />
-    </div>
+    </SectionCard>
   );
 };

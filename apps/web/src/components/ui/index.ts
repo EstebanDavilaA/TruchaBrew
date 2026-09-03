@@ -18,3 +18,8 @@ export type { TableProps, TableHeaderCellProps, TableCellProps, TableCellSize, T
 
 export { Badge } from './Badge';
 export type { BadgeProps, BadgeVariant, BadgeSize } from './Badge';
+
+export { SectionCard } from './SectionCard';
+export type { SectionCardProps, SectionCardHeadingLevel } from './SectionCard';
+export { StickyJumpNav, resolveActiveIndex } from './StickyJumpNav';
+export type { StickyJumpNavProps, StickyJumpNavItem } from './StickyJumpNav';

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
-import type { UserConfig, CalculatedStats } from '@truchabrew/shared-types';
+import type { UserConfig, CalculatedStats, RecipeSummary } from '@truchabrew/shared-types';
 import type { MashPlan } from '@truchabrew/calculations';
+import { BJCP_STYLES } from '@truchabrew/calculations';
 import App from '../src/App';
 import { ApiClientError } from '../src/api/client';
 import { baseEquipment, baseStoredRecipe, baseBatch } from './helpers/fixtures';
@@ -1500,4 +1501,186 @@ describe('AC-16: hamburger reaches non-editor routes through App\'s real navigat
     expect(screen.getByRole('dialog', { name: 'Mobile navigation' })).toBeInTheDocument();
   });
 });
-
+
+describe('M38_P1 AC-15: Recipe Editor Folder Field', () => {
+  it('exposes a Folder input; setting it dirties the editor', async () => {
+    await openSavedRecipe();
+    const folderInput = screen.getByLabelText('Folder') as HTMLInputElement;
+    expect(folderInput.value).toBe('');
+
+    fireEvent.change(folderInput, { target: { value: 'IPAs' } });
+    expect(folderInput.value).toBe('IPAs');
+    await waitFor(() => {
+      expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    });
+  });
+
+  it('clearing the folder input sets it back to empty (unfiled)', async () => {
+    await openSavedRecipe();
+    const folderInput = screen.getByLabelText('Folder') as HTMLInputElement;
+    fireEvent.change(folderInput, { target: { value: 'IPAs' } });
+    expect(folderInput.value).toBe('IPAs');
+
+    fireEvent.change(folderInput, { target: { value: '' } });
+    expect(folderInput.value).toBe('');
+  });
+});
+
+describe('M38_P1 AC-16: Recipe Editor Tags Field', () => {
+  it('adding a tag via the "Add tag" input renders it as a badge and dirties the editor', async () => {
+    await openSavedRecipe();
+    const tagInput = screen.getByLabelText('Add tag') as HTMLInputElement;
+
+    fireEvent.change(tagInput, { target: { value: 'Hazy' } });
+    fireEvent.keyDown(tagInput, { key: 'Enter' });
+
+    expect(screen.getByText('Hazy')).toBeInTheDocument();
+    expect(tagInput.value).toBe('');
+    await waitFor(() => {
+      expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    });
+  });
+
+  it('a comma also commits the current draft as a tag', async () => {
+    await openSavedRecipe();
+    const tagInput = screen.getByLabelText('Add tag') as HTMLInputElement;
+    fireEvent.change(tagInput, { target: { value: 'Citra' } });
+    fireEvent.keyDown(tagInput, { key: ',' });
+    expect(screen.getByText('Citra')).toBeInTheDocument();
+  });
+
+  it('does not add a duplicate tag (case-insensitive)', async () => {
+    await openSavedRecipe();
+    const tagInput = screen.getByLabelText('Add tag') as HTMLInputElement;
+    fireEvent.change(tagInput, { target: { value: 'Hazy' } });
+    fireEvent.keyDown(tagInput, { key: 'Enter' });
+    fireEvent.change(tagInput, { target: { value: 'hazy' } });
+    fireEvent.keyDown(tagInput, { key: 'Enter' });
+
+    expect(screen.getAllByText('Hazy')).toHaveLength(1);
+  });
+
+  it('clicking a tag badge removes it and repopulates the draft input for editing', async () => {
+    await openSavedRecipe();
+    const tagInput = screen.getByLabelText('Add tag') as HTMLInputElement;
+    fireEvent.change(tagInput, { target: { value: 'Hazy' } });
+    fireEvent.keyDown(tagInput, { key: 'Enter' });
+    expect(screen.getByText('Hazy')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Hazy'));
+
+    expect(screen.queryByText('Hazy')).not.toBeInTheDocument();
+    expect((screen.getByLabelText('Add tag') as HTMLInputElement).value).toBe('Hazy');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M38_P3 — Real-Time BJCP Style Target Gauges & Folder Datalist (App wiring)
+// ---------------------------------------------------------------------------
+
+function summaryFor(name: string, folder?: string | null): RecipeSummary {
+  return {
+    id: `r-${name.replace(/\s+/g, '-').toLowerCase()}`,
+    name,
+    author: 'Tester',
+    styleName: '',
+    equipmentId: 'eq-1',
+    equipmentName: 'Default',
+    batchSizeL: 20,
+    fermentableCount: 1,
+    hopCount: 0,
+    folder: folder ?? null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+}
+
+describe('M38_P3 AC-31: selecting a BJCP style never writes styleName (RA-P3-1 decoupling)', () => {
+  it('changing the BJCP Select updates bjcpStyleId state (dirties) and leaves the free-text Style name input untouched', async () => {
+    await openSavedRecipe();
+    const styleInput = screen.getByLabelText('Style name') as HTMLInputElement;
+    const before = styleInput.value;
+    expect(before).toBe('21A. American IPA');
+
+    const select = screen.getByLabelText('BJCP Style') as HTMLSelectElement;
+    expect(select.value).toBe(''); // STORED_RECIPE has no bjcpStyleId -> null
+    fireEvent.change(select, { target: { value: BJCP_STYLES[0].id } });
+    expect(select.value).toBe(BJCP_STYLES[0].id);
+
+    // styleName is independent and unchanged (RA-P3-1).
+    expect((screen.getByLabelText('Style name') as HTMLInputElement).value).toBe(before);
+    // bjcpStyleId changed in recipe state -> editor dirties.
+    await waitFor(() => expect(screen.getByText('Unsaved changes')).toBeInTheDocument());
+  });
+});
+
+describe('M38_P3 AC-13: BJCP style round-trips — reopening a stored recipe restores the Select', () => {
+  it('a recipe loaded with bjcpStyleId set shows that style in the BJCP Select on editor open', async () => {
+    const styled = { ...STORED_RECIPE, bjcpStyleId: '21A' };
+    mockedGetRecipe.mockReset().mockResolvedValue(styled);
+    await openSavedRecipe();
+    const select = screen.getByLabelText('BJCP Style') as HTMLSelectElement;
+    expect(select.value).toBe('21A');
+    // A real dataset id renders gauges, not the neutral hint.
+    expect(screen.queryByTestId('style-neutral')).not.toBeInTheDocument();
+  });
+});
+
+describe('M38_P3 AC-32/AC-33: folder datalist on editor entry', () => {
+  async function openWithFolders(folders: (string | null)[]) {
+    mockedListRecipes.mockReset().mockResolvedValue([
+      summaryFor('Saved Test Recipe', 'IPAs'),
+      summaryFor('My Bock', 'Lagers'),
+      ...folders.map((f, i) => summaryFor(`Unfiled ${i}`, f)),
+    ]);
+    render(<App />);
+    await waitFor(() => screen.getByText('Saved Test Recipe'));
+    fireEvent.click(screen.getByText('Saved Test Recipe'));
+    await waitFor(() => screen.getByRole('button', { name: /Brew This/ }));
+  }
+
+  it('AC-32: opening the editor renders a datalist offering distinct existing folder names, and the folder input is wired to it', async () => {
+    await openWithFolders([null, '']); // extra unfiled / empty -> excluded
+    const dl = await screen.findByTestId('folder-suggestions');
+    const options = Array.from(dl.querySelectorAll('option')).map((o) => o.getAttribute('value'));
+    expect(options).toEqual(['IPAs', 'Lagers']); // distinct + sorted, unfiled excluded
+
+    const folderInput = screen.getByLabelText('Folder') as HTMLInputElement;
+    expect(folderInput.getAttribute('list')).toBe('folder-suggestions');
+  });
+
+  it('AC-33: free-text entry of a brand-new folder still sets recipe.folder (datalist is not a constraint)', async () => {
+    await openWithFolders([null]); // include an unfiled recipe (excluded from the datalist)
+    const dl = await screen.findByTestId('folder-suggestions');
+    // IPAs + Lagers are suggested; the unfiled recipe is excluded.
+    const suggested = Array.from(dl.querySelectorAll('option')).map((o) => o.getAttribute('value'));
+    expect(suggested).toEqual(['IPAs', 'Lagers']);
+
+    // Free-text entry of a brand-new folder is unaffected by the datalist.
+    const folderInput = screen.getByLabelText('Folder') as HTMLInputElement;
+    fireEvent.change(folderInput, { target: { value: 'BrandNew' } });
+    expect(folderInput.value).toBe('BrandNew');
+    await waitFor(() => expect(screen.getByText('Unsaved changes')).toBeInTheDocument());
+  });
+});
+
+describe('M38_P3 AC-34: folder fetch failure degrades silently', () => {
+  it('a failed listRecipes on editor entry leaves an empty datalist and no error banner, folder field still functional', async () => {
+    render(<App />);
+    await waitFor(() => screen.getByText('Saved Test Recipe'));
+    // The list view consumed one successful call; the editor-entry call fails.
+    mockedListRecipes.mockRejectedValueOnce(new ApiClientError('INTERNAL', 'Request failed with status 500.'));
+    fireEvent.click(screen.getByText('Saved Test Recipe'));
+    await waitFor(() => screen.getByRole('button', { name: /Brew This/ }));
+
+    const dl = await screen.findByTestId('folder-suggestions');
+    await waitFor(() => expect(Array.from(dl.querySelectorAll('option'))).toHaveLength(0));
+    // No error banner surfaced for the suggestion failure.
+    expect(screen.queryByText(/Couldn't load folder suggestions/i)).not.toBeInTheDocument();
+    // Folder field still functional.
+    const folderInput = screen.getByLabelText('Folder') as HTMLInputElement;
+    fireEvent.change(folderInput, { target: { value: 'StillWorks' } });
+    expect(folderInput.value).toBe('StillWorks');
+  });
+});
+

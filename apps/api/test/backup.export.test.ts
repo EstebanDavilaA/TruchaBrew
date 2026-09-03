@@ -80,6 +80,48 @@ describe('M36_P1: GET /api/backup/export', () => {
     });
   });
 
+  describe('M38_P1 AC-19: folder and tags survive export', () => {
+    it('the seeded (pre-M38_P1) recipe exports as folder: null, tags: [] (RA-5)', async () => {
+      setupSeeded();
+      const body = (await getExport()).json() as DatabaseBackup;
+      const recipe = body.data.recipes[0];
+      expect(recipe.folder).toBeNull();
+      expect(recipe.tags).toEqual([]);
+    });
+
+    it('a recipe created with folder/tags exports them unchanged', async () => {
+      setupSeeded();
+      const created = await app.inject({
+        method: 'POST',
+        url: '/api/recipes',
+        payload: {
+          name: 'Tagged Export Recipe',
+          author: 'Tester',
+          styleName: 'Test Style',
+          folder: 'Sours',
+          tags: ['Funky', 'Barrel'],
+          notes: '',
+          equipmentId: 'eq-1',
+          fermentables: [],
+          hops: [],
+          yeasts: [],
+          miscs: [],
+          mashProfileId: null,
+          fermentationProfileId: null,
+          waterSourceId: null,
+          waterTargetId: null,
+        },
+      });
+      expect(created.statusCode).toBe(201);
+      const createdId = created.json().id as string;
+
+      const body = (await getExport()).json() as DatabaseBackup;
+      const recipe = body.data.recipes.find((r) => r.id === createdId);
+      expect(recipe?.folder).toBe('Sours');
+      expect(recipe?.tags).toEqual(['Funky', 'Barrel']);
+    });
+  });
+
   describe('AC-4: batch integrity — readings, notes, and snapshot', () => {
     it('includes a created batch with its reading and note attached', async () => {
       setupSeeded();

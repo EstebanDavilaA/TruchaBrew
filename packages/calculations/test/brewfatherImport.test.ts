@@ -243,4 +243,40 @@ describe('M10_P1: Brewfather JSON Ingestion', () => {
       expect(() => parseBrewfatherJson({ recipes: [] }, { defaultEquipmentId: 'eq-1' })).toThrow(/No valid recipes/);
     });
   });
+
+  describe('M38_P1 AC-18: folder/tags mapping', () => {
+    it('maps a Brewfather folder and tags array onto the recipe', () => {
+      const raw = {
+        name: 'Folder and Tags Test',
+        folder: 'Hazy IPAs',
+        tags: ['Hazy', 'DDH'],
+        fermentables: [{ name: 'Pilsner', amountKg: 5, colorEBC: 3.5 }],
+      };
+      const [recipe] = parseBrewfatherJson(raw, { defaultEquipmentId: 'eq-1' });
+      expect(recipe.folder).toBe('Hazy IPAs');
+      expect(recipe.tags).toEqual(['Hazy', 'DDH']);
+    });
+
+    it('defaults to null / [] when folder/tags are absent', () => {
+      const raw = {
+        name: 'No Folder Or Tags',
+        fermentables: [{ name: 'Pilsner', amountKg: 5, colorEBC: 3.5 }],
+      };
+      const [recipe] = parseBrewfatherJson(raw, { defaultEquipmentId: 'eq-1' });
+      expect(recipe.folder).toBeNull();
+      expect(recipe.tags).toEqual([]);
+    });
+
+    it('trims a whitespace-only folder to null and drops non-string tag entries', () => {
+      const raw = {
+        name: 'Messy Folder And Tags',
+        folder: '   ',
+        tags: ['Real Tag', 42, null, 'Another'],
+        fermentables: [{ name: 'Pilsner', amountKg: 5, colorEBC: 3.5 }],
+      };
+      const [recipe] = parseBrewfatherJson(raw, { defaultEquipmentId: 'eq-1' });
+      expect(recipe.folder).toBeNull();
+      expect(recipe.tags).toEqual(['Real Tag', 'Another']);
+    });
+  });
 });

@@ -5,12 +5,9 @@ import { ArrowLeft, Save, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 import { TopBar } from './TopBar';
 import { PageContainer } from './PageContainer';
 import { ConfirmDialog } from './ConfirmDialog';
-import { FormField, Input, Select, Button, NumberInput } from './ui';
-import {
-  CARD_CLASS,
-  INPUT_CLASS,
-  SUBSECTION_HEADING_CLASS,
-} from './designSystem';
+import { FormField, Input, Select, Button, NumberInput, SectionCard } from './ui';
+import { INPUT_CLASS } from './designSystem';
+import { applyBalanceStrategy, type BalanceStrategy } from '@truchabrew/calculations';
 
 
 const FORM_ID = 'water-profile-form';
@@ -47,6 +44,7 @@ export const WaterProfileForm: React.FC<WaterProfileFormProps> = (props) => {
   const [bicarbonate, setBicarbonate] = useState(initial ? String(initial.bicarbonate) : '0');
   const [ph, setPh] = useState(initial?.ph !== null && initial?.ph !== undefined ? String(initial.ph) : '');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [balanceStrategy, setBalanceStrategy] = useState<BalanceStrategy>('Balanced');
 
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -126,6 +124,26 @@ export const WaterProfileForm: React.FC<WaterProfileFormProps> = (props) => {
     }
   };
 
+  // M37_P2 Amendment 2 (FEAT-044): a transient authoring aid — applying a
+  // balance strategy computes the target Cl/SO4 preset into the form's ion
+  // fields. Only the resulting ion values are persisted; the strategy itself
+  // is not stored on the profile (no schema change).
+  const handleApplyBalanceStrategy = () => {
+    const result = applyBalanceStrategy(
+      {
+        calcium: parseFloat(calcium) || 0,
+        magnesium: parseFloat(magnesium) || 0,
+        sodium: parseFloat(sodium) || 0,
+        chloride: parseFloat(chloride) || 0,
+        sulfate: parseFloat(sulfate) || 0,
+        bicarbonate: parseFloat(bicarbonate) || 0,
+      },
+      balanceStrategy,
+    );
+    setChloride(String(result.chloride));
+    setSulfate(String(result.sulfate));
+  };
+
   const titleText = isEdit && initial ? `Edit ${initial.name}` : 'New Water Profile';
 
   return (
@@ -190,150 +208,202 @@ export const WaterProfileForm: React.FC<WaterProfileFormProps> = (props) => {
             </div>
           )}
 
-          <div className={`${CARD_CLASS} space-y-4`}>
-            <h3 className={SUBSECTION_HEADING_CLASS}>Profile Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <FormField label="Profile Name *" htmlFor="water-form-name">
-                  <Input
-                    id="water-form-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Balanced Tap Water"
-                    data-testid="water-form-name"
-                  />
-                </FormField>
+          <SectionCard
+            id="water-profile-information"
+            title="Profile Information"
+            headingLevel={2}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <FormField label="Profile Name *" htmlFor="water-form-name">
+                    <Input
+                      id="water-form-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Balanced Tap Water"
+                      data-testid="water-form-name"
+                    />
+                  </FormField>
+                </div>
+
+                <div>
+                  <FormField label="Profile Type *" htmlFor="water-form-type">
+                    <Select
+                      id="water-form-type"
+                      value={type}
+                      onChange={(e) => setType(e.target.value as WaterProfileType)}
+                      data-testid="water-form-type"
+                    >
+                      <option value="source">Source Water (Tap, Well, RO)</option>
+                      <option value="target">Target Profile (Style Target)</option>
+                    </Select>
+                  </FormField>
+                </div>
               </div>
 
               <div>
-                <FormField label="Profile Type *" htmlFor="water-form-type">
-                  <Select
-                    id="water-form-type"
-                    value={type}
-                    onChange={(e) => setType(e.target.value as WaterProfileType)}
-                    data-testid="water-form-type"
+                <FormField label="Description" htmlFor="water-form-description">
+                  <textarea
+                    id="water-form-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Optional notes about this water profile..."
+                    rows={2}
+                    className={`${INPUT_CLASS} text-xs`}
+                  />
+                </FormField>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            id="water-ion-concentrations"
+            title="Ion Concentrations & pH"
+            headingLevel={2}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div>
+                  <FormField
+                    label="Calcium (Ca²⁺) ppm *"
+                    htmlFor="water-form-ca"
+                    hint="Calcium supports yeast health and mash enzyme activity — typical target 40–120 ppm."
                   >
-                    <option value="source">Source Water (Tap, Well, RO)</option>
-                    <option value="target">Target Profile (Style Target)</option>
-                  </Select>
-                </FormField>
+                    <NumberInput
+                      id="water-form-ca"
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={calcium}
+                      onChange={(e) => setCalcium(e.target.value)}
+                      data-testid="water-form-ca"
+                    />
+                  </FormField>
+                </div>
+                <div>
+                  <FormField label="Magnesium (Mg²⁺) ppm *" htmlFor="water-form-mg">
+                    <NumberInput
+                      id="water-form-mg"
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={magnesium}
+                      onChange={(e) => setMagnesium(e.target.value)}
+                      data-testid="water-form-mg"
+                    />
+                  </FormField>
+                </div>
+                <div>
+                  <FormField label="Sodium (Na⁺) ppm *" htmlFor="water-form-na">
+                    <NumberInput
+                      id="water-form-na"
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={sodium}
+                      onChange={(e) => setSodium(e.target.value)}
+                      data-testid="water-form-na"
+                    />
+                  </FormField>
+                </div>
+                <div>
+                  <FormField
+                    label="Chloride (Cl⁻) ppm *"
+                    htmlFor="water-form-cl"
+                    hint="Chloride rounds the body and enhances malt sweetness; a higher Cl:SO₄ ratio softens hop bite."
+                  >
+                    <NumberInput
+                      id="water-form-cl"
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={chloride}
+                      onChange={(e) => setChloride(e.target.value)}
+                      data-testid="water-form-cl"
+                    />
+                  </FormField>
+                </div>
+                <div>
+                  <FormField
+                    label="Sulfate (SO₄²⁻) ppm *"
+                    htmlFor="water-form-so4"
+                    hint="Sulfate dries the finish and accentuates hop bitterness; a higher SO₄:Cl ratio sharpens hops."
+                  >
+                    <NumberInput
+                      id="water-form-so4"
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={sulfate}
+                      onChange={(e) => setSulfate(e.target.value)}
+                      data-testid="water-form-so4"
+                    />
+                  </FormField>
+                </div>
+                <div>
+                  <FormField label="Bicarbonate (HCO₃⁻) ppm *" htmlFor="water-form-hco3">
+                    <NumberInput
+                      id="water-form-hco3"
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={bicarbonate}
+                      onChange={(e) => setBicarbonate(e.target.value)}
+                      data-testid="water-form-hco3"
+                    />
+                  </FormField>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <FormField label="Description" htmlFor="water-form-description">
-                <textarea
-                  id="water-form-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Optional notes about this water profile..."
-                  rows={2}
-                  className={`${INPUT_CLASS} text-xs`}
-                />
-              </FormField>
-            </div>
-          </div>
+              <div className="pt-2 border-t border-slate-800 flex flex-wrap items-end gap-3">
+                <div className="min-w-0 max-w-sm flex-1">
+                  <FormField label="Balance Strategy (flavor target)" htmlFor="water-form-strategy">
+                    <Select
+                      id="water-form-strategy"
+                      value={balanceStrategy}
+                      onChange={(e) => setBalanceStrategy(e.target.value as BalanceStrategy)}
+                      data-testid="water-form-strategy"
+                    >
+                      <option value="Balanced">Balanced (SO₄:Cl ≈ 1:1)</option>
+                      <option value="Crisp Hop-Forward">Crisp Hop-Forward (SO₄:Cl ≈ 2:1)</option>
+                      <option value="Malty/Full">Malty/Full (Cl:SO₄ ≈ 2:1)</option>
+                    </Select>
+                  </FormField>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleApplyBalanceStrategy}
+                  data-testid="water-form-apply-strategy"
+                >
+                  Apply to Ion Targets
+                </Button>
+              </div>
 
-          <div className={`${CARD_CLASS} space-y-4`}>
-            <h3 className={SUBSECTION_HEADING_CLASS}>Ion Concentrations (ppm / mg/L) & pH</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div>
-                <FormField label="Calcium (Ca²⁺) ppm *" htmlFor="water-form-ca">
+              <div className="pt-2 border-t border-slate-800 max-w-xs">
+                <FormField
+                  label="pH (Optional)"
+                  htmlFor="water-form-ph"
+                  hint="Leave blank to inherit; for a balanced mash aim near pH 5.2–5.6."
+                >
                   <NumberInput
-                    id="water-form-ca"
+                    id="water-form-ph"
                     type="number"
-                    step="any"
+                    step="0.1"
                     min="0"
-                    value={calcium}
-                    onChange={(e) => setCalcium(e.target.value)}
-                    data-testid="water-form-ca"
-                  />
-                </FormField>
-              </div>
-              <div>
-                <FormField label="Magnesium (Mg²⁺) ppm *" htmlFor="water-form-mg">
-                  <NumberInput
-                    id="water-form-mg"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={magnesium}
-                    onChange={(e) => setMagnesium(e.target.value)}
-                    data-testid="water-form-mg"
-                  />
-                </FormField>
-              </div>
-              <div>
-                <FormField label="Sodium (Na⁺) ppm *" htmlFor="water-form-na">
-                  <NumberInput
-                    id="water-form-na"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={sodium}
-                    onChange={(e) => setSodium(e.target.value)}
-                    data-testid="water-form-na"
-                  />
-                </FormField>
-              </div>
-              <div>
-                <FormField label="Chloride (Cl⁻) ppm *" htmlFor="water-form-cl">
-                  <NumberInput
-                    id="water-form-cl"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={chloride}
-                    onChange={(e) => setChloride(e.target.value)}
-                    data-testid="water-form-cl"
-                  />
-                </FormField>
-              </div>
-              <div>
-                <FormField label="Sulfate (SO₄²⁻) ppm *" htmlFor="water-form-so4">
-                  <NumberInput
-                    id="water-form-so4"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={sulfate}
-                    onChange={(e) => setSulfate(e.target.value)}
-                    data-testid="water-form-so4"
-                  />
-                </FormField>
-              </div>
-              <div>
-                <FormField label="Bicarbonate (HCO₃⁻) ppm *" htmlFor="water-form-hco3">
-                  <NumberInput
-                    id="water-form-hco3"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={bicarbonate}
-                    onChange={(e) => setBicarbonate(e.target.value)}
-                    data-testid="water-form-hco3"
+                    max="14"
+                    value={ph}
+                    onChange={(e) => setPh(e.target.value)}
+                    placeholder="e.g. 7.4"
+                    data-testid="water-form-ph"
                   />
                 </FormField>
               </div>
             </div>
-
-            <div className="pt-2 border-t border-slate-800 max-w-xs">
-              <FormField label="pH (Optional)" htmlFor="water-form-ph">
-                <NumberInput
-                  id="water-form-ph"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="14"
-                  value={ph}
-                  onChange={(e) => setPh(e.target.value)}
-                  placeholder="e.g. 7.4"
-                  data-testid="water-form-ph"
-                />
-              </FormField>
-            </div>
-          </div>
+          </SectionCard>
         </form>
       </PageContainer>
 

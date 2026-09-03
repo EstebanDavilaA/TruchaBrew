@@ -143,3 +143,97 @@ describe('PUT /api/batches/:id/recipe-snapshot', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// M38_P1 Amendment 1 — AC-27/AC-28/AC-29 (F-1 regression). The pre-amendment
+// toRecipeWriteInput omitted `folder`/`tags` from the full-replace
+// RecipeWriteInput, so `syncToMasterRecipe: true` silently wiped the master
+// recipe's folder and every tag on sync (200 response, no test coverage).
+// RA-6 resolves both fields by KEY PRESENCE against the master recipe read
+// from the DB: absent/undefined keys RETAIN, explicit null/[] CLEARS, and a
+// non-empty tags array REPLACES (never merges). These tests assert on the
+// MASTER recipe row (`GET /api/recipes/:id`), never on the batch snapshot.
+// ---------------------------------------------------------------------------
+describe('M38_P1 Amendment 1 — AC-27/AC-28/AC-29 (F-1): syncToMasterRecipe: true carries folder/tags to the master recipe', () => {
+  it('AC-27: folder and tags survive the sync — asserted on the master recipe, not the batch snapshot', async () => {
+    const recipe = await createRecipe(fullRecipeInput({ folder: 'IPAs', tags: ['Hazy', 'Citra'] }));
+    expect(recipe.folder).toBe('IPAs');
+    expect(recipe.tags).toEqual(['Hazy', 'Citra']);
+    const batch = await createBatch(recipe.id);
+
+    // The batch's frozen snapshot (taken from getStoredRecipeById at batch
+    // creation) already carries folder/tags — send it through the sync
+    // verbatim, i.e. a snapshot that DOES carry those same values.
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/batches/${batch.id}/recipe-snapshot`,
+      payload: { recipeSnapshot: batch.recipeSnapshot, syncToMasterRecipe: true },
+    });
+    expect(res.statusCode).toBe(200);
+
+    const reread = await app.inject({ method: 'GET', url: `/api/recipes/${recipe.id}` });
+    expect(reread.statusCode).toBe(200);
+    const master = JSON.parse(reread.body);
+    // Asserted on the MASTER recipe — the exact fields the pre-amendment
+    // toRecipeWriteInput silently wiped to null/[] on every sync.
+    expect(master.folder).toBe('IPAs');
+    expect(master.tags).toEqual(['Hazy', 'Citra']);
+  });
+
+  it('AC-28: a pre-M38 snapshot that omits the folder/tags keys retains the master\'s stored folder/tags', async () => {
+    const recipe = await createRecipe(fullRecipeInput({ folder: 'IPAs', tags: ['Hazy', 'Citra'] }));
+    const batch = await createBatch(recipe.id);
+
+    // Strip the folder/tags keys ENTIRELY — structurally what a snapshot
+    // frozen before M38_P1 (no folder/tags columns at all) would look like.
+    const { folder: _folder, tags: _tags, ...legacySnapshot } = batch.recipeSnapshot;
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/batches/${batch.id}/recipe-snapshot`,
+      payload: { recipeSnapshot: legacySnapshot, syncToMasterRecipe: true },
+    });
+    expect(res.statusCode).toBe(200);
+
+    const reread = await app.inject({ method: 'GET', url: `/api/recipes/${recipe.id}` });
+    const master = JSON.parse(reread.body);
+    // RA-6 retention: absent keys RETAIN the master's stored values, never
+    // reset to null/[] by normalizeFolder/normalizeTags full-replace.
+    expect(master.folder).toBe('IPAs');
+    expect(master.tags).toEqual(['Hazy', 'Citra']);
+  });
+
+  it('AC-29: explicit folder:null / tags:[] clears the master, and a non-empty tags array replaces (never merges)', async () => {
+    const recipe = await createRecipe(fullRecipeInput({ folder: 'IPAs', tags: ['Hazy', 'Citra'] }));
+    const batch = await createBatch(recipe.id);
+
+    // Explicit clear — both keys PRESENT, folder null / tags [].
+    const clearSnapshot = { ...batch.recipeSnapshot, folder: null, tags: [] };
+    const clearRes = await app.inject({
+      method: 'PUT',
+      url: `/api/batches/${batch.id}/recipe-snapshot`,
+      payload: { recipeSnapshot: clearSnapshot, syncToMasterRecipe: true },
+    });
+    expect(clearRes.statusCode).toBe(200);
+
+    let master = JSON.parse((await app.inject({ method: 'GET', url: `/api/recipes/${recipe.id}` })).body);
+    expect(master.folder).toBeNull();
+    expect(master.tags).toEqual([]);
+
+    // Replace — a non-empty tags array must REPLACE the master's tags, never
+    // merge/union with the existing set (even though the master's tags are
+    // currently [] after the clear above, the pre-amendment bug would have
+    // nulled them out again rather than write them through).
+    const replaceSnapshot = { ...batch.recipeSnapshot, folder: 'Stouts', tags: ['DDH'] };
+    const replaceRes = await app.inject({
+      method: 'PUT',
+      url: `/api/batches/${batch.id}/recipe-snapshot`,
+      payload: { recipeSnapshot: replaceSnapshot, syncToMasterRecipe: true },
+    });
+    expect(replaceRes.statusCode).toBe(200);
+
+    master = JSON.parse((await app.inject({ method: 'GET', url: `/api/recipes/${recipe.id}` })).body);
+    expect(master.folder).toBe('Stouts');
+    expect(master.tags).toEqual(['DDH']);
+  });
+});

@@ -5,9 +5,8 @@ import { ArrowLeft, Save, Loader2, AlertTriangle, Plus, Trash2, ChevronUp, Chevr
 import { TopBar } from './TopBar';
 import { PageContainer } from './PageContainer';
 import { ConfirmDialog } from './ConfirmDialog';
-import { FormField, Input, Select, Button, NumberInput } from './ui';
+import { FormField, Input, Select, Button, NumberInput, SectionCard } from './ui';
 import {
-  CARD_CLASS,
   METADATA_TEXT_CLASS,
   SUBPANEL_CLASS,
 } from './designSystem';
@@ -249,8 +248,8 @@ export const MashProfileForm: React.FC<MashProfileFormProps> = (props) => {
             </div>
           </div>
         )}
-        <form id={FORM_ID} onSubmit={handleSubmit}>
-          <div className={CARD_CLASS}>
+        <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-6">
+          <SectionCard id="mash-profile-details" title="Profile Details" headingLevel={2}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
               <div className="sm:col-span-2">
                 <FormField
@@ -272,6 +271,11 @@ export const MashProfileForm: React.FC<MashProfileFormProps> = (props) => {
                 <FormField
                   label="Target pH"
                   htmlFor="mash-field-ph"
+                  hint={
+                    !targetPhError
+                      ? 'Typical mash target 5.2–5.6 at room temperature for clean conversion.'
+                      : undefined
+                  }
                   error={targetPhError || undefined}
                 >
                   <NumberInput
@@ -304,9 +308,15 @@ export const MashProfileForm: React.FC<MashProfileFormProps> = (props) => {
                 />
               </FormField>
             </div>
+          </SectionCard>
 
-            <div className="mb-3 flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-slate-200">Steps ({steps.length})</h4>
+          <SectionCard
+            id="mash-steps"
+            title="Mash Steps"
+            headingLevel={2}
+            badge={`${steps.length} step${steps.length === 1 ? '' : 's'}`}
+          >
+            <div className="mb-3 flex items-center justify-end">
               <Button
                 variant="secondary"
                 size="sm"
@@ -447,7 +457,7 @@ export const MashProfileForm: React.FC<MashProfileFormProps> = (props) => {
                 );
               })}
             </div>
-          </div>
+          </SectionCard>
 
 
           {saveState === 'error' && saveError && (

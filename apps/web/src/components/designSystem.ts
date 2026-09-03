@@ -62,6 +62,18 @@ export const INPUT_CLASS =
 export const INPUT_COMPACT_CLASS =
   'bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-100 placeholder-slate-500 focus:border-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500';
 
+// Underline (inline metadata) style — matches the recipe-builder title block's
+// pre-existing raw inputs (recipe name / style / brewer): transparent, no box,
+// a bottom border that appears amber on hover/focus. Used by Input
+// variant="underline" (e.g. the recipe editor's Folder / Add-tag fields).
+// NOTE: the outline-removal focus utility is deliberately NOT part of this
+// token (design governance, M30_P2 AC-14/15 — the literal class string is
+// banned from this file); callers that want the underline to suppress the
+// default focus ring in favor of the amber bottom border append it inline at
+// the usage site, exactly as the pre-existing title inputs do.
+export const INPUT_UNDERLINE_CLASS =
+  'bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-slate-300 placeholder-slate-500';
+
 export const FORM_SELECT_CLASS =
   'bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:border-amber-500 font-medium disabled:opacity-50 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500';
 
@@ -152,3 +164,10 @@ export const TABLE_CELL_CLASS = `text-sm ${TABLE_CELL_BASE_CLASS} font-mono tabu
 export const TABLE_CELL_TEXT_CLASS = `text-sm ${TABLE_CELL_BASE_CLASS}`;
 export const TABLE_CELL_SM_CLASS = `text-xs ${TABLE_CELL_BASE_CLASS} font-mono tabular-nums`;
 export const TABLE_CELL_SM_TEXT_CLASS = `text-xs ${TABLE_CELL_BASE_CLASS}`;
+
+// ---------------------------------------------------------------------------
+// Water Calculator ion tiles (M37_P2 Amendment 1, §1.3)
+// ---------------------------------------------------------------------------
+
+/** Inner tile used by the WaterCalculatorModal ion target-match grid. */
+export const ION_TILE_CLASS = 'p-2 rounded-lg bg-slate-950/50 border border-slate-800/70';

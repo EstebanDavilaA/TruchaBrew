@@ -518,3 +518,47 @@ describe('M36_P2: POST /api/backup/restore', () => {
     });
   });
 });
+
+describe('M38_P1 AC-19/RA-5: folder and tags survive restore', () => {
+  it('restoring a pre-M38_P1 backup (recipeFixture never sets folder/tags) leaves the restored row as folder: null, tags: [] — restore never fails on an old backup', async () => {
+    setupUnseeded();
+    // `fullBackupFixture` above (M36_P2's own fixture, unmodified by this
+    // phase) builds a `StoredRecipe` literal that never sets folder/tags —
+    // exactly what a real backup exported before M38_P1 existed looks like.
+    const backup = fullBackupFixture('legacy');
+
+    const res = await restore({ backup, mode: 'replace' } satisfies RestoreRequest);
+    expect(res.statusCode).toBe(200);
+
+    const recipeRow = row<{ folder: string | null; tags: string }>("SELECT folder, tags FROM recipes WHERE id = 'rec-legacy'")!;
+    expect(recipeRow.folder).toBeNull();
+    expect(JSON.parse(recipeRow.tags)).toEqual([]);
+  });
+
+  it('restoring a backup whose recipe DOES carry folder/tags preserves them exactly', async () => {
+    setupUnseeded();
+    const backup = fullBackupFixture('tagged');
+    backup.data.recipes[0] = { ...backup.data.recipes[0], folder: 'Barrel Aged', tags: ['Funky', 'Sour'] };
+
+    const res = await restore({ backup, mode: 'replace' } satisfies RestoreRequest);
+    expect(res.statusCode).toBe(200);
+
+    const recipeRow = row<{ folder: string | null; tags: string }>("SELECT folder, tags FROM recipes WHERE id = 'rec-tagged'")!;
+    expect(recipeRow.folder).toBe('Barrel Aged');
+    expect(JSON.parse(recipeRow.tags)).toEqual(['Funky', 'Sour']);
+  });
+
+  it('a subsequent GET /api/recipes/:id after restore returns the preserved folder/tags through the normal read path', async () => {
+    setupUnseeded();
+    const backup = fullBackupFixture('readback');
+    backup.data.recipes[0] = { ...backup.data.recipes[0], folder: 'IPAs', tags: ['Hazy'] };
+
+    await restore({ backup, mode: 'replace' } satisfies RestoreRequest);
+
+    const res = await app.inject({ method: 'GET', url: '/api/recipes/rec-readback' });
+    expect(res.statusCode).toBe(200);
+    const fetched = res.json() as StoredRecipe;
+    expect(fetched.folder).toBe('IPAs');
+    expect(fetched.tags).toEqual(['Hazy']);
+  });
+});

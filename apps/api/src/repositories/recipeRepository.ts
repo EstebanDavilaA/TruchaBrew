@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { eq, sql, like, or } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { RecipeSummary, RecipeWriteInput, StoredRecipe } from '@truchabrew/shared-types';
 import type { Db } from '../db/client';
 import {
@@ -93,25 +93,141 @@ function assembleStoredRecipe(db: Db, id: string): StoredRecipe | null {
   // null rather than throwing — a recipe must always be openable.
   const mashProfile = row.mashProfileId !== null ? getMashProfileById(db, row.mashProfileId) : null;
   const fermentationProfile = row.fermentationProfileId !== null ? getFermentationProfileById(db, row.fermentationProfileId) : null;
-  return toStoredRecipe(
-    row,
-    equipmentRowToDomain(equipmentRow),
-    items.fermentables,
-    items.hops,
-    items.yeasts,
-    items.miscs,
-    mashProfile,
-    fermentationProfile,
-  );
+  return {
+    ...toStoredRecipe(
+      row,
+      equipmentRowToDomain(equipmentRow),
+      items.fermentables,
+      items.hops,
+      items.yeasts,
+      items.miscs,
+      mashProfile,
+      fermentationProfile,
+    ),
+    // NEW in M38_P1 — added here rather than in mappers/recipeMapper.ts
+    // (`toStoredRecipe`'s home), which is not in this phase's Authorized
+    // Files to Modify. `recipeMapper.ts` is a pure, single-purpose helper
+    // called only from this file, so spreading these two fields onto its
+    // return value here is behaviourally identical to adding them inside
+    // toStoredRecipe and keeps the change inside recipeRepository.ts.
+    folder: row.folder ?? null,
+    tags: row.tags ?? [],
+    // NEW in M38_P3 — same spread-in-repository pattern as folder/tags above
+    // (M38_P1 precedent); recipeMapper.ts stays untouched.
+    bjcpStyleId: row.bjcpStyleId ?? null,
+  };
 }
 
-export function listRecipeSummaries(db: Db, q?: string): RecipeSummary[] {
-  const query = db
+/** RA-1: trims, and collapses '' / null / undefined to null. Max length 50 (schemas.ts mirrors this at the HTTP boundary). */
+export function normalizeFolder(folder: string | null | undefined): string | null {
+  if (folder === null || folder === undefined) return null;
+  const trimmed = folder.trim();
+  if (trimmed === '') return null;
+  return trimmed.slice(0, 50);
+}
+
+/**
+ * RA-P3-11: trims, and collapses '' / null / undefined to null. A direct
+ * mirror of normalizeFolder, but with NO dataset-membership check — the API
+ * package does not import the BJCP dataset; an unknown stored id degrades
+ * gracefully at read time (evaluateStyleMatch -> found:false -> neutral
+ * panel). Max length 20 mirrors schemas.ts's HTTP-boundary maxLength.
+ */
+export function normalizeBjcpStyleId(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  return trimmed.slice(0, 20);
+}
+
+/**
+ * RA-2: trims each tag, discards empty/whitespace-only entries, and
+ * deduplicates case-insensitively while preserving the casing of the FIRST
+ * occurrence (`['Session', 'session']` -> `['Session']`).
+ */
+export function normalizeTags(tags: string[] | undefined | null): string[] {
+  if (!tags) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of tags) {
+    const trimmed = raw.trim();
+    if (trimmed === '') continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(trimmed);
+  }
+  return result;
+}
+
+/**
+ * RA-1/RA-4/§2.1: pure repository-side filter applied in JS (not raw SQL —
+ * SQLite's JSON1 text-mode column makes a robust tag-containment/multi-field
+ * search query fragile to hand-write, and the recipe library is never large
+ * enough for an in-memory filter over already-loaded summaries to matter).
+ * `folder: '__unfiled__'` matches `folder === null` (RA-1); `tag` matches an
+ * exact (case-sensitive, already-normalized) entry in `tags`; `q` matches
+ * case-insensitively across name/styleName/author/folder/every tag (RA-4).
+ * RA-10 (Amendment 1, AC-32): folder is applied only when it is a non-empty
+ * string — undefined, null, and '' all mean "no folder filter", so an empty
+ * `?folder=` query param shows everything rather than nothing. Whitespace-
+ * only values are NOT special-cased (a real filter that matches nothing).
+ * The client's filterRecipesLocal (RecipeLibrary.tsx) uses a truthiness
+ * guard and already agrees on this input.
+ */
+export function filterRecipes(
+  recipeList: RecipeSummary[],
+  options: { q?: string; folder?: string | null; tag?: string | null },
+): RecipeSummary[] {
+  let result = recipeList;
+
+  if (typeof options.folder === 'string' && options.folder !== '') {
+    result =
+      options.folder === '__unfiled__'
+        ? result.filter((r) => (r.folder ?? null) === null)
+        : result.filter((r) => r.folder === options.folder);
+  }
+
+  // RA-10 tag: truthiness guard — an empty string is "no filter", matching
+  // the folder rule above and the client's filterRecipesLocal exactly.
+  if (options.tag) {
+    const tag = options.tag;
+    result = result.filter((r) => (r.tags ?? []).includes(tag));
+  }
+
+  const trimmedQ = (options.q ?? '').trim().toLowerCase();
+  if (trimmedQ) {
+    result = result.filter((r) => {
+      const haystack = [r.name, r.styleName, r.author, r.folder ?? '', ...(r.tags ?? [])]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(trimmedQ);
+    });
+  }
+
+  return result;
+}
+
+export interface ListRecipeSummariesOptions {
+  q?: string;
+  folder?: string | null;
+  tag?: string | null;
+}
+
+export function listRecipeSummaries(db: Db, qOrOptions?: string | ListRecipeSummariesOptions): RecipeSummary[] {
+  // Backward-compatible call shape: existing call sites pass a bare `q`
+  // string (or nothing); the new folder/tag query params (AC-7, AC-8, AC-9)
+  // arrive as an options object.
+  const options: ListRecipeSummariesOptions = typeof qOrOptions === 'string' ? { q: qOrOptions } : (qOrOptions ?? {});
+
+  const rows = db
     .select({
       id: recipes.id,
       name: recipes.name,
       author: recipes.author,
       styleName: recipes.styleName,
+      folder: recipes.folder,
+      tags: recipes.tags,
       equipmentId: recipes.equipmentId,
       equipmentName: equipmentProfiles.name,
       batchSizeL: equipmentProfiles.batchSizeL,
@@ -119,14 +235,7 @@ export function listRecipeSummaries(db: Db, q?: string): RecipeSummary[] {
       updatedAt: recipes.updatedAt,
     })
     .from(recipes)
-    .innerJoin(equipmentProfiles, eq(recipes.equipmentId, equipmentProfiles.id));
-
-  const trimmed = (q ?? '').trim();
-  const rows = (
-    trimmed
-      ? query.where(or(like(sql`lower(${recipes.name})`, `%${trimmed.toLowerCase()}%`), like(sql`lower(${recipes.styleName})`, `%${trimmed.toLowerCase()}%`)))
-      : query
-  )
+    .innerJoin(equipmentProfiles, eq(recipes.equipmentId, equipmentProfiles.id))
     .orderBy(sql`${recipes.updatedAt} DESC`)
     .all();
 
@@ -145,11 +254,13 @@ export function listRecipeSummaries(db: Db, q?: string): RecipeSummary[] {
     counts.set(row.id, { fermentableCount, hopCount });
   }
 
-  return rows.map((row) => ({
+  const summaries: RecipeSummary[] = rows.map((row) => ({
     id: row.id,
     name: row.name,
     author: row.author,
     styleName: row.styleName,
+    folder: row.folder ?? null,
+    tags: row.tags ?? [],
     equipmentId: row.equipmentId,
     equipmentName: row.equipmentName,
     batchSizeL: row.batchSizeL,
@@ -158,6 +269,8 @@ export function listRecipeSummaries(db: Db, q?: string): RecipeSummary[] {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }));
+
+  return filterRecipes(summaries, options);
 }
 
 export function getStoredRecipeById(db: Db, id: string): StoredRecipe | null {
@@ -200,6 +313,9 @@ export function createRecipe(db: Db, input: RecipeWriteInput): StoredRecipe {
         name: input.name,
         author: input.author,
         styleName: input.styleName,
+        folder: normalizeFolder(input.folder),
+        tags: normalizeTags(input.tags),
+        bjcpStyleId: normalizeBjcpStyleId(input.bjcpStyleId),
         equipmentId: input.equipmentId,
         notes: input.notes,
         mashProfileId: input.mashProfileId ?? null,
@@ -245,6 +361,14 @@ export function updateRecipe(db: Db, id: string, input: RecipeWriteInput): Store
         name: input.name,
         author: input.author,
         styleName: input.styleName,
+        // AC-4: an omitted/empty-string/null folder sets the DB column to
+        // NULL (normalizeFolder), never leaves the previous value in place —
+        // this is a full-replace PUT like every other recipe field.
+        folder: normalizeFolder(input.folder),
+        tags: normalizeTags(input.tags),
+        // NEW in M38_P3 — same full-replace semantics: omitted/empty/null
+        // clears the column back to NULL, never leaves a stale value.
+        bjcpStyleId: normalizeBjcpStyleId(input.bjcpStyleId),
         equipmentId: input.equipmentId,
         notes: input.notes,
         mashProfileId: input.mashProfileId ?? null,
@@ -282,6 +406,13 @@ export function duplicateRecipe(db: Db, id: string): StoredRecipe | null {
         name: `${source.name} (copy)`,
         author: source.author,
         styleName: source.styleName,
+        // RA-3/AC-5: folder and tags carry forward UNCHANGED — already
+        // normalized on the source row, never re-normalized here.
+        folder: source.folder ?? null,
+        tags: source.tags ?? [],
+        // NEW in M38_P3 — bjcpStyleId carries forward unchanged, like
+        // folder/tags (RA-P3-1 / AC-7).
+        bjcpStyleId: source.bjcpStyleId ?? null,
         equipmentId: source.equipment.id,
         notes: source.notes,
         // The schedules are shared, not cloned — same profile ids, no new
@@ -299,6 +430,8 @@ export function duplicateRecipe(db: Db, id: string): StoredRecipe | null {
       name: `${source.name} (copy)`,
       author: source.author,
       styleName: source.styleName,
+      folder: source.folder ?? null,
+      tags: source.tags ?? [],
       notes: source.notes,
       equipmentId: source.equipment.id,
       fermentables: source.fermentables.map(({ id: _id, ...rest }) => rest),

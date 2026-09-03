@@ -2560,9 +2560,9 @@ Ready for `/steer`.
 
 ---
 
-## M34_P3 � INDEPENDENT VERIFICATION (2026-08-27)
+## M34_P3 � INDEPENDENT VERIFICATION (2026-08-27)
 
-**Context.** Phase 3 of 5 of Milestone 34 ("Every dialog and panel is built from the same parts"). Migrated `WaterCalculatorModal.tsx` � the dialog most likely to have accumulated behavior � onto `components/ui/` primitives (`<Button>`, `<Select>`, `<NumberInput>`, `<FormField>`), unified salt + acid calculation under a single header `AUTO` action (`handleAutoAdjustAll`, retiring the fragmented inline acid `Auto` links, FEAT-028), harmonized the Minerals Needed column grid, and restructured Acid Adjustments into FormField-based cards. Includes Amendment 1 (FermentableSection pins) and Amendment 2 (unified AUTO, balanced grid, FormField acid cards) plus a lightweight rule-7 restoration of the M34_P1 migration in `PresetPickerModal.tsx` / `RefractometerFermentationModal.tsx`.
+**Context.** Phase 3 of 5 of Milestone 34 ("Every dialog and panel is built from the same parts"). Migrated `WaterCalculatorModal.tsx` � the dialog most likely to have accumulated behavior � onto `components/ui/` primitives (`<Button>`, `<Select>`, `<NumberInput>`, `<FormField>`), unified salt + acid calculation under a single header `AUTO` action (`handleAutoAdjustAll`, retiring the fragmented inline acid `Auto` links, FEAT-028), harmonized the Minerals Needed column grid, and restructured Acid Adjustments into FormField-based cards. Includes Amendment 1 (FermentableSection pins) and Amendment 2 (unified AUTO, balanced grid, FormField acid cards) plus a lightweight rule-7 restoration of the M34_P1 migration in `PresetPickerModal.tsx` / `RefractometerFermentationModal.tsx`.
 
 ### Layer 1: Four Gates (independently reproduced)
 
@@ -2575,12 +2575,12 @@ Ready for `/steer`.
 
 ### Layer 2: Independent Critic Audit
 
-**PASS � 24/24 ACs.** (citing `.gsd/archive/CRITIC_REPORT.md` entry `M34_P3 � WaterCalculatorModal.tsx, Alone (2026-08-27)`).
+**PASS � 24/24 ACs.** (citing `.gsd/archive/CRITIC_REPORT.md` entry `M34_P3 � WaterCalculatorModal.tsx, Alone (2026-08-27)`).
 - Unified `handleAutoAdjustAll` genuinely computes salts (60/40 mash/sparge split per `treatSpargeWater`, hand-verified Gypsum 14.05 g mash / 9.36 g sparge) plus both acid dosages with correct per-type handling (Acidulated Malt sparge auto is a legitimate no-op delegated to `calculateSpargeAcid`).
 - Zero raw `<button>`/`<select>`/text-`<input>` in `WaterCalculatorModal.tsx` (3 native checkboxes exempt per RA-4); `designTokens.test.ts` AC-13 row removed (CASES now exactly 4); FermentableSection pins reconciled (`width="lg"` = 3, `${INPUT_CLASS} font-mono tabular-nums` = 7).
 - `designSystem.ts` still exports exactly 28 constants (RA-1); `Modal.tsx` untouched (RA-2); M25 shell invariants intact.
 - Scope guardrail (AC-20): pre/post manifest diff shows 13 CHANGED/CREATED (`.gsd/STATE.json`, active spec, screenshot, `WaterCalculatorModal.tsx`, restored `PresetPickerModal.tsx` + `RefractometerFermentationModal.tsx`, and 8 test files), 0 DELETED. No forbidden paths modified.
-- **Non-blocking findings (reconcile at next /plan):** (1) the implemented `<colgroup>` percentages (20/14/27/27/12) do not match the spec's stated 26/16/22/22/14 allocation � no AC pins a numeric percentage and the symmetric intent is honored, so no FAIL; (2) the two restored M34_P1 files are not on the authorized list but are exact restorations of previously-authorized content, not new work; (3) AC-3's `variant="secondary"` self-contradicts Architecture �1's `variant="primary"` (implementation chose `primary`, defensible).
+- **Non-blocking findings (reconcile at next /plan):** (1) the implemented `<colgroup>` percentages (20/14/27/27/12) do not match the spec's stated 26/16/22/22/14 allocation � no AC pins a numeric percentage and the symmetric intent is honored, so no FAIL; (2) the two restored M34_P1 files are not on the authorized list but are exact restorations of previously-authorized content, not new work; (3) AC-3's `variant="secondary"` self-contradicts Architecture �1's `variant="primary"` (implementation chose `primary`, defensible).
 
 ### Layer 3: Cross-Milestone Regression
 
@@ -2588,9 +2588,9 @@ Ready for `/steer`.
 
 ### Manual Verification Evidence
 
-- `M34_P3_water_calculator_modal.png` (FormField acid cards + unified AUTO � updated for Amendment 2), present in `.gsd/active/manual_verification/`.
+- `M34_P3_water_calculator_modal.png` (FormField acid cards + unified AUTO � updated for Amendment 2), present in `.gsd/active/manual_verification/`.
 
-### Verdict: **PASS � M34_P3 is verification-clean across all 3 layers.**
+### Verdict: **PASS � M34_P3 is verification-clean across all 3 layers.**
 
 Ready for `/steer`.
 
@@ -2872,3 +2872,335 @@ Ready for `/steer`.
 ### Verdict: **PASS — M37_P1 is verification-clean across all 3 layers.**
 
 Ready for `/steer`.
+
+---
+
+## M37_P2 — INDEPENDENT VERIFICATION (2026-09-01)
+
+**Context.** Phase 2 of 2 of Milestone 37 ("Target Auto-Tuning UI, Fit Score Visualization & WaterCalculatorModal Integration"). `WaterCalculatorModal.tsx` wired to the M37_P1 solver: Auto-Optimize button, live fit-score badge, SO4:Cl ratio badge, per-ion target-match delta badges, Reset and Save to Recipe controls.
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,388 passed / 2 skipped across 126 files (web 1,293 + calculations 622/2 skipped + api 473) — reproduced fresh after repairing this session's local environment (see Environment note below). |
+| Typecheck | `npm run typecheck` | Not independently re-run this session; executor reported PASS (4/4 packages) and critic reproduced PASS. |
+| Production Build | `npm run build` | **UNVERIFIED — environment defect, not a code defect.** `vite build` (rolldown backend) fails in this sandbox on a missing platform-specific native binding (`rolldown-binding.linux-x64-gnu.node`, then `lightningcss.linux-x64-gnu.node` after a partial workaround), reproducing the same class of npm optional-dependency resolution bug (npm/cli#4828) already seen with `@rollup/rollup-linux-x64-gnu` earlier in this session. A full `node_modules` wipe and clean reinstall did not resolve it. Also independently flagged by the Layer 2 critic. Needs a re-run in an environment with working native-binding resolution before AC-20 (bundle load time) can be certified.
+| Lint | `npm run lint` | Not independently re-run this session; executor reported 0 errors, 4 pre-existing warnings.
+
+**Environment note (this session, not attributable to M37_P2's code):** the initial `npm test` run failed 68/1293 web tests in `BatchDetail.test.tsx` (untouched by this phase) with `TypeError: Cannot read properties of undefined (reading 'clear')` on `localStorage.clear()`. Root cause: Node 26.8.1 (this sandbox's active runtime) ships an experimental native `localStorage` global gated behind `--localstorage-file`, and the installed jsdom (25.0.1) no longer implements `Storage` itself — both `globalThis.localStorage` and `window.localStorage` resolved to `undefined`. Fixed via the rule-7 lightweight-task exception: `apps/web/test/setup.ts` now installs a minimal in-memory `Storage` polyfill directly onto both globals in test setup. Re-run after the fix: clean, matches the executor's originally claimed 2,388/126 count exactly.
+
+### Layer 2: Independent Critic Audit
+
+**FAIL — 12 YES / 1 NO / 8 PARTIAL / 1 UNVERIFIED of 22 ACs.** (citing `.gsd/archive/CRITIC_REPORT.md` entry for M37_P2, 2026-09-01). Summary of blocking findings:
+1. **AC-16 (NO):** two files outside the spec's Authorized Files list were modified (`packages/calculations/src/waterOptimization.ts`, `apps/web/test/WaterSection.test.tsx`). The RA-3 justification is present in the spec text but self-labeled as written by the executor after `SPEC_APPROVED`, with no corresponding re-approval logged in `state_history`. Edits are substantively benign, but the authorization gap is a process violation.
+2. **AC-6 (PARTIAL):** displayed SO4:Cl ratio descriptor bands (from the pre-existing, untouched `calculateSulfateToChlorideRatio`) match only 2 of the 4 exact labels the Phase Summary specifies.
+3. **AC-17 (PARTIAL):** BUG-024's resolution note claims verification "through the modal" but cites only a jsdom unit assertion; `.gsd/active/manual_verification/` is empty for this phase.
+- Non-blocking findings also raised: AC-5 fit-score color banding computed on a rounded value that can mismatch the true score; AC-7 in-range label text and rounding mismatch the spec; AC-3's volume-split assumption is untested where `WaterSection` could violate it; AC-15/AC-22 badges/ion-tile styling uses raw hand-rolled markup with no `Card` primitive to satisfy the spec's "primitives only" intent; the modal duplicates `DEFAULT_ION_WEIGHTS`/`fitScore` formula from the solver rather than importing it, and always scores against balanced weights regardless of the selected strategy; the spec-mandated `WaterCalculatorIntegration.test.tsx` file does not exist.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean, after this session's environment fix.** Full suite (2,388 passed / 2 skipped across 126 files) reproduces the executor's original count exactly once the unrelated `BatchDetail.test.tsx` environment failure was fixed (see Environment note above). No functional regression found in any prior milestone's tests.
+
+### Verdict: **FAIL — Layer 2 critic audit failed (1 NO + 2 blocking PARTIAL findings out of 22 ACs). Per `.gsd/HARD_RULES.md` rule 15 and the `/steer` skill's verdict logic, this does NOT proceed to the steering checkpoint. Routing to `/diagnose`.**
+
+Layer 1's build gate is separately unverified in this sandbox due to an environment defect (native-binding resolution), independent of the Layer 2 FAIL — flag for re-run once a working build environment is available, but this is not itself blocking `/diagnose`'s routing since Layer 2 already failed on its own.
+
+# VERIFICATION REPORT: M37_P2 Amendment 2 (Layer 2 + Layer 3)
+
+**Date:** 2026-09-01
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 38/38 active ACs (AC-25/26 superseded).** See `.gsd/archive/CRITIC_REPORT.md` "M37_P2 Amendment 2 (combined audit — Amendments 1 + 2)" entry, dated 2026-09-01. The critic traced every acceptance criterion through the implementation (not the executor's tests), found zero blocking gaps, and confirmed no silent-fallback or mechanism-mislabeling pattern in the Amendment 2 changes (`applyBalanceStrategy`, the `xs` Badge size). One non-blocking doc nit noted: AC-18's baseline figure text is stale (2,388 vs actual 2,416) — intent satisfied at 2,433.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite 2,433 passed / 2 skipped across 126 files (api 473 + web 1,311 + calculations 649), exit 0 — monotonic vs the 2,416 baseline, no regression in any prior milestone.
+
+### Layer 1 (reported by /execute, reproduced this pass)
+
+- Tests: 2,433 passed / 2 skipped · Typecheck: 4/4 · Build: clean (360ms) · Lint: 0 errors, 4 pre-existing warnings.
+
+### Verdict: **PASS — proceeding to steering checkpoint.**
+
+
+---
+
+# VERIFICATION REPORT: M37_P2 Amendments 3 & 4 (Cumulative Closure)
+
+**Date:** 2026-09-01 · **Verifier:** antigravity-gemini (State 4 /steer session)
+
+### Layer 1: Four Quality Gates (independently reproduced)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,437 passed / 2 skipped across 126 files (api 473 + web 1,315 + calculations 649) — monotonic progression (+4 vs baseline). |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean (shared-types, calculations, web, api). |
+| Production Build | `npm run build` | **PASS (exit 0)** | Built clean in 623ms, bundle generated with zero errors. |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors (4 pre-existing fast-refresh warnings). |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 46/46 active ACs (AC-25/26 superseded).** Citing `.gsd/archive/CRITIC_REPORT.md` entry "M37_P2 — Amendments 3 & 4 Cumulative Audit (FEAT-043 Sparge MiscUse & BUG-042 Recipe Mash pH Alignment)", dated 2026-09-01.
+- All 46 active ACs traced YES.
+- FEAT-043 delivered: proper `use: 'Sparge'` enum across `packages/shared-types` and `apps/api` validation schemas, plain-name saving, and backwards-compatible legacy-suffix loading shim in `WaterCalculatorModal.tsx`.
+- BUG-042 resolved: `WaterSection.tsx` acid aggregation filters to `use === 'Mash'`, keeping recipe mash pH (5.35) identical to modal adjusted mash pH.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Monotonic test progression verified across all prior milestone test suites (2,437 passed / 2 skipped across 126 test files).
+
+### Verdict: **PASS — Milestone 37 Phase 2 and Milestone 37 overall verified complete across all 3 layers.**
+
+---
+
+## M38_P1 — INDEPENDENT VERIFICATION (2026-09-01)
+
+**Context.** Phase 1 of 3 of Milestone 38 ("Recipe Folders & Tag Taxonomy"). Additive SQLite migration (`apps/api/drizzle/0016_recipe_folders_tags.sql`) adding nullable `folder` and JSON `tags` columns to recipes; `recipeRepository.ts` normalization/filtering (RA-1/RA-2/RA-4); `GET /api/recipes` query params (`q`/`folder`/`tag`); `RecipeLibrary.tsx` folder tab strip and clickable tag badges; recipe editor folder/tag fields.
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,485 passed / 2 skipped across 126 files (web 1,334 + calculations 652/2 skipped + api 499), matches the executor's claimed count exactly. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces. |
+| Production Build | `npm run build` | Not independently re-run this session (prior sessions confirmed clean at 410ms per state_history; this sandbox's build gate remains generally unreliable due to the native-binding install defect noted in the M37_P2 entry above, unrelated to this phase's code). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 4 pre-existing fast-refresh warnings, matches executor's claim. |
+
+### Layer 2: Independent Critic Audit
+
+**FAIL.** (citing `.gsd/archive/CRITIC_REPORT.md` M38_P1 entry, 2026-09-01). Layer 1 reproduced clean by the critic too — the FAIL is a correctness gap invisible to all 2,485 tests:
+
+- **F-1 (blocking, real data-loss bug):** `apps/api/src/routes/batches.ts`'s `toRecipeWriteInput()` (used by the batch "sync adjustments back to master recipe" flow, reachable from `BatchRecipeAdjustModal.tsx`'s real UI checkbox) omits `folder`/`tags` when building the full-replace `RecipeWriteInput` passed to `updateRecipe`. Since the API route defaults missing keys (`normalizeFolder(undefined) → null`, `normalizeTags(undefined) → []`), syncing a batch's recipe snapshot back to the library **silently wipes that recipe's folder and every tag**, returns 200, and no existing test covers this path with folder/tags populated.
+- **F-2 (blocking, process):** `apps/api/src/routes/backup.ts` was edited outside the spec's Authorized Files list (only `packages/shared-types/src/backup.ts` was authorized) — the executor's disclosed reasoning (restore would otherwise silently drop folder/tags) is legitimate, but the critic found F-1 as the structurally identical, undisclosed second instance the same shortcut should have caught. The spec is internally inconsistent (AC-19 demands backup/restore round-trip integrity while its Authorized Files list makes that unreachable without an edit outside scope) — this needed a spec amendment, not self-authorization, per the same discipline M37_P2 was FAILed over.
+- Migration numbering (0016 vs. the spec's literal "0009") independently confirmed NOT a violation — 0009 is already `water_profiles.sql` in this repo and 0016 follows actual next-sequential convention; the spec's file list authorizes `apps/api/drizzle/` generically.
+- Optional (not required) `folder`/`tags` typing confirmed not to cause any runtime gap in code this phase owns (every read path coalesces `?? null` / `?? []`), but it removed the compile-time guard that would have caught F-1 as a type error at build time instead of a silent runtime data-loss bug.
+- AC-20 (primitive-only UI) and AC-11..14 (folder tabs/tag badges) independently verified correct by reading the actual JSX, not just testid presence.
+- Non-blocking: no folder datalist/picker despite spec §2.2; `recipes.migration.test.ts` coverage folded into `recipes.crud.test.ts` (defensible, the real migration does execute via `runMigrations`); `GET /api/recipes?folder=` with an empty string returns zero recipes, diverging from the client-side filter's treatment of empty string as "no filter."
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite reproduces exactly (2,485 passed / 2 skipped across 126 files). No functional regression in any prior milestone's tests.
+
+### Verdict: **FAIL — Layer 2 critic audit failed on a real data-loss bug (F-1) plus a scope-authorization gap (F-2) with the same root cause as M37_P2's earlier FAIL: a spec whose Authorized Files list didn't cover a requirement its own ACs demand. Per `.gsd/HARD_RULES.md` rule 15 and the `/steer` skill's verdict logic, this does NOT proceed to the steering checkpoint. Routing to `/diagnose`.**
+
+Critic's recommended routing: root cause is spec-layer (the Authorized Files list, not the implementation approach) — route to `/diagnose` → `/plan` amendment covering `apps/api/src/routes/backup.ts` and `apps/api/src/routes/batches.ts`'s `toRecipeWriteInput`, plus a regression test proving folder/tags survive a `syncToMasterRecipe: true` round-trip — not another in-place `/execute` patch without a spec update.
+
+---
+
+## M38_P1 (Amendment 1) — INDEPENDENT VERIFICATION (2026-09-01)
+
+**Context.** Post-critic-FAIL corrective amendment to Milestone 38 Phase 1 ("Recipe Folders & Tag Taxonomy"). Closes the 2026-09-01 Layer 2 FAIL (CRITIC_REPORT.md M38_P1 first-execution entry): **F-1** (real data-loss bug — `toRecipeWriteInput` omitted `folder`/`tags` on the batch→master-recipe sync flow, silently wiping them) and **F-2** (scope — `apps/api/src/routes/backup.ts` self-authorized). Spec amended in place: AC-1..AC-25 kept stable (AC-1/AC-21/AC-25 marked [AMENDED]), AC-26..AC-32 appended (32 ACs total), RA-6..RA-11 binding, Authorized Files expanded to formally cover `batches.ts` (F-1) and `backup.ts` (F-2).
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,495 passed / 2 skipped across 126 files (api 505 + web 1,338 + calculations 652/2 skipped), +10 vs the 2,485 baseline. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean (shared-types, calculations, web, api). |
+| Production Build | `npm run build` | **PASS (exit 0)** | Built clean in 351ms, zero errors. |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 4 pre-existing fast-refresh warnings, 0 new. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 32/32 active ACs.** Citing `.gsd/archive/CRITIC_REPORT.md` entry "M38_P1 (Amendment 1) — F-1/F-2/F-3/F-4/F-6 Remediation Audit", dated 2026-09-01.
+
+- **F-1 closed:** `toRecipeWriteInput` in `apps/api/src/routes/batches.ts` now takes a **required** `existing: StoredRecipe` and resolves `folder`/`tags` by strict RA-6 key-presence (absent/undefined → retain master values; explicit `null`/`[]` → clear; non-empty tags array → replace, never merge). The 404 branch fires before translation — no placeholder `existing` can reach `updateRecipe`. AC-27/28/29 regression tests assert on the **master recipe** and exercise the real data path (folder/tags survive sync, legacy snapshots retain, explicit clear + replace-not-merge).
+- **F-2 closed via RA-7** retroactive authorization (same style as M37_P2's RA-13): `restoreRecipes` carries `folder: recipe.folder ?? null` / `tags: recipe.tags ?? []`.
+- All 32 ACs traced YES; silent-fallback and mechanism-mislabeling hunts clean. Two non-blocking notes: (1) test count variance 2,493 (executor) vs 2,495 (critic, web variance, both exceed baseline); (2) AC-2's test lives in `recipes.crud.test.ts` rather than the spec-named `recipes.migration.test.ts` — a disclosed spec-internal inconsistency, correctly handled without creating an unauthorized file.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite re-run independently this session: 2,495 passed / 2 skipped across 126 files (api 505 + web 1,338 + calculations 652/2 skipped), matching the critic's Layer 2 re-run exactly and exceeding the 2,485 baseline monotonically. No functional regression in any prior milestone's tests.
+
+### Verdict: **PASS — M38_P1 (Amendment 1) verified complete across all three layers. Proceeding to the steering checkpoint.**
+
+---
+
+## M38_P2 — INDEPENDENT VERIFICATION (2026-09-02)
+
+**Context.** Milestone 38 Phase 2 of 3 ("BJCP 2021 Style Guide Dataset & Evaluator"). Pure data + evaluator slice in `packages/calculations/src/bjcp/`: typed dataset of all 86 official BJCP 2021 styles carrying numeric guideline ranges (categories 1-26 only, 1A-26D — categories 27-34 publish "Variable by base style" and are excluded per RA-13), plus `evaluateStyleMatch(styleId, vitals, styles?)`. Two spec amendments were required pre-build (both user re-SPEC_APPROVED, 2026-09-02): **Amendment 1** corrected spot-check AC-9/10/11/12 to official BJCP 2021 values (incl. Vienna Lager code 29A→7A); **Amendment 2** re-scoped AC-1 (>90→===86) and AC-2 (1..34→1..26) on the verified structural finding that only categories 1-26 publish numeric ranges.
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,539 passed / 2 skipped across 127 files (api 505 + web 1,338 + calculations 696 incl. 44 in `bjcp.test.ts`), +44 vs the 2,495 baseline. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean. |
+| Production Build | `npm run build` | **PASS (exit 0)** | Clean (only pre-existing chunk-size warning). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 4 pre-existing fast-refresh warnings, 0 new. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 32/32 active ACs.** Citing `.gsd/archive/CRITIC_REPORT.md` entry "M38_P2 (post-Amendments 1+2)", dated 2026-09-02.
+
+- All 32 ACs traced YES (including the four `[AMENDED]` data ACs re-pinned by Amendments 1+2).
+- Independent source-fidelity cross-check: all 86 `data.ts` entries byte-exact vs the official `/tmp/bjcp_styleguide-2021.json` mirror (name + all 10 range bounds per style), id set identical to the source's categories-1-26 set; zero fabricated ranges; the mirror's stray experimental numeric ids correctly excluded.
+- 28/28 independent evaluator probes passed from the code path (inclusive `[low,high]` bounds, exclusive just-outside, unknown-id/empty-vitals/no-non-finite no-match contracts, SG-not-Plato, ebc-ignored, determinism).
+- Barrel integrity: explicit named value+type re-exports (no `export *`); `BJCPTier`/`SensoryScoreInput`/`BJCPScoreResult`/`calculateBJCPScore` from `equipmentDriven.ts` still resolve — no shadowing.
+- Silent-fallback and mechanism-mislabeling hunts clean.
+- Two non-blocking notes (no AC impact): (1) §1 signature `readonly BJCPStyle[]` implemented byte-for-byte but element-level `Readonly<BJCPStyle>`/runtime freeze not enforced (nothing mutates; hygiene only for P3); (2) `evaluate.ts` "frozen Map" comment is semantically accurate though not literally frozen.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite re-run independently this session: 2,539 passed / 2 skipped across 127 files, matching the critic's Layer 2 re-run exactly and exceeding the 2,495 baseline monotonically. No functional regression in any prior milestone's tests.
+
+### Verdict: **PASS — M38_P2 verified complete across all three layers. Proceeding to the steering checkpoint.**
+
+---
+
+## M38_P3 — INDEPENDENT VERIFICATION (2026-09-02)
+
+**Context.** Milestone 38 Phase 3 of 3 (FINAL phase — "Real-Time BJCP Style Target Gauges & Folder Datalist in the Recipe Designer"). UI slice consuming the M38_P2 dataset/evaluator: a persisted nullable `bjcpStyleId` on recipes (additive migration 0017) drives a `StyleTargetPanel` in the Recipe Designer showing live in-range gauges (OG/FG/ABV/IBU/SRM) against the selected BJCP style's guideline ranges, plus the RA-9 folder datalist. 37 ACs.
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,585 passed / 2 skipped across 130 files (api 515 + web 1,374 + calculations 696/2 skipped), +46 vs the 2,539 baseline. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean. |
+| Production Build | `npm run build` | **PASS (exit 0)** | Clean (only pre-existing chunk-size advisory). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 4 pre-existing fast-refresh warnings, 0 new. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 37/37 active ACs.** Citing `.gsd/archive/CRITIC_REPORT.md` entry "M38_P3 (2026-09-02) — Real-Time BJCP Style Target Gauges & Folder Datalist in the Recipe Designer".
+
+- All 37 ACs traced YES by direct hand-read (no AC NO or PARTIAL).
+- bjcpStyleId persistence verified end-to-end (shared-types optional field → migration 0017 → schema.ts → schemas.ts validator → recipeRepository wiring → useRecipeEditor → panel comparison); RecipeSummary correctly untouched.
+- statsToStyleVitals is a pure type-only field pass-through (no platoToSg/sgToPlato/ebcToSrm/srmToEbc anywhere); gauges consume M38_P2's inclusive `[low,high]` semantics verbatim (in-range at low/high, out at ±0.001).
+- Neutral style state on null/''/found:false — no fabricated match; per-vital `inRange===null` renders `data-state="unset"` with `—`.
+- Both skill-targeted patterns clean (no silent fallback, no mechanism mislabeling); Select is genuinely the ui/Select primitive (no raw `<select>`).
+- The three flagged judgment calls each verified acceptable & non-blocking: (1) no `0017_snapshot.json` follows actual repo convention (0009..0016 ship without snapshots), migration registered in _journal.json (18 entries idx 17) and applies cleanly; (2) folder effect keyed on `[view]` is the correct RA-P3-8 reading (avoids refetch on every edit); (3) `text-slate-400` unset color is the design-system standard muted tone.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite re-run independently this session: 2,585 passed / 2 skipped across 130 files, matching the critic's Layer 2 re-run exactly and exceeding the 2,539 baseline monotonically. No functional regression in any prior milestone's tests.
+
+### Verdict: **PASS — M38_P3 verified complete across all three layers. Milestone 38 (Recipe Folders, Tags & BJCP 2021 Style Targets) is complete in full across P1/P2/P3. Proceeding to the steering checkpoint.**
+
+---
+
+## M39_P1 — INDEPENDENT VERIFICATION (2026-09-02)
+
+**Context.** Milestone 39 Phase 1 of 3 (FEAT-005 umbrella) — "SectionCard & Sticky Jump-Nav Primitives". Two NEW `components/ui/` primitives that P2/P3 will apply across complex forms: `SectionCard` (controlled-or-uncontrolled collapsible anchored section shell) and `StickyJumpNav` (fully controlled sticky in-page nav), bound by an exact-string id-equality anchor coordination contract. 44 ACs.
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,620 passed / 2 skipped across 132 files (api 515 + web 1,409 + calculations 696/2 skipped), +35 vs the 2,585 baseline. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean. |
+| Production Build | `npm run build` | **PASS (exit 0)** | Clean (only pre-existing chunk-size advisory). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, 4 pre-existing fast-refresh warnings + 1 new (by-design `react/only-export-components` on co-located `resolveActiveIndex`, mandated by spec §1). |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 44/44 active ACs.** Citing `.gsd/archive/CRITIC_REPORT.md` entry "M39_P1 — SectionCard & Sticky Jump-Nav Primitives (2026-09-02)".
+
+- All 44 ACs traced YES (no AC NO or PARTIAL).
+- Controlled/uncontrolled collapse semantics honest (`open !== undefined` sole mode discriminator); disclosure is a genuine accessible `<button type="button">` with correctly wired `aria-expanded`/`aria-controls`.
+- StickyJumpNav empty/no-match/missing-target fallbacks are the spec-mandated honest suppression (empty→null, unknown→-1 no placeholder highlight, missing target→onNavigate fires but scroll guarded).
+- The disclosed constant rename (TOGGLE_BUTTON_CLASS→DISCLOSURE_TRIGGER_CLASS) ruled NOT a spec deviation — the spec never named that constant, and the change is genuinely forced by the pre-existing designTokens.test.ts AC-12 drift guard. New lint warning confirmed by-design per spec §1.
+- Both skill-targeted patterns clean; designSystem.ts byte-identical (AC-37); scope guardrail confirmed exactly 5 authorized files.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite re-run independently this session: 2,620 passed / 2 skipped across 132 files, matching the critic's Layer 2 re-run exactly and exceeding the 2,585 baseline monotonically. No functional regression in any prior milestone's tests.
+
+### Verdict: **PASS — M39_P1 verified complete across all three layers. Proceeding to the steering checkpoint.**
+
+---
+
+## M39_P2 — INDEPENDENT VERIFICATION (2026-09-02)
+
+**Context.** Milestone 39 Phase 2 of 3 (FEAT-005 umbrella) — "Recipe Editor & Equipment Form Sectioning". Applies the M39_P1 SectionCard/StickyJumpNav primitives to the Recipe Editor (four collapsible ingredient sections + StickyJumpNav in App.tsx) and EquipmentForm (six non-collapsible SectionCards + own StickyJumpNav + 8 FormField hint captions), with a shared `useSectionScrollSpy` hook. 44 ACs.
+
+### Layer 1: Four Gates (independently reproduced)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,659 passed / 2 skipped across 135 files (api 515 + web 1,448 + calculations 696/2 skipped), +39 vs the 2,620 baseline. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean. |
+| Production Build | `npm run build` | **PASS (exit 0)** | Clean (only pre-existing chunk-size advisory). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, 5 fast-refresh warnings (4 pre-existing + 1 P1 by-design; 0 new from P2). |
+
+### Layer 2: Independent Critic Audit
+
+**FAIL.** (citing `.gsd/archive/CRITIC_REPORT.md` M39_P2 entry, 2026-09-02). Layer 1 reproduces clean and the sectioning/collapse/caption/CRUD work is genuinely correct and in-scope (scope guardrail = exactly 15 authorized files) — the FAIL is a single verdict-flipping functional defect invisible to all 2,659 tests:
+
+- **Root cause:** `useSectionScrollSpy` attaches its scroll listener to **`window`**, but the app's real scroll container is **`PageContainer`'s `<main>`** (the shell is `h-screen overflow-hidden`; `<main>` is the sole `overflow-y-auto` scroll owner). `scroll` events do not bubble, so real content scrolling fires on `<main>` and never reaches the hook's `window` listener — the active highlight is computed once on mount and never follows scroll or nav clicks in the running app.
+- **Suite-masking mechanism mismatch:** every scroll-spy test drives synthetic `window.dispatchEvent(new Event('scroll'))` — the exact mechanism the hook listens on — so the green suite cannot surface that the real scroll container never triggers a recompute.
+- **AC-10/AC-23 PARTIAL** (missing `onNavigate` clause in the forms) and **AC-11/AC-32 PARTIAL** (frozen active derivation) — 40 YES / 4 PARTIAL / 0 NO.
+- Test reconciliation clean (no behavior assertion removed/weakened).
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite re-run independently: 2,659 passed / 2 skipped across 135 files, matching the critic's re-run exactly, monotonic vs the 2,620 baseline. No functional regression in any prior milestone's tests.
+
+### Verdict: **FAIL — Layer 2 critic audit failed on a real functional defect (scroll-spy attaches to `window` while the app scrolls in `PageContainer`'s `<main>`). Per `.gsd/HARD_RULES.md` rule 15 and the `/steer` skill's verdict logic, this does NOT proceed to the steering checkpoint. Routing to `/diagnose`.**
+
+Critic's recommended routing: the fix belongs in the hook's listener target (listen to the actual scroll container / PageContainer, or `window` with capture) plus a decision on whether the forms pass `onNavigate`. Because the spec's `useSectionScrollSpy` contract never pinned the listener target (spec-layer gap — cause 2), `/diagnose` routes to `/plan` (Amendment 1, same phase) to ratify the scroll-container target and `onNavigate` decision, then re-`SPEC_APPROVED`, then re-execute — not an in-place executor patch against an underspecified contract.
+
+---
+
+## M39_P2 (post-Amendment 3) — INDEPENDENT VERIFICATION (2026-09-02)
+
+**Context.** Milestone 39 Phase 2 of 3 (FEAT-005 umbrella) — "Recipe Editor & Equipment Form Sectioning". After the Layer 2 FAIL (scroll-spy listener target), the spec went through three same-phase amendments: A1 (capture-phase scroll listener, RA-1..6), A2 (STICKY_BAR_CLASS top-16→top-0 UX fix, RA-7), and A3 (USER-DIRECTED removal of the StickyJumpNav jump-nav + useSectionScrollSpy scroll-spy from BOTH the Recipe Editor and EquipmentForm — the sticky bar still read as unprofessional in the running app; the removal keeps the sectioning value). 33 ACTIVE ACs (14 nav/spy ACs superseded by A3).
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,646 passed / 2 skipped across 134 files (api 515 + web 1,435 + calculations 696/2 skipped). Down from 2,661/135 because A3 removed the nav/spy tests — expected for a removal, not a regression. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean. |
+| Production Build | `npm run build` | **PASS (exit 0)** | Clean (only pre-existing chunk-size advisory). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, pre-existing fast-refresh warnings only, no new. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 33/33 ACTIVE ACs.** Citing `.gsd/archive/CRITIC_REPORT.md` entry "M39_P2 (post-Amendment 3)", dated 2026-09-02. (14 ACs — AC-9/10/11/22/23/28/29/30/31/32/37/45/46/47 + RA-1..7 — superseded by the Amendment 3 removal and correctly not traced.)
+
+- Amendment 3 removal complete & correct: `useSectionScrollSpy.ts` + its test deleted (verified absent); repo-wide grep finds zero references; App.tsx/EquipmentForm.tsx carry no nav render/imports/NAV_ITEMS constants.
+- Retained sectioning value intact & functional: four collapsible ingredient SectionCards (collapse/reopen + independent disclosures verified), six non-collapsible equipment SectionCards with the thermal-mass checkbox preserved in the badge slot, stable ids/data-testid preservation, optional sectionId prop, folder datalist, 8 binding hint captions with error-suppression; recipe save and equipment CRUD unbroken.
+- EquipmentForm tool-corruption repair (a multi_replace edit corrupted it mid-build) ruled sound: the three sample decls restored & genuinely consumed, six SectionCards structurally intact, no nav/spy remnants, tsc 4/4 + suite green.
+- Both skill-targeted patterns clean; only non-blocking cosmetic findings (JSDoc wording, a pre-existing block-`<div>`-in-`<button>` Hop badge, AC-40's literal baseline superseded by the documented removal note).
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite re-run independently this session: 2,646 passed / 2 skipped across 134 files, matching the critic's re-run exactly. The reduction vs 2,661 is fully accounted for by the Amendment 3 nav/spy test removal (no functional regression in any prior milestone's tests).
+
+### Verdict: **PASS — M39_P2 (post-Amendment 3) verified complete across all three layers. Proceeding to the steering checkpoint.**
+
+---
+
+## M39_P3 — INDEPENDENT VERIFICATION (2026-09-03)
+
+**Context.** Milestone 39 Phase 3 of 3 (FINAL phase — "Water, Mash & Fermentation Profile Form Sectioning", FEAT-005 umbrella). Completes SectionCard sectioning across the three profile forms (WaterProfileForm, MashProfileForm, FermentationProfileForm), consistent with the M39_P2 Amendment 3 pivot (no StickyJumpNav/scroll-spy). 37 ACs.
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,687 passed / 2 skipped across 135 files (api 515 + web 1,476 + calculations 696/2 skipped), +41 vs the 2,646 baseline. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean. |
+| Production Build | `npm run build` | **PASS (exit 0)** | Clean (only pre-existing chunk-size advisory). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, pre-existing fast-refresh warnings only, no new. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 37/37 active ACs.** Citing `.gsd/archive/CRITIC_REPORT.md` entry "M39_P3", dated 2026-09-03.
+
+- All 37 ACs traced YES (no AC NO or PARTIAL).
+- Six genuine non-collapsible SectionCards (headingLevel 2, canonical ids) across the three forms via the real primitive; Mash/Ferm step-count badges derive from live state; always-mounted panels guarantee no field/inline-error/empty-state disappears.
+- Bound captions (Water Ca/Cl/SO4/pH + Mash target pH) and preserved hints byte-exact with FormField hint suppression.
+- No-jump-nav pivot compliance verified: zero StickyJumpNav/useSectionScrollSpy/scroll-spy references in the forms; StickyJumpNav primitive + tests untouched.
+- Design-token removal left no dangling reference; all field testids/validation/save paths unregressed (six pre-existing suites pass with no reconciliation).
+- Both skill-targeted patterns clean. One non-failing observation: spec §0 prose about "retained" Water titles still mentions the legacy "(ppm / mg/L)" suffix conflicting with the binding taxonomy/AC-2 (executor followed the binding artifacts, so AC-2 satisfied).
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite re-run independently this session: 2,687 passed / 2 skipped across 135 files, matching the critic's re-run exactly and exceeding the 2,646 baseline monotonically. No functional regression in any prior milestone's tests.
+
+### Verdict: **PASS — M39_P3 verified complete across all three layers. Milestone 39 (FEAT-005 Form Sectioning) is complete in full across P1/P2/P3. Proceeding to the steering checkpoint.**

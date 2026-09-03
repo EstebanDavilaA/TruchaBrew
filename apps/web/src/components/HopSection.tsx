@@ -9,8 +9,7 @@ import {
   formatHopMass,
 } from '@truchabrew/calculations';
 import { Plus, Trash2, Sprout } from 'lucide-react';
-import { CARD_CLASS, SECTION_HEADING_CLASS } from './designSystem';
-import { Button, NumberInput, Select, Table, TableHeaderCell, TableCell } from './ui';
+import { Button, NumberInput, Select, Table, TableHeaderCell, TableCell, SectionCard } from './ui';
 import { PresetPickerModal } from './PresetPickerModal';
 
 interface HopSectionProps {
@@ -24,6 +23,8 @@ interface HopSectionProps {
   totalHopG: number;
   totalIbu: number;
   onUpdate: (updated: HopItem[]) => void;
+  /** Optional stable anchor id (jump-nav target). Defaults to 'recipe-hops'. */
+  sectionId?: string;
 }
 
 export const HopSection: React.FC<HopSectionProps> = ({
@@ -37,6 +38,7 @@ export const HopSection: React.FC<HopSectionProps> = ({
   totalHopG,
   totalIbu,
   onUpdate,
+  sectionId,
 }) => {
   const { error: catalogError } = useCatalog();
   const { config } = useConfig();
@@ -104,11 +106,12 @@ export const HopSection: React.FC<HopSectionProps> = ({
   };
 
   return (
-    <div className={CARD_CLASS}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={SECTION_HEADING_CLASS}>
-          <Sprout className="w-5 h-5 text-emerald-500" /> Hops & Contextual Hop Schedule
-        </h3>
+    <SectionCard
+      id={sectionId ?? 'recipe-hops'}
+      title="Hops & Contextual Hop Schedule"
+      headingLevel={3}
+      icon={<Sprout className="w-5 h-5 text-emerald-500" />}
+      badge={
         <div className="flex items-center gap-4 text-xs font-semibold text-slate-400 bg-slate-900/50 px-3 py-2 rounded-lg border border-slate-800">
           <div>
             <span className="text-slate-300">Total Hops:</span>{' '}
@@ -122,8 +125,9 @@ export const HopSection: React.FC<HopSectionProps> = ({
             )}
           </div>
         </div>
-      </div>
-
+      }
+      collapsible
+    >
       {/* Hop Table */}
       <div className="mb-4">
         <Table>
@@ -370,6 +374,6 @@ export const HopSection: React.FC<HopSectionProps> = ({
           setIsPickerOpen(false);
         }}
       />
-    </div>
+    </SectionCard>
   );
 };

@@ -9,12 +9,10 @@ import { ArrowLeft, Save, Loader2, AlertTriangle, Trash2, Mountain, Flame, Gauge
 import { TopBar } from './TopBar';
 import { PageContainer } from './PageContainer';
 import { ConfirmDialog } from './ConfirmDialog';
-import { FormField, Input, NumberInput, Button } from './ui';
+import { FormField, Input, NumberInput, Button, SectionCard } from './ui';
 import {
-  CARD_CLASS,
   INPUT_CLASS,
   METADATA_TEXT_CLASS,
-  SECTION_HEADING_CLASS,
 } from './designSystem';
 
 
@@ -75,15 +73,15 @@ interface NumericFieldSpec {
 }
 
 const NUMERIC_FIELDS: NumericFieldSpec[] = [
-  { key: 'batchSizeL', label: 'Batch Size', unit: 'L', min: 0, exclusiveMin: true, max: null, step: '0.1' },
-  { key: 'boilTimeMin', label: 'Boil Time', unit: 'min', min: 0, max: 600, step: '1' },
-  { key: 'brewhouseEfficiencyPct', label: 'Brewhouse Efficiency', unit: '%', min: 0, exclusiveMin: true, max: 100, step: '0.1' },
+  { key: 'batchSizeL', label: 'Batch Size', unit: 'L', min: 0, exclusiveMin: true, max: null, step: '0.1', hint: 'Volume of beer you plan to package; drives the whole water & gravity pipeline.' },
+  { key: 'boilTimeMin', label: 'Boil Time', unit: 'min', min: 0, max: 600, step: '1', hint: 'Standard 60 min; longer drives more bitterness and boil-off.' },
+  { key: 'brewhouseEfficiencyPct', label: 'Brewhouse Efficiency', unit: '%', min: 0, exclusiveMin: true, max: 100, step: '0.1', hint: 'Share of extract you actually get into the fermenter (65–80 typical).' },
   { key: 'mashEfficiencyPct', label: 'Mash Efficiency', unit: '%', min: 0, exclusiveMin: true, max: 100, step: '0.1' },
-  { key: 'boilOffRateLPerHour', label: 'Boil-Off Rate', unit: 'L/hr', min: null, max: null, step: '0.1' },
-  { key: 'trubChillerLossL', label: 'Trub / Chiller Loss', unit: 'L', min: null, max: null, step: '0.1' },
+  { key: 'boilOffRateLPerHour', label: 'Boil-Off Rate', unit: 'L/hr', min: null, max: null, step: '0.1', hint: 'Volume lost to steam per hour (typical 8–12% of pre-boil per 60 min).' },
+  { key: 'trubChillerLossL', label: 'Trub / Chiller Loss', unit: 'L', min: null, max: null, step: '0.1', hint: 'Volume left behind with trub/hops after chilling.' },
   { key: 'hopUtilizationPct', label: 'Hop Utilisation', unit: '%', min: 0, max: 200, step: '1', hint: '100 = textbook Tinseth' },
   { key: 'mashWaterRatioLPerKg', label: 'Mash Water Ratio', unit: 'L/kg', min: 0, exclusiveMin: true, max: 10, step: '0.01' },
-  { key: 'grainAbsorptionLPerKg', label: 'Grain Absorption', unit: 'L/kg', min: 0, max: 5, step: '0.01' },
+  { key: 'grainAbsorptionLPerKg', label: 'Grain Absorption', unit: 'L/kg', min: 0, max: 5, step: '0.01', hint: 'Water retained by spent grain after mashing (0.85–1.0 L/kg).' },
   {
     key: 'hopstandUtilizationFactor',
     label: 'Hopstand Utilisation Factor',
@@ -102,7 +100,7 @@ const NUMERIC_FIELDS: NumericFieldSpec[] = [
     step: '1',
     hint: 'Recorded brew-day paperwork',
   },
-  { key: 'spargeTemperatureC', label: 'Sparge Temperature', unit: '°C', min: 0, max: 100, step: '1' },
+  { key: 'spargeTemperatureC', label: 'Sparge Temperature', unit: '°C', min: 0, max: 100, step: '1', hint: 'Keep near mash-out to avoid tannin extraction (75–78°C).' },
   {
     key: 'mashTunHeatCapacityL',
     label: 'Mash Tun Heat Capacity',
@@ -128,7 +126,7 @@ const NUMERIC_FIELDS: NumericFieldSpec[] = [
     min: -500,
     max: 9000,
     step: '10',
-    hint: 'Adjusts boiling temperature and hop bittering extraction',
+    hint: 'Elevation lowers the boil point and scales hop utilization (see live panel).',
   },
   {
     key: 'mashTunDeadSpaceL',
@@ -465,8 +463,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = (props) => {
           </div>
         )}
         <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-6">
-          {/* Profile Identity */}
-          <div className={CARD_CLASS}>
+          {/* General */}
+          <SectionCard id="equipment-general" title="General" headingLevel={4}>
             <FormField
               label="Profile Name"
               htmlFor="equipment-field-name"
@@ -493,17 +491,15 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = (props) => {
               {renderField('trubChillerLossL')}
               {renderField('hopUtilizationPct')}
             </div>
-          </div>
+          </SectionCard>
 
           {/* Altitude & Atmospheric Physics */}
-          <div className={CARD_CLASS} data-testid="equipment-altitude-section">
-            <div className="flex items-center gap-2 mb-3">
-              <Mountain className="w-4 h-4 text-sky-400" />
-              <h4 className={SECTION_HEADING_CLASS}>
-                Altitude & Atmospheric Physics
-              </h4>
-            </div>
-
+          <SectionCard
+            id="equipment-altitude"
+            title="Altitude & Atmospheric Physics"
+            headingLevel={4}
+            icon={<Mountain className="w-4 h-4 text-sky-400" />}
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
               {renderField('altitudeMeters')}
               <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs" data-testid="altitude-physics-preview">
@@ -519,17 +515,15 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = (props) => {
                 </div>
               </div>
             </div>
-          </div>
+          </SectionCard>
 
           {/* Thermal Mass & Mash Physics */}
-          <div className={CARD_CLASS} data-testid="equipment-thermal-mass-section">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Flame className="w-4 h-4 text-amber-500" />
-                <h4 className={SECTION_HEADING_CLASS}>
-                  Thermal Mass & Mash Strike Energy Balance
-                </h4>
-              </div>
+          <SectionCard
+            id="equipment-thermal-mass"
+            title="Thermal Mass & Mash Strike Energy Balance"
+            headingLevel={4}
+            icon={<Flame className="w-4 h-4 text-amber-500" />}
+            badge={
               <label htmlFor="equipment-calc-strike-thermal-mass" className="flex items-center gap-2 text-xs font-semibold text-amber-400 cursor-pointer">
                 <input
                   type="checkbox"
@@ -541,8 +535,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = (props) => {
                 />
                 Calculate Strike with Vessel Thermal Mass
               </label>
-            </div>
-
+            }
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               {renderField('mashWaterRatioLPerKg')}
               {renderField('grainAbsorptionLPerKg')}
@@ -581,35 +575,31 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = (props) => {
                 </div>
               )}
             </div>
-          </div>
+          </SectionCard>
 
           {/* Losses & Dead Space */}
-          <div className={CARD_CLASS} data-testid="equipment-losses-section">
-            <div className="flex items-center gap-2 mb-3">
-              <Gauge className="w-4 h-4 text-emerald-400" />
-              <h4 className={SECTION_HEADING_CLASS}>
-                Vessel Losses & Dead Space
-              </h4>
-            </div>
+          <SectionCard
+            id="equipment-losses"
+            title="Vessel Losses & Dead Space"
+            headingLevel={4}
+            icon={<Gauge className="w-4 h-4 text-emerald-400" />}
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {renderField('mashTunDeadSpaceL')}
               {renderField('kettleLossL')}
             </div>
-          </div>
+          </SectionCard>
 
           {/* Hopstand & Whirlpool Schedule */}
-          <div className={CARD_CLASS}>
-            <h4 className={`${SECTION_HEADING_CLASS} mb-3`}>
-              Hopstand & Whirlpool Parameters
-            </h4>
+          <SectionCard id="equipment-hopstand" title="Hopstand & Whirlpool Parameters" headingLevel={4}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {renderField('hopstandUtilizationFactor')}
               {renderField('hopstandTemperatureC')}
             </div>
-          </div>
+          </SectionCard>
 
           {/* Notes */}
-          <div className={CARD_CLASS}>
+          <SectionCard id="equipment-notes" title="Notes" headingLevel={4}>
             <FormField label="Notes" htmlFor="equipment-field-notes">
               <textarea
                 id="equipment-field-notes"
@@ -621,7 +611,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = (props) => {
                 placeholder="Optional brew-day notes about this kit"
               />
             </FormField>
-          </div>
+          </SectionCard>
 
 
           {saveState === 'error' && saveError && (

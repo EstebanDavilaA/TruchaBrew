@@ -2,16 +2,17 @@ import React, { useState } from 'react';
 import type { MiscItem, MiscUse } from '@truchabrew/shared-types';
 import { useCatalog } from '../context/CatalogContext';
 import { Plus, Trash2, Droplet } from 'lucide-react';
-import { CARD_CLASS, SECTION_HEADING_CLASS } from './designSystem';
-import { Button, NumberInput, Select, Table, TableHeaderCell, TableCell } from './ui';
+import { Button, NumberInput, Select, Table, TableHeaderCell, TableCell, SectionCard } from './ui';
 import { PresetPickerModal } from './PresetPickerModal';
 
 interface MiscSectionProps {
   miscs: MiscItem[];
   onUpdate: (updated: MiscItem[]) => void;
+  /** Optional stable anchor id (jump-nav target). Defaults to 'recipe-miscs'. */
+  sectionId?: string;
 }
 
-export const MiscSection: React.FC<MiscSectionProps> = ({ miscs, onUpdate }) => {
+export const MiscSection: React.FC<MiscSectionProps> = ({ miscs, onUpdate, sectionId }) => {
   const { error: catalogError } = useCatalog();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
@@ -32,14 +33,18 @@ export const MiscSection: React.FC<MiscSectionProps> = ({ miscs, onUpdate }) => 
   };
 
   return (
-    <div className={CARD_CLASS}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={SECTION_HEADING_CLASS}>
-          <Droplet className="w-5 h-5 text-sky-400" /> Misc & Water Agents
-        </h3>
-        <span className="text-xs text-slate-400 italic">Stored with the recipe — not yet part of the calculated stats</span>
-      </div>
-
+    <SectionCard
+      id={sectionId ?? 'recipe-miscs'}
+      title="Misc & Water Agents"
+      headingLevel={3}
+      icon={<Droplet className="w-5 h-5 text-sky-400" />}
+      badge={
+        <span className="text-xs text-slate-400 italic">
+          Stored with the recipe — not yet part of the calculated stats
+        </span>
+      }
+      collapsible
+    >
       {/* Misc Table */}
       <div className="mb-4">
         <Table>
@@ -66,7 +71,7 @@ export const MiscSection: React.FC<MiscSectionProps> = ({ miscs, onUpdate }) => 
                     aria-label={`Use for ${item.name}`}
                     size="sm"
                   >
-                    {(['Mash', 'Boil', 'Whirlpool', 'Primary', 'Secondary', 'Bottling'] as MiscUse[]).map((u) => (
+                    {(['Mash', 'Boil', 'Whirlpool', 'Primary', 'Secondary', 'Bottling', 'Sparge'] as MiscUse[]).map((u) => (
                       <option key={u} value={u}>
                         {u}
                       </option>
@@ -170,6 +175,6 @@ export const MiscSection: React.FC<MiscSectionProps> = ({ miscs, onUpdate }) => 
           setIsPickerOpen(false);
         }}
       />
-    </div>
+    </SectionCard>
   );
 };

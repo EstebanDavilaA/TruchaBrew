@@ -100,20 +100,33 @@ describe('Milestone 14 Phase 1: Accessibility, Token Consolidation & UI/UX Polis
   const SRC_DIR = path.resolve(__dirname, '../src');
 
   describe('AC-1..AC-5: Recipe Editor Token Consolidation', () => {
-    const editorFiles = [
+    // M39_P2: the four ingredient sections moved their card shell onto the
+    // SectionCard primitive (from './ui'), dropping their CARD_CLASS /
+    // SECTION_HEADING_CLASS imports. MashSection (deliberately NOT SectionCard'd
+    // in M39_P2) still consumes both tokens directly.
+    const sectionedFiles = [
       'components/FermentableSection.tsx',
       'components/HopSection.tsx',
       'components/YeastSection.tsx',
-      'components/MashSection.tsx',
       'components/MiscSection.tsx',
     ];
 
-    it.each(editorFiles)('%s imports and applies CARD_CLASS and SECTION_HEADING_CLASS', (relPath) => {
-      const fullPath = path.resolve(SRC_DIR, relPath);
+    it('MashSection imports and applies CARD_CLASS and SECTION_HEADING_CLASS', () => {
+      const fullPath = path.resolve(SRC_DIR, 'components/MashSection.tsx');
       const content = fs.readFileSync(fullPath, 'utf-8');
 
       expect(content).toMatch(/import\s*\{[^}]*CARD_CLASS[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
       expect(content).toMatch(/import\s*\{[^}]*SECTION_HEADING_CLASS[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+
+      // Verify no literal card wrapper string remains
+      expect(content).not.toContain('bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg mb-6');
+    });
+
+    it.each(sectionedFiles)('%s adopts the SectionCard primitive and keeps zero literal card wrappers', (relPath) => {
+      const fullPath = path.resolve(SRC_DIR, relPath);
+      const content = fs.readFileSync(fullPath, 'utf-8');
+
+      expect(content).toMatch(/SectionCard/);
 
       // Verify no literal card wrapper string remains
       expect(content).not.toContain('bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg mb-6');

@@ -9,12 +9,15 @@ import {
   listMashProfiles,
   listFermentationProfiles,
   listWaterProfiles,
+  listRecipes,
   createBatch,
   deleteRecipe,
   ApiClientError,
 } from './api/client';
 import { useRecipeEditor } from './hooks/useRecipeEditor';
 import { StatsHeader } from './components/StatsHeader';
+import { StyleTargetPanel } from './components/StyleTargetPanel';
+import { distinctFolderNames } from './utils/folderSuggestions';
 import { FermentableSection } from './components/FermentableSection';
 import { HopSection } from './components/HopSection';
 import { YeastSection } from './components/YeastSection';
@@ -39,8 +42,8 @@ import { Modal } from './components/Modal';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Calculators } from './pages/Calculators';
 import { CARD_CLASS, MONO_VALUE_CLASS } from './components/designSystem';
-import { Button, NumberInput } from './components/ui';
-import { Beer, Settings, Scale, Bookmark, ArrowLeft, AlertTriangle, Trash2 } from 'lucide-react';
+import { Button, NumberInput, Input, Badge } from './components/ui';
+import { Beer, Settings, Scale, Bookmark, ArrowLeft, AlertTriangle, Trash2, Folder, Tag } from 'lucide-react';
 
 
 
@@ -82,6 +85,12 @@ function AppInner() {
   const [recipeDeleteBusy, setRecipeDeleteBusy] = useState(false);
   const [recipeDeleteError, setRecipeDeleteError] = useState<string | null>(null);
   const [pendingNavigation, setPendingNavigation] = useState<View | null>(null);
+  // NEW in M38_P1 — transient text for the "add a tag" input (AC-16). Not
+  // part of `recipe` state: it only becomes a real tag once committed.
+  const [tagDraft, setTagDraft] = useState('');
+  // NEW in M38_P3 — folder-name suggestions for the editor's folder datalist
+  // (RA-9 / RA-P3-8), derived from a one-shot listRecipes() on editor entry.
+  const [folderSuggestions, setFolderSuggestions] = useState<string[]>([]);
 
   const { config } = useConfig();
   const editor = useRecipeEditor(config);
@@ -146,6 +155,31 @@ function AppInner() {
       setView('list');
     }
   }, [view, editor.recipe]);
+
+  // NEW in M38_P3 (RA-9 / RA-P3-8): on editor entry (view transitions to the
+  // editor, where a recipe is always set — the redirect effect above guards
+  // the null case), fetch the full recipe-summary list once and derive
+  // distinct, sorted folder names for the folder field's datalist suggestions.
+  // Keyed on `view` alone so a recipe edit (which changes editor.recipe's
+  // reference) does NOT re-fetch — the datalist is static within an editor
+  // session (RA-P3-8: free-text folder entry is still allowed). A failed
+  // fetch degrades to an empty datalist SILENTLY — suggestions are an
+  // enhancement, never a gate, so no error banner (AC-34). Re-fetch = each
+  // fresh editor entry (view switching back to 'editor').
+  useEffect(() => {
+    if (view !== 'editor') return;
+    let cancelled = false;
+    listRecipes()
+      .then((data) => {
+        if (!cancelled) setFolderSuggestions(distinctFolderNames(data));
+      })
+      .catch(() => {
+        if (!cancelled) setFolderSuggestions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [view]);
 
   const navigateGuarded = (target: View) => {
     if (view === 'editor' && editor.isDirty) {
@@ -242,12 +276,14 @@ function AppInner() {
     // "no profiles exist" state is actually recoverable now (§2.4, §2.6).
     if (equipmentProfiles.length === 0) return;
     editor.startNewRecipe(equipmentProfiles[0]);
+    setTagDraft('');
     setLibraryError(null);
     setView('editor');
   };
 
   const handleOpen = async (id: string) => {
     await editor.loadRecipe(id);
+    setTagDraft('');
     setView('editor');
   };
 
@@ -283,6 +319,29 @@ function AppInner() {
     const selected = equipmentProfiles.find((e) => e.id === eqId);
     if (!selected) return;
     editor.setRecipe((prev) => ({ ...prev, equipment: selected }));
+  };
+
+  // AC-16: commits `tagDraft` as a new tag (case-insensitive dedupe against
+  // the recipe's existing tags — final trim/dedupe authority is still
+  // recipeRepository.ts's normalizeTags on save, this is just so the same
+  // tag doesn't visibly appear twice in the editor before that round-trip).
+  const handleCommitTagDraft = () => {
+    const trimmed = tagDraft.trim();
+    if (trimmed === '') return;
+    editor.setRecipe((prev) => {
+      const existing = prev.tags ?? [];
+      if (existing.some((t) => t.toLowerCase() === trimmed.toLowerCase())) return prev;
+      return { ...prev, tags: [...existing, trimmed] };
+    });
+    setTagDraft('');
+  };
+
+  // AC-16: clicking a tag chip removes it and re-populates the draft input
+  // with its text — the editor's one gesture for both "remove" and "edit"
+  // (edit is remove-then-retype-then-commit).
+  const handleTagChipActivate = (tag: string) => {
+    editor.setRecipe((prev) => ({ ...prev, tags: (prev.tags ?? []).filter((t) => t !== tag) }));
+    setTagDraft(tag);
   };
 
   const handleEquipmentCreated = () => {
@@ -685,7 +744,14 @@ function AppInner() {
               className="text-2xl font-bold bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-white focus:outline-none w-full py-0.5"
               placeholder="Recipe Name"
             />
-            <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+            {/* Recipe metadata strip — style, brewer, folder, and tag entry
+                all horizontally aligned on one flex line (flex-wrap drops onto
+                new lines on narrow widths). The name/style/brewer inputs are
+                pre-existing raw <input>s, left untouched; the folder/tag
+                controls use the ui/ Input primitive (AC-20) with
+                variant="underline" and an inline focus treatment so they
+                match the surrounding underline metadata inputs. */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-slate-400">
               <span className="flex items-center gap-1 text-slate-300">
                 <Bookmark className="w-3.5 h-3.5 text-amber-500" />
                 <input
@@ -708,6 +774,74 @@ function AppInner() {
                   className="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-slate-200 focus:outline-none"
                   placeholder="Brewer"
                 />
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Folder className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                <span className="w-32">
+                  <Input
+                    variant="underline"
+                    className="focus:outline-none"
+                    type="text"
+                    id="folder-suggestions-input"
+                    list="folder-suggestions"
+                    aria-label="Folder"
+                    value={recipe.folder ?? ''}
+                    onChange={(e) =>
+                      editor.setRecipe((prev) => ({ ...prev, folder: e.target.value === '' ? null : e.target.value }))
+                    }
+                    placeholder="Unfiled"
+                  />
+                </span>
+                {/* NEW in M38_P3 (RA-9): native suggestion list of existing
+                    folder names. <datalist>/<option> are non-interactive
+                    suggestion elements, not controls — free-text folder entry
+                    is unchanged (RA-P3-10). An empty datalist is inert. */}
+                <datalist id="folder-suggestions" data-testid="folder-suggestions">
+                  {folderSuggestions.map((name) => (
+                    <option value={name} key={name} />
+                  ))}
+                </datalist>
+              </span>
+              <span className="flex flex-wrap items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                {(recipe.tags ?? []).map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="neutral"
+                    size="xs"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Edit or remove tag "${tag}"`}
+                    className="cursor-pointer hover:brightness-125"
+                    onClick={() => handleTagChipActivate(tag)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleTagChipActivate(tag);
+                      }
+                    }}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                <span className="w-24">
+                  <Input
+                    variant="underline"
+                    className="focus:outline-none"
+                    type="text"
+                    aria-label="Add tag"
+                    value={tagDraft}
+                    onChange={(e) => setTagDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        handleCommitTagDraft();
+                      }
+                    }}
+                    onBlur={handleCommitTagDraft}
+                    placeholder="Add tag…"
+                  />
+                </span>
               </span>
             </div>
           </div>
@@ -739,6 +873,16 @@ function AppInner() {
         </div>
 
         <StatsHeader stats={editor.stats} equipment={recipe.equipment} config={config} />
+
+        {/* NEW in M38_P3 — live BJCP style target gauges, rendered immediately
+            below the live-stats card (RA-P3-3). `StatsHeader.tsx` is NOT
+            modified; the panel is wired here where recipe/editor are in scope.
+            Selecting a BJCP style never writes styleName (RA-P3-1). */}
+        <StyleTargetPanel
+          bjcpStyleId={recipe.bjcpStyleId ?? null}
+          stats={editor.stats}
+          onStyleChange={(id) => editor.setRecipe((prev) => (prev ? { ...prev, bjcpStyleId: id } : prev))}
+        />
 
         <MashSection
           recipe={recipe}

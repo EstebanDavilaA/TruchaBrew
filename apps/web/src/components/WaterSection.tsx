@@ -64,7 +64,11 @@ export const WaterSection: React.FC<WaterSectionProps> = ({
 
   // Extract acid additions from miscs for post-acid pH
   const liveMashPh = useMemo(() => {
-    const existingAcids = miscs.filter((m) => m.type === 'WaterAgent' && ACID_AGENT_NAMES.has(m.name));
+    // RA-21 / BUG-042: only MASH acid additions lower the mash pH. Since
+    // M37_P2 Amendment 3, sparge acid is saved with the same plain name but
+    // use: 'Sparge' — it must not be summed into the mash pH. Legacy
+    // "(Sparge)"-suffixed entries (use: 'Mash') are still excluded by name.
+    const existingAcids = miscs.filter((m) => m.type === 'WaterAgent' && m.use === 'Mash' && ACID_AGENT_NAMES.has(m.name));
     const appliedAcids: AcidAdditionInputs = existingAcids.reduce<AcidAdditionInputs>((acc, m) => {
       if (m.name === 'Lactic Acid 88%') acc.lacticAcid88Ml = (acc.lacticAcid88Ml ?? 0) + m.amount;
       else if (m.name === 'Phosphoric Acid 75%') acc.phosphoricAcid75Ml = (acc.phosphoricAcid75Ml ?? 0) + m.amount;

@@ -43,6 +43,18 @@ const TWO_MISCS: MiscItem[] = [
   miscItem({ id: 'm-2', name: 'Gypsum', amount: 5, timeMinutes: 60 }),
 ];
 
+describe('AC-44 (M37_P2 Amendment 3 / FEAT-043): use select offers Sparge', () => {
+  it('renders a Sparge option in the per-row use select', () => {
+    const gypsum = miscItem({ id: 'm-1', name: 'Gypsum', use: 'Sparge' });
+    render(<MiscSection miscs={[gypsum]} onUpdate={vi.fn()} />);
+
+    const useSelect = screen.getByLabelText('Use for Gypsum');
+    const options = Array.from(useSelect.querySelectorAll('option')).map((o) => o.value);
+    expect(options).toContain('Sparge');
+    expect(useSelect).toHaveValue('Sparge');
+  });
+});
+
 describe('AC-8: every named control in the §2.2 table resolves', () => {
   it('all table row controls and catalog add button resolve to exactly one element each', () => {
     render(<MiscSection miscs={TWO_MISCS} onUpdate={vi.fn()} />);
@@ -139,10 +151,11 @@ describe('AC-10 & AC-11: no className on migrated call sites; unused base-token 
     }
   });
 
-  it('INPUT_COMPACT_CLASS is no longer imported, but CARD_CLASS/SECTION_HEADING_CLASS still are', () => {
+  it('no designSystem card/heading token import remains; the section adopts SectionCard', () => {
     expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bINPUT_COMPACT_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
-    expect(SRC_TEXT).toMatch(/import\s*\{[^}]*\bCARD_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
-    expect(SRC_TEXT).toMatch(/import\s*\{[^}]*\bSECTION_HEADING_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bCARD_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bSECTION_HEADING_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).toMatch(/SectionCard/);
   });
 });
 

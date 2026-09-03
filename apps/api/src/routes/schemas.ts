@@ -8,7 +8,7 @@ const hopTypeEnum = ['Pellet', 'Leaf', 'Cryo'];
 const yeastTypeEnum = ['Ale', 'Lager', 'Hybrid', 'Wheat'];
 const yeastFormEnum = ['Dry', 'Liquid'];
 const miscTypeEnum = ['Spice', 'Fining', 'WaterAgent', 'Herb', 'Flavor', 'Other'];
-const miscUseEnum = ['Mash', 'Boil', 'Whirlpool', 'Primary', 'Secondary', 'Bottling'];
+const miscUseEnum = ['Mash', 'Boil', 'Whirlpool', 'Primary', 'Secondary', 'Bottling', 'Sparge'];
 const miscUnitEnum = ['g', 'ml', 'tsp', 'tbsp', 'each'];
 
 const fermentableInputSchema = {
@@ -102,6 +102,22 @@ export const recipeWriteBodySchema = {
     name: { type: 'string', minLength: 1 },
     author: { type: 'string' },
     styleName: { type: 'string' },
+    // NEW in M38_P1 — optional (RA-1/RA-5): omitted, empty string, or null all
+    // normalize to an unfiled recipe. maxLength 50 per spec §1.3.
+    folder: { type: ['string', 'null'], maxLength: 50 },
+    // NEW in M38_P1 — optional (RA-5): omitted defaults to []. Each tag
+    // trimmed/deduped by normalizeTags before it ever reaches this schema's
+    // caller (recipeRepository.ts) — this schema only bounds raw item shape.
+    tags: {
+      type: 'array',
+      items: { type: 'string', minLength: 1, maxLength: 30 },
+    },
+    // NEW in M38_P3 — optional (RA-P3-1): a structured BJCP 2021 style id.
+    // Not in `required`; trimmed/emptied by normalizeBjcpStyleId. No dataset
+    // membership check here (RA-P3-11) — the DB column stores text and an
+    // unknown id degrades gracefully at read time. maxLength 20 bounds a
+    // style code like '21A' with ample headroom.
+    bjcpStyleId: { type: ['string', 'null'], maxLength: 20 },
     notes: { type: 'string' },
     equipmentId: { type: 'string', minLength: 1 },
     fermentables: { type: 'array', items: fermentableInputSchema },

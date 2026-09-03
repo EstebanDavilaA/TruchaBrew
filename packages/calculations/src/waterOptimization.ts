@@ -78,7 +78,11 @@ function getSalts(): readonly SaltVariable[] {
 // Objective weights & overshoot penalties (RA-1).
 // ---------------------------------------------------------------------------
 
-interface IonWeights {
+/**
+ * Per-ion objective weights (M37_P2 §1.1). Public — the web app imports this
+ * rather than duplicating a local copy (AC-23/AC-24).
+ */
+export interface IonWeights {
   calcium: number;
   magnesium: number;
   sodium: number;
@@ -87,8 +91,13 @@ interface IonWeights {
   bicarbonate: number;
 }
 
-/** Standard per-ion weights — how much we care about landing each ion on target. */
-const ION_WEIGHTS: IonWeights = {
+/**
+ * Default per-ion objective weights — how much we care about landing each
+ * ion on target. Public (M37_P2 §1.1): promoted from the private `ION_WEIGHTS`
+ * so `WaterCalculatorModal.tsx` can import rather than duplicate it. Values
+ * unchanged.
+ */
+export const DEFAULT_ION_WEIGHTS: IonWeights = {
   sulfate: 1.0,
   chloride: 1.0,
   calcium: 0.8,
@@ -139,7 +148,7 @@ interface SolverInputs {
   /** Maximum coordinate-descent sweeps. */
   maxIterations?: number;
   /** Optional per-ion weight override (M37_P2 balance strategies). When
-   *  provided, replaces the default `ION_WEIGHTS` for the objective. */
+   *  provided, replaces the default `DEFAULT_ION_WEIGHTS` for the objective. */
   weights?: IonWeights;
 }
 
@@ -167,7 +176,7 @@ function objective(
   weights?: IonWeights,
 ): number {
   const ion = finishedIonsFor(grams, start, volumeL);
-  const w = weights ?? ION_WEIGHTS;
+  const w = weights ?? DEFAULT_ION_WEIGHTS;
   let cost = 0;
   for (const key of ION_KEYS) {
     const diff = ion[key] - target[key];
@@ -338,7 +347,7 @@ export interface OptimizeWaterProfileOptions {
   /** Maximum coordinate-descent sweeps. */
   maxIterations?: number;
   /** Per-ion weight override (M37_P2 balance strategies). When provided,
-   *  replaces the default `ION_WEIGHTS` in the objective. */
+   *  replaces the default `DEFAULT_ION_WEIGHTS` in the objective. */
   weights?: IonWeights;
 }
 
@@ -358,16 +367,23 @@ function round2(n: number): number {
 }
 
 /**
- * Compute the normalized fit score (0–100%) for a finished profile vs target.
+ * Compute the normalized fit score (0–100%) for a finished profile vs target
+ * (M37_P2 §1.1). Public — promoted from the private `fitScore` so the web app
+ * can import rather than duplicate it (AC-23/AC-24).
  *
  * A 100% score means every ion lands exactly on target. Each ion contributes
  * its weight share of 100 scaled by how close it is: closeness = max(0, 1 −
  * |delta| / max(target, 1)) so a 5 ppm miss on a 100 ppm target counts as
  * 95% of that ion's share. Overshoots are capped the same way (an overshoot
  * beyond 100% of target is still a 0-contribution ion, never negative).
+ * Pure, deterministic, no clamping beyond the per-ion `max(0, …)`.
  */
-function fitScore(finished: IonConcentrations, target: IonConcentrations, weights?: IonWeights): number {
-  const w = weights ?? ION_WEIGHTS;
+export function calculateProfileFitScore(
+  finished: IonConcentrations,
+  target: IonConcentrations,
+  weights?: IonWeights,
+): number {
+  const w = weights ?? DEFAULT_ION_WEIGHTS;
   let totalWeight = 0;
   let weighted = 0;
   for (const key of ION_KEYS) {
@@ -457,7 +473,7 @@ export function optimizeWaterProfile(
     resultingWater: finished,
     residualDeltas: residuals,
     sulfateToChlorideRatio: so4ClRatio,
-    fitScorePct: fitScore(finished, targetIons, options?.weights),
+    fitScorePct: calculateProfileFitScore(finished, targetIons, options?.weights),
   };
 }
 

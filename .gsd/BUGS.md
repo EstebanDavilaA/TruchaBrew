@@ -329,7 +329,7 @@ This document tracks implementation defects and regressions recorded via `/log`.
 ### [BUG-024] `suggestSaltAdditions` greedy fixed-order dosing overshoots ions later in the priority chain
 
 - **Date Logged:** 2026-08-20
-- **Status:** `RESOLVED_M37_P1`
+- **Status:** `CLOSED` (Delivered & Verified in Milestone 37 Phase 2)
 - **Category:** Type B (Engine / Calculation Accuracy)
 - **Component:** `packages/calculations` (`src/water.ts` — `suggestSaltAdditions`), surfaced through `apps/web` (`WaterCalculatorModal.tsx`'s AUTO button)
 - **Reported Issue:** Clicking AUTO in the Water Chemistry modal produces a salt dose whose finished ion profile does not land on the selected target profile — several ions overshoot the target by a brewing-significant margin.
@@ -343,7 +343,7 @@ This document tracks implementation defects and regressions recorded via `/log`.
   - `suggestSaltAdditions` is pinned by existing assertions in `packages/calculations/test/water.test.ts`; any change here updates that suite with it.
 - **Resolution Path:** **Explicitly deferred.** Logged during `/plan` for M23_P2 (Simplify the Water Calculator modal) at the user's direct instruction, so the finding is not lost. M23_P2 is a content/UX simplification of `WaterCalculatorModal.tsx` only and its hard constraints forbid touching `packages/calculations/src/water.ts` at all — see `M23_P2_feature_spec.md` RA-25. Needs its own `/diagnose` pass to pick a fix strategy, then a scoped phase in a future milestone.
 - **Resolution (M37_P1, 2026-08-31):** `suggestSaltAdditions` now delegates to a bounded multi-ion least-squares / constrained coordinate-descent solver (`packages/calculations/src/waterOptimization.ts`, `optimizeWaterProfile`). The fixed greedy chain was replaced by simultaneous optimization over all 5 salts with dynamic ion weighting and asymmetric overshoot penalties (Ca 2.5, Na 3.0, Mg 2.0). The measured M23_P2 fixture (target Ca 100 / Mg 10 / Na 10 / Cl 60 / SO4 150 / HCO3 40, 23 L) now lands SO4 within ±15 ppm of 150 (was +39.6), Na ≤ 20 (was +6.8), and Ca within 25% of target with no overshoot. The SO4:Cl ratio badge no longer reads 3.16 vs the intended 2.50 for the reproduction case. Signature and return shape of `suggestSaltAdditions` unchanged (AC-15); the Water Calculator AUTO button needs no code change. New `optimizeWaterProfile` API exposed with convergence metrics and a 0-100 fit score for the P2 target-tuning phase.
-- **End-to-end verification (M37_P2, 2026-08-31):** verified by user workflow through the modal — `WaterCalculatorModal.test.tsx` AC-9 auto-optimizes a 150 ppm Cl / 150 ppm SO4 target and asserts the on-screen adjusted calcium stays ≤ 185 ppm; the fit-score badge (`water-calc-fit-score`), SO4:Cl ratio tag (`water-calc-so4-cl-ratio`), and per-ion delta badges render live from the solver's finished water. Closed.
+- **End-to-end verification (M37_P2, 2026-08-31; corrected 2026-09-01 per Amendment 1 AC-33):** component tests in `WaterCalculatorModal.test.tsx` (jsdom, not a verified user workflow) auto-optimize a 150 ppm Cl / 150 ppm SO4 target and assert the on-screen adjusted calcium stays ≤ 185 ppm; the fit-score badge (`water-calc-fit-score`), SO4:Cl ratio tag (`water-calc-so4-cl-ratio`), and per-ion delta badges render live from the solver's finished water. The actual end-to-end workflow — Auto-Optimize run against a real recipe with source and target water profiles, in the running app — is evidenced by the manual-verification screenshot `.gsd/active/manual_verification/M37_P2_amendment1_auto_optimize.png` (AC-32), which shows non-zero salt amounts, the fit-score badge, the SO4:Cl badge with descriptor, and all 6 per-ion delta tiles in one frame. Closed.
 
 ### [BUG-025] `apps/web/test/setup.ts`'s M27_P1 `Request`/`AbortSignal` shim strips `signal` unconditionally
 
@@ -747,6 +747,24 @@ This document tracks implementation defects and regressions recorded via `/log`.
     - Refactor `TopBar` into a responsive shell with single primary action emphasis, secondary action overflow dropdowns on mobile/tablet, and guaranteed `<h1>` title visibility without truncation.
 - **Resolution Path:** Logged via `/log` for triage and implementation.
 
+### [BUG-041] Water Calculator badges do not match the Badge UI primitive (border radius & size)
+
+- **Date Logged:** 2026-09-01
+- **Status:** `CLOSED` (Delivered & Verified in Milestone 37 Phase 2)
+- **Resolution Date:** 2026-09-01 (M37_P2 Amendment 2)
+- **Category:** Type C (UI/UX Consistency Gap)
+- **Component:** `apps/web` (`components/WaterCalculatorModal.tsx` ion-tile / fit-score / pH / SO4:Cl badges, `components/ui/Badge.tsx`, `components/designSystem.ts` `ION_TILE_CLASS`)
+- **Reported Issue:** The badges on the Water Calculator surface — the per-ion signed `ppm` delta badges, the emerald `Target Matched` badge, plus the Profile Fit Score, Adjusted Mash pH, and SO4:Cl badges — do not match the design-system `Badge` primitive in border radius or size.
+- **Observed Behavior:**
+  - The `Badge` primitive's `sm` size resolves to `px-2 py-0.5 text-[11px] font-medium rounded-full border inline-flex items-center gap-1` (`apps/web/src/components/ui/Badge.tsx:32-35`).
+  - The ion delta / `Target Matched` badges pass a per-call-site `className` override that replaces those defaults: `className="rounded text-[9px] px-1.5 py-0"` (`WaterCalculatorModal.tsx:794` for `Target Matched`; `WaterCalculatorModal.tsx:798-805` for the signed delta badge). Result: much smaller (9px text, tighter padding) and a non-pill `rounded` corner radius instead of `rounded-full`.
+  - The Profile Fit Score and Adjusted Mash pH badges (and likely the SO4:Cl badge) pass `className="rounded-md"` (`WaterCalculatorModal.tsx:549-556` and `:530-537`), again overriding the primitive's `rounded-full`.
+  - Verbatim user note: *"the badges for ions in water do not match the primitive ui components as per border radius or size."*
+- **Expected Behavior:** Every badge on this surface should render through the `Badge` primitive's own `size`/`variant` classes, so its corner radius and size are identical to canonical badges elsewhere in the app. Remove the `className` overrides. If a genuinely more compact size is needed for the dense ion tiles, that should be a first-class `Badge` size variant (or a design token), not a repeated per-call-site override — the same class of dead/duplicated-axis problem the design-system guardrails already police.
+- **Triage & Diagnosis:**
+  - Root cause is call-site `className` overrides defeating the primitive's `rounded-full`/`text-[11px] px-2 py-0.5` `sm` defaults (Tailwind source-order specificity means the appended `className` strings can win over the primitive's own classes).
+  - Likely touches `WaterCalculatorModal.tsx` only, plus whatever `WaterCalculatorModal.test.tsx` pins assert about these badges' classes/text. Scope is small and single-surface, but it crosses the just-verified M37_P2 phase and touches the `Badge` primitive's consumption contract, so treat it as more than a pure config tweak.
+- **Resolution Path:** Resolved in **M37_P2 Amendment 2** (BUG-041 + FEAT-044 combined pass). The `Badge` primitive gained a first-class `xs` size variant (`px-1.5 py-0.5 text-[10px] rounded-full …`, pill radius preserved — `apps/web/src/components/ui/Badge.tsx`). All six `WaterCalculatorModal.tsx` badge call sites dropped their per-call-site `className` overrides: the 4 header-strip badges reverted to the primitive's `sm` pill, the ion-tile `Target Matched`/delta badges moved to `size="xs"`, and the 2 leftover raw amber/emerald `<span>` pseudo-badges migrated onto `<Badge variant="amber|emerald" size="xs">`. Static sweeps (`uiPrimitives.test.tsx` AC-22/AC-36) now assert 0 raw pseudo-badge spans and 0 `<Badge … className=>` in the modal. Layer 1 verified (tests 2,433 passed / 2 skipped; typecheck/build/lint clean). Manual verification screenshot: `.gsd/active/manual_verification/M37_P2_amendment2_auto_optimize.png` (AC-32).
 
 
 
@@ -761,3 +779,32 @@ This document tracks implementation defects and regressions recorded via `/log`.
 
 
 
+
+
+### [BUG-042] Recipe mash pH diverges from the Water Calculator modal's "Adjusted Mash pH" after sparge acid is saved
+
+- **Date Logged:** 2026-09-01
+- **Status:** `CLOSED` (Delivered & Verified in Milestone 37 Phase 2)
+- **Resolution Date:** 2026-09-01 (M37_P2 Amendment 4)
+- **Category:** Type A (Calculation Regression / Data-Contract Gap)
+- **Component:** `apps/web` (`components/WaterSection.tsx:67` acid aggregation, `components/WaterCalculatorModal.tsx:217-225` liveMashPh), `packages/calculations` (`water.ts` `calculatePostAcidMashPh`)
+- **Reported Issue:** After M37_P2 Amendment 3 (FEAT-043, plain-name `use: 'Sparge'` saves), the recipe's displayed mash pH calculation differs from the adjusted mash pH calculation in the Water Calculator modal.
+- **Observed Behavior:**
+  - The modal's "Adjusted Mash pH" (`WaterCalculatorModal.tsx:217-225`) applies **only the mash acid** (`effectiveMashAmount = addMashAcid ? mashAcidAmount : 0`) to `calculatePostAcidMashPh`.
+  - The recipe-side pH (`WaterSection.tsx:66-75`) aggregates acid miscs **by name only** — `miscs.filter(m => m.type === 'WaterAgent' && ACID_AGENT_NAMES.has(m.name))` — with no `use` filter. After Amendment 3, both the mash acid and the sparge acid are saved with the **same plain name** (e.g. `'Lactic Acid 88%'`), differing only by `use`. The recipe-side aggregation therefore **sums mash + sparge acid** into the mash-pH adjustment.
+  - Reproduced on the shared M21_P1 fixture (source `Balanced Tap Water`, 5.5 kg grist, 30 L, mash 18 L / sparge 12 L, mash lactic 3.5 ml + sparge lactic 2.1 ml, mash gypsum 4.5 g + sparge calcium chloride 2.0 g): modal adjusted mash pH **5.35**, recipe pH **5.20** — 0.15 pH too low (sparge acid wrongly lowering the mash pH).
+- **Expected Behavior:** The recipe's mash pH must equal the modal's "Adjusted Mash pH" for the same saved miscs — i.e. only **mash** acid additions may lower the mash pH; sparge acid acidifies sparge water, not the mash.
+- **Triage & Diagnosis (via /diagnose — cause 2, spec error):** Amendment 3 (AC-42) correctly changed the save-side contract to plain names + `use: 'Sparge'`, but the spec did not reconcile the read-side consumer. Pre-Amendment-3, the sparge acid's `" (Sparge)"` name suffix naturally excluded it from `ACID_AGENT_NAMES.has(m.name)`; the plain-name change removed that accidental exclusion. The spec pinned `WaterSection.tsx` as byte-identical NOT-authorized, so the executor correctly did not touch it — the defect is in the spec's failure to update that consumer, not in the executor's implementation. Patching the code without correcting the spec would leave a second gap between spec and reality (hard rule 4 / diagnose skill).
+- **Resolution Path:** Resolved in **M37_P2 Amendment 4** (SPEC_APPROVED 2026-09-01). `WaterSection.tsx`'s acid aggregation now filters to `use === 'Mash'` (AC-47) — sparge acid (`use: 'Sparge'`, plain name since Amendment 3) is excluded from the recipe-side mash pH, so the recipe's `liveMashPh` equals the modal's "Adjusted Mash pH"; legacy `(Sparge)`-suffixed entries (use `'Mash'`) remain excluded by name, so the RA-20 load shim is unaffected. AC-48 adds a cross-surface save→recipe round-trip test (save mash 3.5 ml + sparge 2.1 ml lactic from the modal → render `WaterSection` with the saved miscs → assert `liveMashPh` = 5.35, the modal's adjusted pH). RA-21 codified: consumers discriminate mash vs sparge by `use`, not name. Layer 1 verified (tests 2,437 passed / 2 skipped / 126 files; typecheck/build/lint clean); pre/post SHA-256 manifest diff shows exactly the 2 authorized files (`WaterSection.tsx`, `WaterSection.test.tsx`).
+
+### [BUG-043] Rare, unreproducible single-test flake in the web suite (~1 run in 17)
+
+- **Date Logged:** 2026-09-02
+- **Status:** `OPEN` (known-flaky note — explicitly **not** a blocker and **not** a milestone)
+- **Category:** Type D (Test-Harness Flake / Non-Deterministic Suite)
+- **Component:** test harness (observed in the `apps/web` vitest suite during the 2026-09-02 `codebase-mapper` deployment audit)
+- **Reported Issue:** During repeated full-suite runs for the Desktop & Mobile Deployment audit, a single test failed once in roughly 17 consecutive `npm test` invocations. Every other run was green at **2,659 passed / 2 skipped across 135 files**, and the four Layer 1 gates (test, typecheck, build, lint) all exited 0.
+- **Observed Behavior:** One-off failure, **not reproducible** on re-run — including on immediate re-runs and on repeated runs afterwards. The failing case was not captured with enough fidelity to pin the file or the assertion, which is itself the reason this is logged rather than diagnosed.
+- **Expected Behavior:** The suite is deterministic — 17 identical invocations produce 17 identical results.
+- **Triage & Diagnosis:** Not diagnosed. At a ~6% single-run occurrence rate with no reproduction, `/diagnose` has nothing to bisect. Most likely candidates, in order, given this codebase: a timer/wall-clock-anchored assertion in the brew-day tracker family (`targetEndByKey`, M15/M18), an async `findBy*`/`waitFor` race in a React Testing Library suite, or test-ordering/shared-state coupling under vitest's parallel file execution. None of these is confirmed.
+- **Resolution Path:** **Deliberately none scheduled.** Logged so it is not rediscovered as a new finding, and so the next session that sees a single unexplained red test on an otherwise-green tree re-runs before treating it as a regression. **Standing instruction: capture the failing test name and output the next time it fires** — that single artifact converts this from an unactionable note into a diagnosable defect. Escalate to `/diagnose` if the rate rises, if it becomes reproducible, or if it starts landing on a Layer 1 gate during `/execute` or `/steer`. Milestone 47 (CI) is where this would surface most often and most cheaply, since CI runs the suite far more than a human does.

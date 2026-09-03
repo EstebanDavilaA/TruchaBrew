@@ -113,9 +113,21 @@ export async function deleteEquipmentProfile(id: string): Promise<void> {
   await request<void>(`/api/equipment-profiles/${id}`, { method: 'DELETE' });
 }
 
-export function listRecipes(q?: string): Promise<RecipeSummary[]> {
-  const query = q ? `?q=${encodeURIComponent(q)}` : '';
-  return request<RecipeSummary[]>(`/api/recipes${query}`);
+export interface ListRecipesOptions {
+  folder?: string | null;
+  tag?: string | null;
+}
+
+// NEW in M38_P1 — `options.folder`/`options.tag` are appended alongside `q`
+// (AC-7, AC-8, AC-9). `folder: '__unfiled__'` is the RA-1 sentinel for
+// folder === null, passed through verbatim as a query value.
+export function listRecipes(q?: string, options?: ListRecipesOptions): Promise<RecipeSummary[]> {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (options?.folder) params.set('folder', options.folder);
+  if (options?.tag) params.set('tag', options.tag);
+  const query = params.toString();
+  return request<RecipeSummary[]>(`/api/recipes${query ? `?${query}` : ''}`);
 }
 
 export function getRecipe(id: string): Promise<StoredRecipe> {

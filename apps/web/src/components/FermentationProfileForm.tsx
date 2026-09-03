@@ -5,9 +5,8 @@ import { ArrowLeft, Save, Loader2, AlertTriangle, Plus, Trash2, ChevronUp, Chevr
 import { TopBar } from './TopBar';
 import { PageContainer } from './PageContainer';
 import { ConfirmDialog } from './ConfirmDialog';
-import { FormField, Input, Select, Button, NumberInput } from './ui';
+import { FormField, Input, Select, Button, NumberInput, SectionCard } from './ui';
 import {
-  CARD_CLASS,
   METADATA_TEXT_CLASS,
   SUBPANEL_CLASS,
 } from './designSystem';
@@ -239,8 +238,8 @@ export const FermentationProfileForm: React.FC<FermentationProfileFormProps> = (
             </div>
           </div>
         )}
-        <form id={FORM_ID} onSubmit={handleSubmit}>
-          <div className={CARD_CLASS}>
+        <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-6">
+          <SectionCard id="fermentation-profile-details" title="Profile Details" headingLevel={2}>
             <FormField
               label="Profile Name"
               htmlFor="ferm-field-name"
@@ -255,9 +254,15 @@ export const FermentationProfileForm: React.FC<FermentationProfileFormProps> = (
                 placeholder="e.g. Standard Ale Fermentation"
               />
             </FormField>
+          </SectionCard>
 
-            <div className="mb-3 flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-slate-200">Steps ({steps.length})</h4>
+          <SectionCard
+            id="fermentation-steps"
+            title="Fermentation Steps"
+            headingLevel={2}
+            badge={`${steps.length} step${steps.length === 1 ? '' : 's'}`}
+          >
+            <div className="mb-3 flex items-center justify-end">
               <Button
                 variant="secondary"
                 size="sm"
@@ -387,7 +392,7 @@ export const FermentationProfileForm: React.FC<FermentationProfileFormProps> = (
                 );
               })}
             </div>
-          </div>
+          </SectionCard>
 
           {saveState === 'error' && saveError && (
             <div className="bg-rose-950/60 border border-rose-800 rounded-lg px-4 py-3 flex items-start gap-3 text-sm text-rose-200 mb-5">

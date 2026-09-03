@@ -182,10 +182,11 @@ describe('AC-10 & AC-11: no className on migrated call sites; unused base-token 
     }
   });
 
-  it('INPUT_CLASS is no longer imported, but CARD_CLASS/SECTION_HEADING_CLASS still are', () => {
+  it('no designSystem card/heading token import remains; the section adopts SectionCard', () => {
     expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bINPUT_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
-    expect(SRC_TEXT).toMatch(/import\s*\{[^}]*\bCARD_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
-    expect(SRC_TEXT).toMatch(/import\s*\{[^}]*\bSECTION_HEADING_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bCARD_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bSECTION_HEADING_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).toMatch(/SectionCard/);
   });
 });
 

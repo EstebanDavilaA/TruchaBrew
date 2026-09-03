@@ -208,6 +208,14 @@ describe('M35_P2 AC-1: the four TABLE_CELL_* tokens hold exactly the four docume
   });
 });
 
+describe('M37_P2 Amendment 1 AC-30: ION_TILE_CLASS token pinned by value', () => {
+  it('exports ION_TILE_CLASS with the exact documented string, and export count moves 36 -> 37', () => {
+    expect(designSystem.ION_TILE_CLASS).toBe('p-2 rounded-lg bg-slate-950/50 border border-slate-800/70');
+    // No existing token's value changes; the "at least 35" invariant still holds.
+    expect(Object.keys(designSystem).length).toBeGreaterThanOrEqual(35);
+  });
+});
+
 describe('AC-20: single source of truth — no duplicate STATUS_BADGE_CLASS map survives', () => {
   const SRC_DIR = path.resolve(__dirname, '../src');
 

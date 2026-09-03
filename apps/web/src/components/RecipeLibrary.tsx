@@ -1,14 +1,45 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { RecipeSummary } from '@truchabrew/shared-types';
 import { listRecipes, duplicateRecipe, importBrewfatherRecipes, ApiClientError } from '../api/client';
 import { useConfig } from '../context/ConfigContext';
 import { formatVolume } from '@truchabrew/calculations';
-import { Search, Plus, Copy, AlertTriangle, RotateCw, Beaker, Upload } from 'lucide-react';
+import { Search, Plus, Copy, AlertTriangle, RotateCw, Beaker, Upload, X } from 'lucide-react';
 import { TopBar } from './TopBar';
 import { PageContainer } from './PageContainer';
 import { ListRow, LIST_CONTAINER_CLASS } from './ListRow';
-import { Button, Input } from './ui';
+import { Button, Input, Badge } from './ui';
+
+// RA-1: the URL/UI sentinel for "folder === null" — matches
+// apps/api/src/repositories/recipeRepository.ts's filterRecipes exactly.
+const UNFILED_SENTINEL = '__unfiled__';
+
+/**
+ * M38_P1 §2.1's filterRecipes, mirrored here rather than imported: the
+ * pure function lives in apps/api/src/repositories/recipeRepository.ts
+ * (server-side, this phase's Authorized Files), and no package boundary
+ * shared between apps/api and apps/web is authorized to host a single
+ * shared copy for this phase. Kept in exact behavioral lockstep with the
+ * server's version (folder '__unfiled__' sentinel, exact tag match,
+ * case-insensitive q across name/styleName/author/folder/tags).
+ */
+function filterRecipesLocal(
+  recipeList: RecipeSummary[],
+  options: { folder?: string | null; tag?: string | null },
+): RecipeSummary[] {
+  let result = recipeList;
+  if (options.folder) {
+    result =
+      options.folder === UNFILED_SENTINEL
+        ? result.filter((r) => (r.folder ?? null) === null)
+        : result.filter((r) => r.folder === options.folder);
+  }
+  if (options.tag) {
+    const tag = options.tag;
+    result = result.filter((r) => (r.tags ?? []).includes(tag));
+  }
+  return result;
+}
 
 interface RecipeLibraryProps {
   onOpen: (id: string) => Promise<void>;
@@ -26,6 +57,10 @@ export const RecipeLibrary: React.FC<RecipeLibraryProps> = ({ onOpen, onOpenErro
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  // NEW in M38_P1 — `null` means the "All" tab (AC-11, AC-12); the folder
+  // strip and tag-badge clicks are the only writers of these two.
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -117,6 +152,36 @@ export const RecipeLibrary: React.FC<RecipeLibraryProps> = ({ onOpen, onOpenErro
     };
     reader.readAsText(file);
   };
+
+  // AC-11/§2.2: folder tabs + counts derived from the currently loaded
+  // (search-filtered) recipe list, e.g. All (12), Unfiled (4), IPAs (5).
+  const folderTabs = useMemo(() => {
+    const folderSet = new Set<string>();
+    let unfiledCount = 0;
+    const counts = new Map<string, number>();
+    for (const r of recipes) {
+      const folder = r.folder ?? null;
+      if (folder === null) {
+        unfiledCount++;
+      } else {
+        folderSet.add(folder);
+        counts.set(folder, (counts.get(folder) ?? 0) + 1);
+      }
+    }
+    const sortedFolders = [...folderSet].sort((a, b) => a.localeCompare(b));
+    return [
+      { key: null, label: 'All', count: recipes.length },
+      { key: UNFILED_SENTINEL, label: 'Unfiled', count: unfiledCount },
+      ...sortedFolders.map((folder) => ({ key: folder, label: folder, count: counts.get(folder) ?? 0 })),
+    ];
+  }, [recipes]);
+
+  // AC-12/AC-14: the folder tab and the active tag chip both narrow this
+  // same loaded list — no separate network round-trip per click.
+  const visibleRecipes = useMemo(
+    () => filterRecipesLocal(recipes, { folder: activeFolder, tag: activeTag }),
+    [recipes, activeFolder, activeTag],
+  );
 
   const searchInput = (
     <div className="relative w-full">
@@ -229,9 +294,53 @@ export const RecipeLibrary: React.FC<RecipeLibraryProps> = ({ onOpen, onOpenErro
         </div>
       )}
 
-      {!loadError && recipes.length > 0 && (
+      {!loadError && !loading && recipes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4" role="tablist" aria-label="Filter recipes by folder">
+          {folderTabs.map((tab) => (
+            <Button
+              key={tab.key ?? '__all__'}
+              variant={activeFolder === tab.key ? 'primary' : 'secondary'}
+              size="sm"
+              type="button"
+              role="tab"
+              aria-selected={activeFolder === tab.key}
+              data-testid={`folder-tab-${tab.key ?? '__all__'}`}
+              onClick={() => setActiveFolder(tab.key)}
+            >
+              {tab.label} ({tab.count})
+            </Button>
+          ))}
+          {activeTag && (
+            <span className="inline-flex items-center gap-1.5 ml-2">
+              <Badge variant="neutral" size="sm" data-testid="active-tag-filter-badge">
+                Tag: {activeTag}
+              </Badge>
+              <Button
+                variant="icon"
+                size="sm"
+                type="button"
+                onClick={() => setActiveTag(null)}
+                aria-label={`Clear tag filter "${activeTag}"`}
+                title="Clear tag filter"
+                className="text-slate-400 hover:text-rose-300"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </span>
+          )}
+        </div>
+      )}
+
+      {!loadError && !loading && recipes.length > 0 && visibleRecipes.length === 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-10 text-center text-slate-400">
+          <Beaker className="w-8 h-8 mx-auto mb-3 text-slate-600" />
+          No recipes match this filter.
+        </div>
+      )}
+
+      {!loadError && visibleRecipes.length > 0 && (
         <div className={LIST_CONTAINER_CLASS}>
-          {recipes.map((r) => (
+          {visibleRecipes.map((r) => (
             <ListRow
               key={r.id}
               testId={`recipe-row-${r.id}`}
@@ -253,6 +362,34 @@ export const RecipeLibrary: React.FC<RecipeLibraryProps> = ({ onOpen, onOpenErro
                   <span>
                     {r.hopCount} hop{r.hopCount === 1 ? '' : 's'}
                   </span>
+                  {(r.tags ?? []).length > 0 && (
+                    <span className="flex flex-wrap items-center gap-1" data-testid={`recipe-tags-${r.id}`}>
+                      {(r.tags ?? []).map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="neutral"
+                          size="xs"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Filter by tag "${tag}"`}
+                          className="cursor-pointer hover:brightness-125"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveTag(tag);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setActiveTag(tag);
+                            }
+                          }}
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </span>
+                  )}
                 </>
               }
               trailing={

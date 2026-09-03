@@ -510,4 +510,135 @@ describe('M29_P2 AC-3/AC-4: RecipeLibrary list row duplicate button accessibilit
   });
 });
 
+describe('M38_P1 AC-11/AC-12: folder tab strip', () => {
+  it('renders All, Unfiled, and dynamic folder tabs with counts derived from the loaded recipes', async () => {
+    mockedListRecipes.mockResolvedValue([
+      summary({ id: 'r-1', name: 'IPA One', folder: 'IPAs' }),
+      summary({ id: 'r-2', name: 'IPA Two', folder: 'IPAs' }),
+      summary({ id: 'r-3', name: 'Lager One', folder: 'Lagers' }),
+      summary({ id: 'r-4', name: 'No Folder' }),
+    ]);
+    render(<ConfigProvider><RecipeLibrary onOpen={vi.fn()} onOpenError={vi.fn()} onNew={vi.fn()} canCreate={true} /></ConfigProvider>);
+    await waitFor(() => screen.getByTestId('recipe-row-r-1'));
+
+    expect(screen.getByTestId('folder-tab-__all__')).toHaveTextContent('All (4)');
+    expect(screen.getByTestId('folder-tab-__unfiled__')).toHaveTextContent('Unfiled (1)');
+    expect(screen.getByTestId('folder-tab-IPAs')).toHaveTextContent('IPAs (2)');
+    expect(screen.getByTestId('folder-tab-Lagers')).toHaveTextContent('Lagers (1)');
+  });
+
+  it('clicking a folder tab narrows the visible rows to that folder only', async () => {
+    mockedListRecipes.mockResolvedValue([
+      summary({ id: 'r-1', name: 'IPA One', folder: 'IPAs' }),
+      summary({ id: 'r-2', name: 'Lager One', folder: 'Lagers' }),
+      summary({ id: 'r-3', name: 'No Folder' }),
+    ]);
+    render(<ConfigProvider><RecipeLibrary onOpen={vi.fn()} onOpenError={vi.fn()} onNew={vi.fn()} canCreate={true} /></ConfigProvider>);
+    await waitFor(() => screen.getByTestId('recipe-row-r-1'));
+
+    fireEvent.click(screen.getByTestId('folder-tab-IPAs'));
+
+    expect(screen.getByTestId('recipe-row-r-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('recipe-row-r-2')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('recipe-row-r-3')).not.toBeInTheDocument();
+  });
+
+  it('clicking the Unfiled tab shows only recipes with no folder', async () => {
+    mockedListRecipes.mockResolvedValue([
+      summary({ id: 'r-1', name: 'IPA One', folder: 'IPAs' }),
+      summary({ id: 'r-2', name: 'No Folder' }),
+    ]);
+    render(<ConfigProvider><RecipeLibrary onOpen={vi.fn()} onOpenError={vi.fn()} onNew={vi.fn()} canCreate={true} /></ConfigProvider>);
+    await waitFor(() => screen.getByTestId('recipe-row-r-1'));
+
+    fireEvent.click(screen.getByTestId('folder-tab-__unfiled__'));
+
+    expect(screen.queryByTestId('recipe-row-r-1')).not.toBeInTheDocument();
+    expect(screen.getByTestId('recipe-row-r-2')).toBeInTheDocument();
+  });
+});
+
+describe('M38_P1 AC-13/AC-14: tag badges and tag filtering', () => {
+  it('renders each tag as a Badge (variant="neutral" size="xs") per recipe row', async () => {
+    mockedListRecipes.mockResolvedValue([summary({ id: 'r-1', name: 'Tagged', tags: ['Hazy', 'Citra'] })]);
+    render(<ConfigProvider><RecipeLibrary onOpen={vi.fn()} onOpenError={vi.fn()} onNew={vi.fn()} canCreate={true} /></ConfigProvider>);
+    await waitFor(() => screen.getByTestId('recipe-row-r-1'));
+
+    const tagContainer = screen.getByTestId('recipe-tags-r-1');
+    expect(tagContainer).toHaveTextContent('Hazy');
+    expect(tagContainer).toHaveTextContent('Citra');
+  });
+
+  it('clicking a tag badge filters the library to recipes with that tag, and shows a dismissible active filter chip', async () => {
+    mockedListRecipes.mockResolvedValue([
+      summary({ id: 'r-1', name: 'Has Citra', tags: ['Citra'] }),
+      summary({ id: 'r-2', name: 'No Citra', tags: ['Mosaic'] }),
+    ]);
+    render(<ConfigProvider><RecipeLibrary onOpen={vi.fn()} onOpenError={vi.fn()} onNew={vi.fn()} canCreate={true} /></ConfigProvider>);
+    await waitFor(() => screen.getByTestId('recipe-row-r-1'));
+
+    fireEvent.click(screen.getByText('Citra'));
+
+    expect(screen.getByTestId('recipe-row-r-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('recipe-row-r-2')).not.toBeInTheDocument();
+
+    const activeChip = screen.getByTestId('active-tag-filter-badge');
+    expect(activeChip).toHaveTextContent('Citra');
+
+    const dismiss = screen.getByRole('button', { name: 'Clear tag filter "Citra"' });
+    fireEvent.click(dismiss);
+
+    expect(screen.getByTestId('recipe-row-r-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('active-tag-filter-badge')).not.toBeInTheDocument();
+  });
+
+  it('recipes with no tags render no tag container', async () => {
+    mockedListRecipes.mockResolvedValue([summary({ id: 'r-1', name: 'Plain' })]);
+    render(<ConfigProvider><RecipeLibrary onOpen={vi.fn()} onOpenError={vi.fn()} onNew={vi.fn()} canCreate={true} /></ConfigProvider>);
+    await waitFor(() => screen.getByTestId('recipe-row-r-1'));
+    expect(screen.queryByTestId('recipe-tags-r-1')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M38_P1 Amendment 1 — AC-32 (F-6, RA-10), client half. filterRecipesLocal
+// is a deliberate module-private mirror of the server's filterRecipes
+// (RA-10 keeps them in lockstep; it is NOT imported or unified). It uses a
+// TRUTHINESS guard (`if (options.folder)` / `if (options.tag)`), which is
+// exactly what makes an empty-string param mean "no filter" on the client —
+// a nullish-exclusion guard (`!== undefined && !== null`) would treat `''`
+// as a real filter and regress AC-32. Pinned here by source read (the
+// established fs-reading pattern in this file, e.g. the M5.5_P4 removed-
+// symbols test) plus a behavioral check that the no-filter state shows both
+// filed and unfiled recipes, matching the server's RA-10 semantics.
+// ---------------------------------------------------------------------------
+describe('M38_P1 Amendment 1 — AC-32/RA-10: the client filter treats an empty-string param as "no filter"', () => {
+  it('filterRecipesLocal guards folder/tag by truthiness (so "" is no filter), not by nullish-exclusion', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const src = readFileSync(join(process.cwd(), 'src/components/RecipeLibrary.tsx'), 'utf8');
+    // The RA-10 pin: an empty string (falsy) falls through as "no filter",
+    // agreeing with the server's filterRecipes after RA-10.
+    expect(src).toMatch(/if \(options\.folder\) \{/);
+    expect(src).toMatch(/if \(options\.tag\) \{/);
+    // A nullish-exclusion guard would treat '' as a real filter — that is
+    // the exact regression RA-10 closed server-side and must not exist here.
+    expect(src).not.toMatch(/options\.folder !== undefined && options\.folder !== null/);
+  });
+
+  it('with no folder/tag filter active, both filed and unfiled recipes are shown (server-identical "no filter" semantics)', async () => {
+    mockedListRecipes.mockResolvedValue([
+      summary({ id: 'r-1', name: 'Filed', folder: 'IPAs' }),
+      summary({ id: 'r-2', name: 'Unfiled' }),
+    ]);
+    render(<ConfigProvider><RecipeLibrary onOpen={vi.fn()} onOpenError={vi.fn()} onNew={vi.fn()} canCreate={true} /></ConfigProvider>);
+    await waitFor(() => screen.getByTestId('recipe-row-r-1'));
+    // The "All" state is filterRecipesLocal with no folder/tag values — the
+    // same "show everything" result an empty-string param must produce.
+    expect(screen.getByTestId('recipe-row-r-1')).toBeInTheDocument();
+    expect(screen.getByTestId('recipe-row-r-2')).toBeInTheDocument();
+    expect(screen.getByTestId('folder-tab-__all__')).toHaveTextContent('All (2)');
+  });
+});
+
 

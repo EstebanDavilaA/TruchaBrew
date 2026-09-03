@@ -54,6 +54,14 @@ function toWriteInput(recipe: Recipe): RecipeWriteInput {
     name: recipe.name,
     author: recipe.author,
     styleName: recipe.styleName,
+    // NEW in M38_P1 — always emitted (never omitted), so isDirty reacts the
+    // same way it does to every other field: a change is a change whether
+    // the recipe was loaded pre- or post-M38_P1 (AC-17).
+    folder: recipe.folder ?? null,
+    tags: recipe.tags ?? [],
+    // NEW in M38_P3 — always emitted (never omitted), so isDirty reacts to a
+    // style change exactly like every other field (M38_P1 AC-17 pattern).
+    bjcpStyleId: recipe.bjcpStyleId ?? null,
     notes: recipe.notes,
     equipmentId: recipe.equipment.id,
     fermentables: recipe.fermentables,
@@ -106,6 +114,9 @@ const EMPTY_RECIPE_FOR_STATS: Recipe = {
   name: '',
   author: '',
   styleName: '',
+  folder: null,
+  tags: [],
+  bjcpStyleId: null,
   notes: '',
   equipment: {
     id: '',
@@ -187,6 +198,9 @@ export function useRecipeEditor(config?: Pick<UserConfig, 'abvFormula' | 'ibuFor
       name: 'New Recipe',
       author: '',
       styleName: '',
+      folder: null,
+      tags: [],
+      bjcpStyleId: null,
       notes: '',
       equipment: defaultEquipment,
       fermentables: [],

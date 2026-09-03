@@ -21,8 +21,15 @@ import { sendApiError } from '../errors';
 import { recipeWriteBodySchema, recipePatchNameBodySchema } from './schemas';
 
 export function registerRecipeRoutes(app: FastifyInstance, db: Db): void {
-  app.get<{ Querystring: { q?: string } }>('/api/recipes', async (request) => {
-    return listRecipeSummaries(db, request.query.q);
+  app.get<{ Querystring: { q?: string; folder?: string; tag?: string } }>('/api/recipes', async (request) => {
+    // AC-7/AC-8/AC-9/AC-10: folder ('__unfiled__' sentinel per RA-1), tag
+    // (exact match), and q (multi-field search, RA-4) compose — all three
+    // may be supplied together.
+    return listRecipeSummaries(db, {
+      q: request.query.q,
+      folder: request.query.folder,
+      tag: request.query.tag,
+    });
   });
 
   app.post<{ Body: unknown; Querystring: { equipmentId?: string } }>(

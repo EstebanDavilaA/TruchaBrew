@@ -1,5 +1,5 @@
 export type MiscType = 'Spice' | 'Fining' | 'WaterAgent' | 'Herb' | 'Flavor' | 'Other';
-export type MiscUse = 'Mash' | 'Boil' | 'Whirlpool' | 'Primary' | 'Secondary' | 'Bottling';
+export type MiscUse = 'Mash' | 'Boil' | 'Whirlpool' | 'Primary' | 'Secondary' | 'Bottling' | 'Sparge';
 export type MiscUnit = 'g' | 'ml' | 'tsp' | 'tbsp' | 'each';
 
 export interface MiscItem {

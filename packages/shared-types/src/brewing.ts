@@ -159,6 +159,26 @@ export interface Recipe {
   fermentationProfile: FermentationProfile | null; // NEW
   waterSourceId?: string | null;                    // NEW in M6 — FK to water_profiles
   waterTargetId?: string | null;                    // NEW in M6 — FK to water_profiles
+  // NEW in M38_P1 — folder category (null = unfiled) / tag list (default []).
+  // Declared OPTIONAL here (the M38_P1 spec §1.1 shows these non-optional,
+  // a deliberate deviation — see executor's report): dozens of pre-existing
+  // `Recipe`-typed object literals outside this phase's Authorized Files
+  // (e.g. RecipeImportModal.tsx's preview recipe, packages/calculations'
+  // test fixtures) never set folder/tags, and none of those files are in
+  // scope for this phase to touch. Every real read/write path this phase
+  // DOES own (recipeRepository.ts, RecipeLibrary.tsx, useRecipeEditor.ts,
+  // App.tsx) always populates both fields — optionality only widens the
+  // type for callers this phase cannot reach, it never changes runtime
+  // behavior for the recipe editor/library flows.
+  folder?: string | null;
+  tags?: string[];
+  // NEW in M38_P3 — optional persisted structured BJCP 2021 style id
+  // (e.g. '21A'), independent of the free-text `styleName` above: selecting a
+  // BJCP style never writes styleName (RA-P3-1). Declared OPTIONAL here for
+  // the same RA-8 reason as folder/tags above — pre-existing `Recipe`-typed
+  // object literals outside this phase's Authorized Files never set it.
+  // `null` / omitted = "no BJCP style".
+  bjcpStyleId?: string | null;
 }
 
 export interface CalculatedStats {

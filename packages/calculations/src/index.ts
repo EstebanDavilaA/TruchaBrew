@@ -59,3 +59,18 @@ export * from './brewSheet';
 export * from './brewDayTimeline';
 export * from './measurementTargets';
 export * from './waterSummary';
+// M38_P2: BJCP 2021 style-guideline dataset + evaluator. Added by explicit
+// name (NOT a bare `export * from './bjcp'`) to keep the BJCP-*sensory*
+// surface (BJCPTier / SensoryScoreInput / BJCPScoreResult /
+// calculateBJCPScore, re-exported from './equipmentDriven' above) from any
+// collision — mirroring the config.ts treatment.
+export { BJCP_STYLES, BJCP_STYLE_COUNT, isValueInRange, evaluateStyleMatch } from './bjcp';
+export type {
+  StyleVitalKey,
+  RangeSpec,
+  BJCPStyle,
+  RecipeVitals,
+  VitalMatchResult,
+  StyleMatchVerdict,
+  StyleMatchResult,
+} from './bjcp';

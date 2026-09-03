@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   calculateResidualAlkalinity,
   calculateFinishedIons,
@@ -9,6 +11,8 @@ import {
   calculateDilutedWaterProfile,
   calculateSulfateToChlorideRatio,
   calculateSpargeAcid,
+  applyBalanceStrategy,
+  BALANCE_STRATEGY_RATIO,
   SALT_CONTRIBUTIONS,
 } from '../src/water';
 import type { WaterProfile, FermentableItem, MiscItem } from '@truchabrew/shared-types';
@@ -367,13 +371,127 @@ describe('M21_P1 Water Calculations: Dilution, SO4/Cl Ratio, Sparge Acid', () =>
     expect(diluted0!.calcium).toBe(100);
   });
 
-  it('calculateSulfateToChlorideRatio classifies balance accurately', () => {
+  it('calculateSulfateToChlorideRatio classifies balance accurately (M37_P2 Amendment 1 4-band table, RA-4)', () => {
     expect(calculateSulfateToChlorideRatio(200, 50)).toEqual({ ratio: 4.0, descriptor: 'Very Bitter / Dry' });
-    expect(calculateSulfateToChlorideRatio(150, 100)).toEqual({ ratio: 1.5, descriptor: 'Bitter / Crisp' });
+    expect(calculateSulfateToChlorideRatio(150, 100)).toEqual({ ratio: 1.5, descriptor: 'Crisp / Hop-Forward' });
     expect(calculateSulfateToChlorideRatio(100, 100)).toEqual({ ratio: 1.0, descriptor: 'Balanced' });
-    expect(calculateSulfateToChlorideRatio(60, 100)).toEqual({ ratio: 0.6, descriptor: 'Malty / Full' });
-    expect(calculateSulfateToChlorideRatio(30, 100)).toEqual({ ratio: 0.3, descriptor: 'Very Malty' });
+    expect(calculateSulfateToChlorideRatio(60, 100)).toEqual({ ratio: 0.6, descriptor: 'Full / Malty / Soft' });
+    expect(calculateSulfateToChlorideRatio(30, 100)).toEqual({ ratio: 0.3, descriptor: 'Full / Malty / Soft' });
     expect(calculateSulfateToChlorideRatio(0, 0)).toEqual({ ratio: null, descriptor: 'None' });
+  });
+
+  // -------------------------------------------------------------------------
+  // M37_P2 Amendment 1 AC-27: SO4:Cl band boundaries (§1.2 binding table)
+  // -------------------------------------------------------------------------
+  describe('M37_P2 Amendment 1 AC-27: SO4:Cl band boundaries', () => {
+    it('ratio 2.01 -> Very Bitter / Dry (just above the > 2.0 boundary)', () => {
+      expect(calculateSulfateToChlorideRatio(201, 100)).toEqual({ ratio: 2.01, descriptor: 'Very Bitter / Dry' });
+    });
+
+    it('ratio 2.00 -> Crisp / Hop-Forward (inclusive top of the 1.3-2.0 band)', () => {
+      expect(calculateSulfateToChlorideRatio(200, 100)).toEqual({ ratio: 2.0, descriptor: 'Crisp / Hop-Forward' });
+    });
+
+    it('ratio 1.30 -> Crisp / Hop-Forward (inclusive bottom of the 1.3-2.0 band)', () => {
+      expect(calculateSulfateToChlorideRatio(130, 100)).toEqual({ ratio: 1.3, descriptor: 'Crisp / Hop-Forward' });
+    });
+
+    it('ratio 1.29 -> Balanced (just below the 1.3 boundary)', () => {
+      expect(calculateSulfateToChlorideRatio(129, 100)).toEqual({ ratio: 1.29, descriptor: 'Balanced' });
+    });
+
+    it('ratio 0.80 -> Balanced (inclusive bottom of the 0.8-1.3 band)', () => {
+      expect(calculateSulfateToChlorideRatio(80, 100)).toEqual({ ratio: 0.8, descriptor: 'Balanced' });
+    });
+
+    it('1.30 vs 1.2999 (unrounded) are distinguished by banding the same 2-decimal value that is displayed', () => {
+      // A raw ratio of 1.2999 rounds (via toFixed(2)) to the same displayed
+      // 1.3 as an exact 130/100 input — banding and display always agree on
+      // the same rounded number, so both land in Crisp / Hop-Forward.
+      const exact = calculateSulfateToChlorideRatio(130, 100);
+      const nearBoundary = calculateSulfateToChlorideRatio(129.99, 100); // raw 1.2999
+      expect(exact).toEqual({ ratio: 1.3, descriptor: 'Crisp / Hop-Forward' });
+      expect(nearBoundary).toEqual({ ratio: 1.3, descriptor: 'Crisp / Hop-Forward' });
+      // A hair below the rounding boundary correctly falls to Balanced.
+      expect(calculateSulfateToChlorideRatio(129.4, 100)).toEqual({ ratio: 1.29, descriptor: 'Balanced' });
+    });
+
+    it('ratio 0.79 -> Full / Malty / Soft (just below the 0.8 boundary)', () => {
+      expect(calculateSulfateToChlorideRatio(79, 100)).toEqual({ ratio: 0.79, descriptor: 'Full / Malty / Soft' });
+    });
+
+    it('ratio 0.30 -> Full / Malty / Soft (not the retired "Very Malty")', () => {
+      expect(calculateSulfateToChlorideRatio(30, 100)).toEqual({ ratio: 0.3, descriptor: 'Full / Malty / Soft' });
+    });
+
+    it('ratio 0.60 -> Full / Malty / Soft (not the retired "Malty / Full")', () => {
+      expect(calculateSulfateToChlorideRatio(60, 100)).toEqual({ ratio: 0.6, descriptor: 'Full / Malty / Soft' });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // M37_P2 Amendment 1 AC-28: SO4:Cl degenerate inputs
+  // -------------------------------------------------------------------------
+  describe('M37_P2 Amendment 1 AC-28: SO4:Cl degenerate inputs', () => {
+    it('(0, 0) -> { ratio: null, descriptor: "None" }', () => {
+      expect(calculateSulfateToChlorideRatio(0, 0)).toEqual({ ratio: null, descriptor: 'None' });
+    });
+
+    it('(150, 0) -> { ratio: 99.9, descriptor: "Very Bitter / Dry" }', () => {
+      expect(calculateSulfateToChlorideRatio(150, 0)).toEqual({ ratio: 99.9, descriptor: 'Very Bitter / Dry' });
+    });
+
+    it('negative inputs are treated by the same <= 0 guards: no throw, no NaN, no Infinity', () => {
+      const bothNegative = calculateSulfateToChlorideRatio(-10, -5);
+      expect(bothNegative).toEqual({ ratio: null, descriptor: 'None' });
+
+      const negativeChloride = calculateSulfateToChlorideRatio(10, -5);
+      expect(negativeChloride).toEqual({ ratio: 99.9, descriptor: 'Very Bitter / Dry' });
+
+      const negativeSulfateOnly = calculateSulfateToChlorideRatio(-10, 5);
+      expect(negativeSulfateOnly.ratio).not.toBeNaN();
+      expect(Number.isFinite(negativeSulfateOnly.ratio)).toBe(true);
+      expect(negativeSulfateOnly.descriptor).toBe('Full / Malty / Soft');
+
+      for (const result of [bothNegative, negativeChloride, negativeSulfateOnly]) {
+        if (result.ratio !== null) {
+          expect(Number.isNaN(result.ratio)).toBe(false);
+          expect(Number.isFinite(result.ratio)).toBe(true);
+        }
+      }
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // M37_P2 Amendment 1 AC-29: legacy descriptor purge (static scan)
+  // -------------------------------------------------------------------------
+  describe('M37_P2 Amendment 1 AC-29: legacy descriptor purge', () => {
+    it('zero occurrences of the retired descriptor strings remain in packages/calculations/src or apps/web/src', () => {
+      const roots = [
+        path.resolve(__dirname, '../src'),
+        path.resolve(__dirname, '../../../apps/web/src'),
+      ];
+      const legacyStrings = ['Bitter / Crisp', 'Malty / Full', 'Very Malty'];
+
+      function walk(dir: string): string[] {
+        return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) return walk(full);
+          if (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) return [full];
+          return [];
+        });
+      }
+
+      for (const root of roots) {
+        const files = walk(root);
+        for (const file of files) {
+          const content = fs.readFileSync(file, 'utf-8');
+          for (const legacy of legacyStrings) {
+            expect(content.includes(legacy), `${legacy} found in ${file}`).toBe(false);
+          }
+        }
+      }
+    });
   });
 
   it('calculateSpargeAcid computes acid needed to neutralize sparge bicarbonate alkalinity', () => {
@@ -385,6 +503,76 @@ describe('M21_P1 Water Calculations: Dilution, SO4/Cl Ratio, Sparge Acid', () =>
     const zeroResult = calculateSpargeAcid(0, 120, 5.5);
     expect(zeroResult.mEqRequired).toBe(0);
     expect(zeroResult.lacticAcid88Ml).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M37_P2 Amendment 2 AC-35: applyBalanceStrategy (FEAT-044)
+// ---------------------------------------------------------------------------
+describe('M37_P2 Amendment 2 AC-35: applyBalanceStrategy', () => {
+  const baseIons = {
+    calcium: 80,
+    magnesium: 5,
+    sodium: 20,
+    chloride: 100,
+    sulfate: 150,
+    bicarbonate: 40,
+  };
+
+  it('preserves calcium/magnesium/sodium/bicarbonate exactly', () => {
+    const out = applyBalanceStrategy(baseIons, 'Crisp Hop-Forward');
+    expect(out.calcium).toBe(80);
+    expect(out.magnesium).toBe(5);
+    expect(out.sodium).toBe(20);
+    expect(out.bicarbonate).toBe(40);
+  });
+
+  it('returns a new object and never mutates the input', () => {
+    const input = { ...baseIons };
+    const out = applyBalanceStrategy(input, 'Balanced');
+    expect(out).not.toBe(input);
+    expect(input.chloride).toBe(100);
+    expect(input.sulfate).toBe(150);
+  });
+
+  it('Balanced anchors chloride and sets sulfate = chloride × 1.0', () => {
+    expect(applyBalanceStrategy(baseIons, 'Balanced')).toMatchObject({ chloride: 100, sulfate: 100 });
+  });
+
+  it('Crisp Hop-Forward anchors chloride and sets sulfate = chloride × 2.0', () => {
+    expect(applyBalanceStrategy(baseIons, 'Crisp Hop-Forward')).toMatchObject({ chloride: 100, sulfate: 200 });
+  });
+
+  it('Malty/Full anchors chloride and sets sulfate = chloride × 0.5 (chloride-dominant)', () => {
+    expect(applyBalanceStrategy(baseIons, 'Malty/Full')).toMatchObject({ chloride: 100, sulfate: 50 });
+  });
+
+  it('derives chloride from sulfate when chloride is zero', () => {
+    expect(applyBalanceStrategy({ ...baseIons, chloride: 0, sulfate: 100 }, 'Balanced')).toMatchObject({ chloride: 100, sulfate: 100 });
+    expect(applyBalanceStrategy({ ...baseIons, chloride: 0, sulfate: 100 }, 'Malty/Full')).toMatchObject({ chloride: 200, sulfate: 100 });
+  });
+
+  it('both-zero seed rule: chloride 50, sulfate = 50 × ratio (RA-15)', () => {
+    const zero = { calcium: 0, magnesium: 0, sodium: 0, chloride: 0, sulfate: 0, bicarbonate: 0 };
+    expect(applyBalanceStrategy(zero, 'Balanced')).toMatchObject({ chloride: 50, sulfate: 50 });
+    expect(applyBalanceStrategy(zero, 'Crisp Hop-Forward')).toMatchObject({ chloride: 50, sulfate: 100 });
+    expect(applyBalanceStrategy(zero, 'Malty/Full')).toMatchObject({ chloride: 50, sulfate: 25 });
+  });
+
+  it('clamps negative inputs to zero defensively (no NaN/Infinity)', () => {
+    const out = applyBalanceStrategy({ ...baseIons, chloride: -10, sulfate: -5 }, 'Balanced');
+    expect(out.chloride).toBe(50);
+    expect(out.sulfate).toBe(50);
+    expect(Number.isFinite(out.chloride)).toBe(true);
+    expect(Number.isFinite(out.sulfate)).toBe(true);
+  });
+
+  it('BALANCE_STRATEGY_RATIO is pinned to the 3 strategies', () => {
+    expect(BALANCE_STRATEGY_RATIO).toEqual({
+      Balanced: 1.0,
+      'Crisp Hop-Forward': 2.0,
+      'Malty/Full': 0.5,
+    });
   });
 });
 

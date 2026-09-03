@@ -113,6 +113,20 @@
       "when": 1787372765000,
       "tag": "0015_batch_planning_meta",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1787459165000,
+      "tag": "0016_recipe_folders_tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1787900000000,
+      "tag": "0017_recipe_bjcp_style",
+      "breakpoints": true
     }
   ]
 }

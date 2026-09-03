@@ -707,6 +707,33 @@ Every entry follows this status progression:
   - In `packages/calculations/src/carbonation.ts`, extended `calculatePrimingSolution` with `solutionBufferPct` option. Sugar and water scale proportionally by the buffer factor while keeping the per-bottle syringe injection concentration exact.
   - In `SplitPackagingPanel.tsx`, added an "Extra Buffer (+%)" input control and updated syringe instructions with clear batch preparation guidelines.
 
+### FEAT-043: Proper "Sparge" MiscUse Category for Water Calculator Salt/Acid Additions
+- **Date Logged**: 2026-09-01
+- **Status**: `CLOSED` (Delivered & Verified in Milestone 37 Phase 2)
+- **Category**: Recipe Builder / Water Chemistry & Data Model
+- **Components**: `packages/shared-types` (`src/misc.ts`), `apps/api` (`src/routes/schemas.ts`), `apps/web` (`components/WaterCalculatorModal.tsx`, `components/MiscSection.tsx`)
+- **Summary**: `WaterCalculatorModal`'s "Save to Recipe" action currently tags sparge salt/acid additions by appending the literal string `" (Sparge)"` to the misc item's name while leaving its `use` field set to `'Mash'`. Replace this with a proper `'Sparge'` value on the `MiscUse` union so sparge additions are categorized, not string-suffixed.
+- **Details**:
+  - **Schema**: `MiscUse` (`packages/shared-types/src/misc.ts:2`) is a plain string-literal union (`'Mash' | 'Boil' | 'Whirlpool' | 'Primary' | 'Secondary' | 'Bottling'`) backed by a plain `text('use')` column with no DB `CHECK` constraint (`apps/api/src/db/schema.ts:251`) — adding `'Sparge'` is additive, no migration required. The request-validator's `miscUseEnum` array (`apps/api/src/routes/schemas.ts:11`) must gain the new value too.
+  - **`WaterCalculatorModal.tsx`**: `handleSave` builds sparge misc items with the name-suffix pattern at lines 452-460 (salts) and 476-486 (acid) — switch both to `use: 'Sparge'` with the plain ingredient name. The load-side effect (lines 180-198) currently detects sparge items via `m.name.includes('(Sparge)')` and strips the suffix (line 182-183) — switch to keying off `m.use === 'Sparge'`.
+  - **`MiscSection.tsx:69`**: the generic misc-editor's "use" `<select>` hardcodes the 6-value option list — needs `'Sparge'` added, or a misc with that use has no matching dropdown option.
+  - **Tests requiring updates**: `apps/web/test/WaterCalculatorModal.test.tsx` (lines 534, 558, 588, 600, 616 assert names like `'Gypsum (Sparge)'`) and `apps/web/test/WaterSection.test.tsx:227` (asserts `'Calcium Chloride (Sparge)'`) — both pin the current suffix behavior.
+  - Touches 4 production files across types/API validation/two UI components plus 2 test files, and introduces a new user-visible category — not eligible for the lightweight-task exception (`CLAUDE.md` rule 7); route through `/plan` as its own phase.
+
+### FEAT-044: Move the balance-strategy → target-ion preset calculation into the Water Profile; the Water Calculator only picks a water profile
+- **Date Logged**: 2026-09-01
+- **Status**: `CLOSED` (Delivered & Verified in Milestone 37 Phase 2)
+- **Progress**: Implemented in M37_P2 Amendment 2 (2026-09-01). The calculator's Balance Strategy selector + `STRATEGY_WEIGHTS` weighting were removed; a pure `applyBalanceStrategy(ions, strategy)` + `BalanceStrategy` + `BALANCE_STRATEGY_RATIO` added to `packages/calculations`; `WaterProfileForm` gained a Balance Strategy `<Select>` + "Apply to Ion Targets" (transient, no schema/DB/API migration). Layer 1 green (2,433 passed / 2 skipped). Awaiting `/steer` critic + regression before `CLOSED`.
+- **Category**: Recipe Builder / Water Chemistry — UX Simplification & Information Architecture
+- **Components**: `apps/web` (`components/WaterCalculatorModal.tsx` balance-strategy selector, `components/WaterProfileForm.tsx`, water-profile manager view), `packages/calculations` (`waterOptimization.ts` / `water.ts` strategy weights)
+- **Summary**: The balance-strategy selector (Balanced / Crisp Hop-Forward / Malty-Full) adds conceptual and visual complexity to the Water Calculator screen. Move the strategy → required-ion determination into the Water Profile, where a profile can compute its own target ions as a preset from a balance strategy, and reduce the Water Calculator to simply letting the user pick a water profile.
+- **Details**:
+  - **Current state**: the Water Calculator surfaces a `balanceStrategy` selector (`WaterCalculatorModal.tsx:~638`) whose `STRATEGY_WEIGHTS[balanceStrategy]` weights feed `calculateProfileFitScore` and `optimizeWaterProfile` (RA-6, M37_P2). This pushes water-chemistry strategy knobs onto the already-dense calculator surface.
+  - **Target**: the balance strategy lives on the Water Profile. Selecting a strategy (e.g. Crisp Hop-Forward → higher SO₄:Cl, Malty-Full → higher Cl:SO₄, Balanced → near 1:1) computes a concrete target-ion preset that the profile stores — so a water profile already encodes the ions it wants rather than the calculator re-deriving them inline.
+  - **Simplified calculator**: with the profile carrying the preset, the Water Calculator's mineral-dosing surface reduces to a profile picker (source + target profile) and the salt-adjustment UI; the strategy weights / quality knobs no longer appear as inline complexity.
+  - Verbatim user note: *"the balance strategy adds more complexity to this screen. let's add that to the water profile where it can calculate the ions required as presets and let only the user pick here a water profile."*
+  - This relocates existing strategy logic and data — crosses a milestone/phase boundary (touches the M37 solver's weights, profile schema/form, and calculator), so it is not a lightweight-task change; route through `/plan` as its own phase.
+
 
 
 

@@ -5729,3 +5729,820 @@ Recommended routing: **do not send the `Table` implementation to `/diagnose` or 
 
 ## Verdict
 **PASS — 20/20 ACs.** Implementation strictly matches the approved feature specification `M37_P1_feature_spec.md`.
+
+---
+
+# CRITIC REPORT: M37_P2 — Target Auto-Tuning UI, Fit Score Visualization & WaterCalculatorModal Integration
+
+**Date:** 2026-09-01 · **Agent:** claude-code (`critic` subagent) · **Layer 2 of `/steer`**
+**Spec audited:** `.gsd/active/M37_P2_feature_spec.md` (22 ACs) — read in full and independently re-derived before any implementation file was opened.
+**Method:** independent source inspection of `apps/web/src/components/WaterCalculatorModal.tsx` (1,046 lines, read in full), `packages/calculations/src/waterOptimization.ts`, `packages/calculations/src/water.ts` (`calculateSulfateToChlorideRatio`), `apps/web/src/components/WaterSection.tsx`, `apps/web/test/WaterCalculatorModal.test.tsx`, `apps/web/test/uiPrimitives.test.tsx`, `apps/web/test/WaterSection.test.tsx`, `.gsd/BUGS.md`; independent scope sweep by tracked-file mtime across the whole working tree; independent re-run of all four Layer 1 gates. The executor's tests were read for what they actually assert, not accepted as proof.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|---|---|---|---|
+| AC-1 | Auto-Optimize (`water-calc-auto-dose-btn`) executes `optimizeWaterProfile` and populates salt inputs | `handleAutoAdjustAll` calls `optimizeWaterProfile(source, target, totalVolumeL, { weights })` and writes `mashSalts`/`spargeSalts`; button present with the mandated testid | YES |
+| AC-2 | Populates Gypsum, CaCl₂, Epsom, Table Salt, Baking Soda | All 5 `SALT_NAMES` written from `optimized.salts`; Table Salt dosed non-zero on a sodium-bearing target (independently confirmed) | YES |
+| AC-3 | Salts distributed proportionally to mash/sparge water volume (RA-1) | Split uses `mashRatio = effectiveMashL / totalVolumeL` and `spargeRatio = 1 − mashRatio`, where `totalVolumeL = waterVolumeL`. RA-1 binds `V_total = V_mash + V_sparge` and `g_sparge = g_total · V_sparge/V_total`. Identical only when the props happen to sum; `WaterSection` forwards independently-derived `effectiveMashL`/`effectiveSpargeL` alongside `totalWaterL`, so they need not. Rounding to 0.01 g is correct | PARTIAL |
+| AC-4 | Live fit score badge (`water-calc-fit-score`) showing 0–100% | Badge rendered with the mandated testid, live from `finishedIons`. Rendered only when a target profile is selected (spec states it unconditionally; `fitScorePct` returns a dead `0` otherwise) | YES |
+| AC-5 | emerald ≥90%, amber 75–89%, slate <75% (RA-2 text `Fit: {score}% (Optimal/Good/Approx)`) | Variant/label ternaries use the correct thresholds on the internal value, but the badge prints `fitScorePct.toFixed(0)`. A score of 89.6 renders **"Fit: 90% (Good)" in amber**; 74.6 renders "Fit: 75% (Approx)" in slate — the displayed percentage contradicts the displayed band. The executor's AC-5 test asserts only `/emerald\|amber\|slate/`, which the ternary cannot fail, and never asserts the thresholds despite its title ("adopts the emerald palette") | PARTIAL |
+| AC-6 | Live SO₄:Cl tag (`water-calc-so4-cl-ratio`) with the flavor descriptions enumerated in Phase Summary §3 | Testid and live ratio present, but the descriptor comes from the untouched pre-existing `calculateSulfateToChlorideRatio` in `water.ts`, whose bands are **not** the spec's: 1.3–2.0 emits `Bitter / Crisp` (spec: *"Crisp / Hop-Forward"*), and <0.8 is split into `Malty / Full` (0.5–0.8) and `Very Malty` (<0.5) instead of the spec's single *"Full / Malty / Soft"*. Only 2 of 4 bands match. The test asserts only that the string `SO₄²⁻ : Cl⁻` is present, never a descriptor | PARTIAL |
+| AC-7 | Each of 6 core ions shows a target alignment badge with delta or "Target Matched" | All 6 tiles render (`water-calc-ion-*`) with Target/Adjusted/Delta and ±5 ppm emerald gating. Two literal gaps: in-range text is `Target`, not the spec's `Target Matched`; and the delta prints `toFixed(0)`, so an out-of-range delta of +5.4 ppm renders "+5 ppm" on a badge whose own caption says "±5 ppm = in range" | PARTIAL |
+| AC-8 | Typing in salt inputs updates ions, deltas, ratio and fit score live | All four derive from `finishedIons` via `useMemo` on `mashSalts`/`spargeSalts`; traced by hand, all update | YES |
+| AC-9 | 150 ppm Cl / 150 ppm SO₄ target yields Ca ≤ 185 ppm on screen | Verified: the M37_P1 overshoot penalties hold; on-screen adjusted Ca lands far under the bound | YES |
+| AC-10 | Reset (`water-calc-reset-btn`) clears all salts and acids to 0.00 g and recalculates score | `handleReset` zeroes both salt maps and both acid amounts; the score is derived state and recomputes | YES |
+| AC-11 | Save (`water-calc-save-btn`) commits salt/acid additions to recipe miscs and closes | `handleSave` rebuilds `miscs` (non-WaterAgent preserved, salts + gated acids appended), calls `onSaveAdjustments` then `onClose` | YES |
+| AC-12 | Mash and sparge acid additions compute required mL (Lactic 88% / Phosphoric 75%) from target mash pH | `calculateAcidAdditions` (mash, `targetMashPh`) and `calculateSpargeAcid` (sparge, `targetSpargePh`) both wired, correctly gated on the toggles | YES |
+| AC-13 | Soft Pilsen target applies minimal salt additions without over-dosing | Verified — total additions stay under 10 g on the soft fixture | YES |
+| AC-14 | Table and controls render without horizontal overflow or clipped text on intermediate screens | Not verifiable by the stated method: jsdom performs no layout. The test asserts the *presence* of an `overflow-x-auto` wrapper — evidence that a horizontal scroller exists, not that overflow is absent — plus that one ion tile is in the document. `.gsd/active/manual_verification/` is **empty**, so no screenshot evidence exists either | PARTIAL |
+| AC-15 | All buttons, number inputs, **badges and cards** in the modal use `components/ui/` primitives (0 raw elements) | Buttons/selects/number-inputs: clean. Badges/cards: not met and not asserted anywhere. The acid section renders 6 hand-rolled `<span className="px-2 py-0.5 rounded bg-slate-900 border …">` pseudo-badges, and **this phase's own new ion tiles** are raw `<div className="p-2 rounded-lg bg-slate-950/50 border border-slate-800/70">` cards using neither a `ui/` primitive nor a `designSystem` token. No `Card` primitive exists in `components/ui/`, so the "cards" half of this AC is unsatisfiable as literally written | PARTIAL |
+| AC-16 | Pre/post SHA-256 manifest verifies only **authorized** files modified, 0 deleted | Independent mtime sweep of the whole tracked tree confirms 0 deletions and exactly four app-file writes in the executor window: `WaterCalculatorModal.tsx`, `WaterCalculatorModal.test.tsx` (authorized) **and `packages/calculations/src/waterOptimization.ts` + `apps/web/test/WaterSection.test.tsx` (not on the Authorized Files list)`. `uiPrimitives.test.tsx` (authorized) was not touched | NO |
+| AC-17 | BUG-024 verified resolved **by end-to-end user workflow** | The BUGS.md note added for M37_P2 says "verified by user workflow through the modal" and then cites, as its only evidence, a jsdom component assertion in `WaterCalculatorModal.test.tsx`. No manual-verification artifact exists (`.gsd/active/manual_verification/` empty). The `Status:` field also still reads `RESOLVED_M37_P1` | PARTIAL |
+| AC-18 | Full suite passes without reduction (≥ 2,374 across 126 files) | Count confirmed at 2,388 / 126 files (473 api + 1,293 web + 622 calculations). **Not reproduced green in this sandbox:** 68 tests in `BatchDetail.test.tsx` fail at `localStorage.clear()` (`Cannot read properties of undefined`) — a jsdom/environment defect in a file untouched by this phase, reproducible in isolation. Not attributed to M37_P2, but not independently certified either | YES (env caveat) |
+| AC-19 | 4 workspaces typecheck with 0 errors | `npm run typecheck` exit 0, independently re-run | YES |
+| AC-20 | Production client bundle builds cleanly in <1.2 s | `npm run build` exits **1** in this sandbox: `tsc -b` passes, then rolldown aborts with `Cannot find native binding … @rolldown/binding-linux-x64-gnu`. An install/environment defect, not a source defect — but the gate could not be independently reproduced. Separately, "<1.2 s" is a machine-dependent, non-portable criterion | UNVERIFIED |
+| AC-21 | Monorepo lint passes with 0 errors | `npm run lint` exit 0; 4 pre-existing `only-export-components` warnings, 0 new | YES |
+| AC-22 | `uiPrimitives.test.tsx` DOM scanner asserts 0 raw un-abstracted form elements app-wide | `uiPrimitives.test.tsx` was not modified by this phase. Its only WaterCalculatorModal sweep is the pre-existing **M34_P3 AC-18** source-regex check for buttons/selects/text-number inputs, which explicitly exempts 3 checkboxes and does not scan badges or cards. It is also a static source scan, not the "DOM scanner" the AC names | PARTIAL |
+
+## Test Suite Result
+- Independently re-run: `WaterCalculatorModal.test.tsx` 47/47, `WaterSection.test.tsx` 7/7, `uiPrimitives.test.tsx` 146/146, `waterOptimization.test.ts` 19/19, api 473/473, calculations 622 passed / 2 skipped.
+- Full monorepo in this sandbox: **2,320 passed / 68 failed / 2 skipped across 126 files.** All 68 failures are in `BatchDetail.test.tsx` (untouched by M37_P2) and are a single environment fault — `localStorage` undefined under this machine's jsdom. Total count (2,388) matches the executor's report.
+- `npm run typecheck` exit 0 · `npm run lint` exit 0 · `npm run build` **exit 1** (missing rolldown native binding — environment, not source).
+- **Passing tests are not the verdict.** Several M37_P2 tests assert strictly less than their AC: AC-5's colour test (`/emerald|amber|slate/`) cannot fail given the implementation's three-way ternary; AC-6 asserts a label prefix and never a flavor descriptor; AC-14 asserts the presence of a scroll container as a proxy for "no overflow."
+
+## Findings
+
+**Blocking**
+1. **AC-16 (NO) — scope exceeded the approved Authorized Files list.** `waterOptimization.ts` and `WaterSection.test.tsx` were modified; neither appears in §"Authorized Files to Modify". RA-3 documents both and is present in the spec text as claimed — but RA-3 is self-labeled *"(executor, 2026-08-31)"*, i.e. written **after** `SPEC_APPROVED`, the Authorized Files section was never amended to match, and `state_history` records no re-`SPEC_APPROVED`. The executor authorized its own scope expansion. Both edits are substantively benign (verified: the `weights` parameter is optional and defaults to `ION_WEIGHTS`, 19/19 solver tests green unmodified; the WaterSection diff is testid/label-only with no behavioral assertion changed, as RA-3 claims), so the remedy is a spec amendment plus re-approval, not a revert.
+2. **AC-6 (PARTIAL) — mechanism/label mismatch.** Phase Summary §3 enumerates four exact flavor descriptors; the modal displays whatever the pre-existing `water.ts` band table emits, which matches only two of them. §3's descriptors were never implemented, and no test would notice. (`water.ts` is also not authorized here, which explains but does not discharge the gap.)
+3. **AC-17 (PARTIAL) — mechanism mislabeling.** A jsdom unit assertion is recorded in `BUGS.md` under the words "verified by user workflow." No manual-verification evidence exists for this phase at all.
+
+**Non-blocking, but real user-visible defects**
+4. **AC-5** — the fit badge can display a percentage that contradicts its own colour and label (89.6 → "Fit: 90% (Good)", amber). Display rounding and band selection must use the same value.
+5. **AC-7** — in-range badge reads `Target`, not the spec's `Target Matched`; and `toFixed(0)` lets an out-of-range +5.4 ppm render as "+5 ppm" beside a "±5 ppm = in range" caption.
+6. **AC-3** — RA-1's `V_total = V_mash + V_sparge` was silently replaced by `waterVolumeL`, with sparge taking the residual `1 − mashRatio`. Correct only while the two props sum; `WaterSection` derives and forwards them independently. No test covers the mismatch.
+7. **AC-15 / AC-22** — this phase's own new ion tiles introduce fresh hand-rolled card styling into a design-system-mature codebase, and the "badges and cards" half of AC-15 has no scanner behind it.
+
+**Silent assumptions the spec did not authorize**
+8. `DEFAULT_ION_WEIGHTS` and the entire `fitScore` closeness formula are **duplicated verbatim** from `waterOptimization.ts`'s private `ION_WEIGHTS`/`fitScore()` into `WaterCalculatorModal.tsx`. The live-typing requirement (AC-8) does justify a local recompute — `optimizeWaterProfile` cannot score an arbitrary user-entered water — but two copies of the same constants in two packages will drift silently, and nothing pins them to each other.
+9. The displayed fit score always uses the **balanced** weights, even when the user selects "Crisp Hop-Forward" or "Malty/Full". The solver optimizes against one objective while the badge grades against another; a strategy switch can therefore *lower* the displayed fit of a dose that is better by the chosen strategy. The spec is silent, so this is an unauthorized judgment call, not a violation.
+10. Phase Summary §5 mandates tests in **`apps/web/test/WaterCalculatorIntegration.test.tsx`**. That file does not exist; no integration-level suite was created.
+11. The SO₄:Cl label in `WaterSection` changed from `SO₄²⁻ : Cl⁻ Ratio:` to `SO₄²⁻ : Cl⁻` — a small user-visible copy change carried by the RA-3 testid reconcile.
+
+**Confirmed sound** — no fabricated-fallback pattern found. `handleAutoAdjustAll` calls the real M37_P1 solver, the fit score is genuinely recomputed from live finished water rather than cached from the last optimize, and the null-target paths render nothing rather than a placeholder score.
+
+## Verdict
+**FAIL — 12 YES / 1 NO / 8 PARTIAL / 1 UNVERIFIED of 22.**
+
+The feature itself works: the solver is genuinely wired to the Auto-Optimize button, the fit score is genuinely live, and BUG-024's numerical behavior holds on screen. The failure is not "the build is broken" — it is that AC-16 was violated by an executor-authored post-approval amendment, and that four ACs (AC-5, AC-6, AC-7, AC-15) are satisfied only in shape while the spec's literal text is not met, in every case behind a test too shallow to notice.
+
+Per `.gsd/HARD_RULES.md` rule 3 and this agent's hard rule, one NO or PARTIAL forces FAIL regardless of Layer 1. Route to `/diagnose` before re-attempting. Expected disposition: findings 1–3 are spec/process-layer fixes (amend the Authorized Files list and re-approve; either authorize `water.ts` to implement §3's descriptors or amend §3 to the shipped bands; correct the BUG-024 note's claim or capture real manual evidence); findings 4–7 are implementation-layer and small. AC-20 needs a re-run on a machine with intact rolldown bindings before it can be called either way.
+
+# CRITIC REPORT: M37_P2 Amendment 2 (combined audit — Amendments 1 + 2)
+
+**Date:** 2026-09-01 · **Auditor:** claude-code (orchestrating session, independent trace)
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Auto-Optimize runs optimizeWaterProfile and populates salts | handleAutoAdjustAll calls optimizeWaterProfile and writes mash/sparge salt state | YES |
+| AC-2 | Populates all 5 salt fields | SALT_NAMES loop maps optimized.salts into mash/sparge inputs | YES |
+| AC-3 [AMENDED] | Mash/sparge split denominator = V_mash+V_sparge | splitTotal = effectiveMashL + effectiveSpargeL; out-of-sync fixture pinned | YES |
+| AC-4 | Live fit-score badge (water-calc-fit-score) | <Badge data-testid="water-calc-fit-score"> renders Fit: {toFixed(1)}% (label) | YES |
+| AC-5 [AMENDED] | Band on unrounded score, display toFixed(1), specific variant class | fitScoreVariant from round2 value; test asserts exact SEMANTIC_BADGE_CLASS.amber + "82.8% (Good)" | YES |
+| AC-6 [AMENDED] | SO4:Cl badge shows exact 4-band descriptor | calculateSulfateToChlorideRatio 4-band table; badge renders ratio + descriptor | YES |
+| AC-7 [AMENDED] | "Target Matched" when |delta|<=5 else signed away-from-zero delta to 1 dec | RA-7 logic in ion-tile map; tests pin "-9.5 ppm"/"-10.8 ppm"/"Target Matched" | YES |
+| AC-8 | Typing salt updates ions/deltas/ratio/fit live | finishedIons memo on salt state; fit/ratio/ionDeltas derive from it | YES |
+| AC-9 | Ca <= 185 ppm on 150/150 fixture | solver overshoot penalties; test pins adjusted Ca <= 185 | YES |
+| AC-10 | Reset clears salts/acids to 0 | handleReset zeroes mash/sparge salts + acids | YES |
+| AC-11 | Save to Recipe commits miscs + closes | handleSave builds miscs, onSaveAdjustments, onClose | YES |
+| AC-12 | Acid mL from target pH | calculateAcidAdditions/calculateSpargeAcid wired | YES |
+| AC-13 | Soft Pilsen minimal dosing | solver + test fixture | YES |
+| AC-14 [AMENDED] | Evidence = AC-32 screenshot + overflow-x-auto wrapper | screenshot present; test asserts overflow wrapper | YES |
+| AC-15 [AMENDED] | All controls + badges use ui primitives; no Card primitive | uiPrimitives sweep; 0 <Badge className=> in modal; no Card added | YES |
+| AC-16 [AMENDED] | Scope: pre/post SHA-256 manifest, authorized files only | manifest diff = exactly 13 authorized files, 0 created/deleted outside | YES |
+| AC-17 [AMENDED] | BUG-024 resolved via real workflow + screenshot | BUG-024 note cites screenshot; AC-32 artifact present | YES |
+| AC-18 [AMENDED] | Tests no reduction vs baseline, count rises | 2,433 passed / 2 skipped (baseline 2,416) — rises | YES |
+| AC-19 | Typecheck 4/4 | exit 0 | YES |
+| AC-20 [AMENDED] | Build exits 0 | exit 0, 360ms | YES |
+| AC-21 | Lint 0 errors | exit 0, 4 pre-existing warnings | YES |
+| AC-22 [AMENDED] | 0 raw pseudo-badge/ion-tile literals | sweep broadened to /px-2 py-0\.5 rounded bg-/; 0 matches | YES |
+| AC-23 | waterOptimization exports DEFAULT_ION_WEIGHTS/calculateProfileFitScore/IonWeights | exports present; barrel re-exports | YES |
+| AC-24 [AMENDED] | 0 local weights/strategy duplication in modal | 0 STRATEGY_WEIGHTS/BALANCE_STRATEGIES/balanceStrategy/DEFAULT_ION_WEIGHTS/IonWeights; imports calculateProfileFitScore + optimizeWaterProfile | YES |
+| AC-25 | SUPERSEDED (see AC-39) | — | N/A |
+| AC-26 | SUPERSEDED (see AC-35) | — | N/A |
+| AC-27 | SO4:Cl band boundary pins | calculateSulfateToChlorideRatio band table; boundary tests | YES |
+| AC-28 | SO4:Cl degenerate inputs | (0,0)->None, (150,0)->99.9 Very Bitter / Dry, negatives guarded | YES |
+| AC-29 | Legacy descriptor purge | 0 occurrences of the 3 strings in calculations/src + web/src | YES |
+| AC-30 [AMENDED] | ION_TILE_CLASS tiles; acid badges neutral sm; 2 readout spans amber/emerald xs | all present; testids preserved | YES |
+| AC-31 | WaterSection modal-through-section integration | WaterSection.test.tsx AC-31 assertions (unchanged) | YES |
+| AC-32 [AMENDED] | Real screenshot, no Balance Strategy selector | M37_P2_amendment2_auto_optimize.png (158KB, 1310x990) | YES |
+| AC-33 | BUG-024 note accuracy | note rewritten, status RESOLVED_M37_P2 | YES |
+| AC-34 [AMENDED] | Untouched files byte-identical; Badge.tsx now authorized | manifest diff: forbidden files untouched; Badge.tsx changed (authorized) | YES |
+| AC-35 | applyBalanceStrategy contract | Cl/SO4 only; preserves others; new object; clamps negatives; seed 50/50×ratio; BalanceStrategy + BALANCE_STRATEGY_RATIO exported | YES |
+| AC-36 | Badge xs size (pill), 0 className overrides, xs consumers >=1 | Badge xs = px-1.5 py-0.5 text-[10px] rounded-full; modal size="xs" no className; sweep asserts 0 <Badge className=> + size="xs" present | YES |
+| AC-37 | WaterProfileForm strategy control | Select + "Apply to Ion Targets"; Crisp 2:1 / Malty 2:1 / Balanced 1:1; not persisted | YES |
+| AC-38 | Calculator has no strategy | 0 balanceStrategy/STRATEGY_WEIGHTS/BALANCE_STRATEGIES; optimize/fitScore without weights | YES |
+| AC-39 | Fit score default weights, 82.8 pin | calculateProfileFitScore(finishedIons, targetIons); test pins 82.8% (Good) | YES |
+| AC-40 | BUG-041 closure | BUGS.md BUG-041 status RESOLVED_M37_P2_AMEND2, cites screenshot | YES |
+
+## Test Suite Result
+
+- Existing tests: 2,433 passed / 2 skipped (api 473 + web 1,311 + calculations 649). Passing suite is evidence, not proof — the trace above is the verdict basis.
+
+## Findings
+
+- None blocking. One non-blocking doc nit: AC-18's text still cites the Amendment-1 "2,388" baseline while the actual post-Amendment-1 baseline is 2,416; the intent (no reduction, count rises) is satisfied at 2,433. Not an implementation gap.
+- No silent-fallback or mechanism-mislabeling pattern in the Amendment 2 changes: `applyBalanceStrategy` and the `xs` Badge size do exactly what they are documented to do; the negative-clamp and both-zero seed are explicitly specified (RA-15), not hidden fallbacks.
+
+## Verdict
+
+PASS — implementation matches the approved spec intent across all 38 active ACs (AC-25/26 superseded). Layer 1 green; scope guardrail clean (13 authorized files).
+
+
+---
+
+# CRITIC REPORT: M37_P2 — Amendments 3 & 4 Cumulative Audit (FEAT-043 Sparge MiscUse & BUG-042 Recipe Mash pH Alignment)
+
+**Date:** 2026-09-01 · **Auditor:** antigravity-gemini (State 4 /steer session, independent trace)
+**Spec audited:** `.gsd/active/M37_P2_feature_spec.md` (48 ACs; AC-25/26 superseded by AC-39/35)
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Auto-Optimize runs `optimizeWaterProfile` and populates salts | `handleAutoAdjustAll` invokes `optimizeWaterProfile` and writes mash/sparge salt state | YES |
+| AC-2 | Populates all 5 salt fields | `SALT_NAMES` loop populates Gypsum, CaCl2, Epsom Salt, Table Salt, Baking Soda | YES |
+| AC-3 [AMENDED] | Mash/sparge split denominator = {mash} + V_{sparge}$ | `splitTotal = effectiveMashL + effectiveSpargeL`; out-of-sync volume fixture passes | YES |
+| AC-4 | Live fit-score badge (`water-calc-fit-score`) | `<Badge data-testid="water-calc-fit-score">` displays `Fit: {toFixed(1)}% (label)` | YES |
+| AC-5 [AMENDED] | Band on unrounded score, display `toFixed(1)`, specific variant class | Variant chosen from unrounded score; prints `toFixed(1)` | YES |
+| AC-6 [AMENDED] | $	ext{SO}_4^{2-}:	ext{Cl}^-$ badge shows exact 4-band descriptor | Shared `calculateSulfateToChlorideRatio` 4-band table implemented in `water.ts` | YES |
+| AC-7 [AMENDED] | "Target Matched" when $|	ext{delta}| \le 5$ else signed away-from-zero delta to 1 decimal | RA-7 implemented in ion-tile map; out-of-range rounds away from zero to 1 decimal | YES |
+| AC-8 | Typing salt updates ions/deltas/ratio/fit live | `finishedIons` memo re-evaluates on salt change; fit/ratio/deltas update dynamically | YES |
+| AC-9 | $	ext{Ca} \le 185	ext{ ppm}$ on 150/150 target | Solver penalties constrain calcium; test verifies $	ext{Ca} \le 185	ext{ ppm}$ | YES |
+| AC-10 | Reset clears salts/acids to 0 | `handleReset` clears all mash and sparge salt and acid inputs | YES |
+| AC-11 | Save to Recipe commits miscs + closes | `handleSave` builds miscs array, triggers `onSaveAdjustments`, and calls `onClose` | YES |
+| AC-12 | Acid mL calculated from target pH | `calculateAcidAdditions` & `calculateSpargeAcid` calculate required mL for Lactic/Phosphoric | YES |
+| AC-13 | Soft Pilsen minimal dosing | Solver doses softly without excessive mineral additions | YES |
+| AC-14 [AMENDED] | Responsive layout evidence = AC-32 screenshot + `overflow-x-auto` wrapper | AC-32 screenshot present and confirmed; minerals table wrapped in `overflow-x-auto` | YES |
+| AC-15 [AMENDED] | All controls and badges use UI primitives; no Card primitive | Primitive sweep passes; 0 `<Badge className=>` overrides in modal; `ION_TILE_CLASS` token used | YES |
+| AC-16 [AMENDED] | Scope guardrail: pre/post SHA-256 manifest | Authorized files modified exclusively; no unauthorized created/deleted files | YES |
+| AC-17 [AMENDED] | BUG-024 resolved via real workflow + screenshot | `BUGS.md` BUG-024 entry cites AC-32 screenshot and component tests | YES |
+| AC-18 [AMENDED] | Tests no reduction vs baseline | 2,437 passed / 2 skipped across 126 test files (rises from 2,433/126 baseline) | YES |
+| AC-19 | Typecheck 4/4 packages PASS | Clean exit 0 across shared-types, calculations, web, and api | YES |
+| AC-20 [AMENDED] | Build exits 0 | Client production bundle built clean in 623ms, exit 0 | YES |
+| AC-21 | Lint 0 errors | Oxlint passes with 0 errors (4 pre-existing fast-refresh warnings) | YES |
+| AC-22 [AMENDED] | 0 raw pseudo-badge/ion-tile literals | Sweep confirms 0 matches for raw pseudo-badge or ion-tile literals in modal | YES |
+| AC-23 | `waterOptimization` exports `DEFAULT_ION_WEIGHTS` / `calculateProfileFitScore` / `IonWeights` | Public exports present in `waterOptimization.ts`; zero private duplicates remain | YES |
+| AC-24 [AMENDED] | 0 local weights/strategy duplication in modal | Modal imports `calculateProfileFitScore` and `optimizeWaterProfile`; no duplicate formulas | YES |
+| AC-25 | SUPERSEDED by AC-39 | — | N/A |
+| AC-26 | SUPERSEDED by AC-35 | — | N/A |
+| AC-27 | $	ext{SO}_4^{2-}:	ext{Cl}^-$ band boundaries | `calculateSulfateToChlorideRatio` returns exact descriptor at all band boundaries | YES |
+| AC-28 | $	ext{SO}_4^{2-}:	ext{Cl}^-$ degenerate inputs | Degenerate cases ((0,0)->None, (150,0)->99.9 Very Bitter / Dry) guarded, no NaN/throw | YES |
+| AC-29 | Legacy descriptor purge | 0 occurrences of `Bitter / Crisp`, `Malty / Full`, or `Very Malty` in source | YES |
+| AC-30 [AMENDED] | `ION_TILE_CLASS` tiles; acid badges neutral sm; readout spans amber/emerald xs | Primitives and design tokens adopted; testids preserved | YES |
+| AC-31 | `WaterSection` modal-through-section integration | Single-source-of-truth descriptor agreement between section and modal verified | YES |
+| AC-32 [AMENDED] | Real screenshot evidence in active directory | `M37_P2_amendment2_auto_optimize.png` (158KB, 1310x990) present | YES |
+| AC-33 | BUG-024 note accuracy | `BUGS.md` note accurate and updated to `RESOLVED_M37_P2` | YES |
+| AC-34 [AMENDED] | Scope guardrail: untouched files byte-identical | Forbidden-paths verified untouched; `Badge.tsx` and `WaterSection.tsx` authorized | YES |
+| AC-35 | `applyBalanceStrategy` pure contract | `packages/calculations` exports `applyBalanceStrategy`, `BalanceStrategy`, `BALANCE_STRATEGY_RATIO` | YES |
+| AC-36 | Badge `xs` size (pill radius preserved), 0 className overrides | `Badge.tsx` renders `size="xs"` with `rounded-full`; 0 `<Badge className=>` in modal | YES |
+| AC-37 | `WaterProfileForm` strategy control | Select + "Apply to Ion Targets" writes presets (Crisp 2:1, Malty 2:1, Balanced 1:1) | YES |
+| AC-38 | Calculator has no strategy selector/weights | Static sweep confirms 0 strategy selector or weighting symbols in modal | YES |
+| AC-39 | Fit score default weights, 82.8% pin | `calculateProfileFitScore(finishedIons, targetIons)` uses default weights; 82.8% (Good) | YES |
+| AC-40 | BUG-041 closure | `BUGS.md` BUG-041 entry updated to `RESOLVED_M37_P2_AMEND2` | YES |
+| AC-41 [NEW] | `Sparge` in `MiscUse` union + API validator | `packages/shared-types/src/misc.ts` and `apps/api/src/routes/schemas.ts` gain `'Sparge'` | YES |
+| AC-42 [NEW] | Save uses `use: 'Sparge'`, plain name | `WaterCalculatorModal.tsx` `handleSave` writes sparge additions with `use: 'Sparge'` and plain name | YES |
+| AC-43 [NEW] | Load recognizes `use: 'Sparge'` (legacy shim) | Load classifies via `m.use === 'Sparge'` with fallback to `m.name.includes('(Sparge)')` | YES |
+| AC-44 [NEW] | `MiscSection` "use" select includes `Sparge` | `MiscSection.tsx` dropdown renders `'Sparge'` option, selectable | YES |
+| AC-45 [NEW] | Test reconciliation + round-trip | `WaterCalculatorModal.test.tsx` and `WaterSection.test.tsx` test `use === 'Sparge'` & round-trip | YES |
+| AC-46 [NEW] | Layer 1 + scope guardrail (Amendment 3) | Pre/post SHA-256 manifest verified exactly 7 authorized files for Amendment 3 | YES |
+| AC-47 [NEW] | Recipe mash pH excludes sparge acid | `WaterSection.tsx` acid aggregation filters to `use === 'Mash'`, excluding sparge acid | YES |
+| AC-48 [NEW] | Cross-surface save$
+ightarrow pH round-trip | Modal save with mash + sparge acid renders in `WaterSection` with matching `liveMashPh` (5.35) | YES |
+
+## Test Suite Result
+
+- Existing tests: **2,437 passed / 2 skipped / 0 failed** across 126 test files (api 473, web 1,315, calculations 649).
+- Typecheck (4/4 PASS), Build (clean in 623ms), Lint (0 errors).
+- All 4 Layer-1 gates clean.
+
+## Findings
+
+- Zero blocking findings. All 46 active acceptance criteria trace **YES** on direct code inspection and executed tests (AC-25 and AC-26 superseded).
+- No silent fallbacks or mechanism mislabeling detected:
+  - `WaterSection.tsx:71` explicitly filters by `m.use === 'Mash'` for mash pH calculation, aligning with the modal's calculation and eliminating BUG-042.
+  - `WaterCalculatorModal.tsx` accurately handles `use: 'Sparge'` for saving and maintains the RA-20 legacy shim for backwards compatibility.
+  - `MiscUse` and API validation schemas are cleanly additive.
+
+## Verdict
+
+**PASS** — Implementation matches approved spec intent in full across all 46 active criteria. Milestone 37 Phase 2 and Milestone 37 in full are verified ready for closure.
+
+---
+
+# CRITIC REPORT: M38_P1 — Recipe Folders & Tag Taxonomy
+
+**Date:** 2026-09-01
+**Agent:** claude-code (critic subagent, Layer 2)
+**Spec audited:** `.gsd/active/M38_P1_feature_spec.md` (25 ACs, 5 RAs) — sole spec read from `.gsd/active/`.
+**Method:** ACs re-derived from spec text first, then traced by hand through source. Executor tests treated as one input only; all four Layer-1 gates re-run independently by this session.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | `Recipe`, `RecipeSummary`, `RecipeWriteInput`, `StoredRecipe` export `folder` (`string \| null`) and `tags` (`string[]`); §1.1 shows them NON-optional on `Recipe`/`RecipeSummary` | Fields present on all four (`StoredRecipe extends Recipe`), but declared `folder?:`/`tags?:` (optional) on `Recipe` (brewing.ts:173-174) and `RecipeSummary` (api.ts:26-27). Deviation is documented in-code. No runtime gap found — every read path this phase owns guards with `?? null` / `?? []` | **PARTIAL** |
+| AC-2 | Additive migration adds `folder` (text, nullable) + `tags` (text JSON, default `[]`); existing data preserved | `0016_recipe_folders_tags.sql` = two `ALTER TABLE ... ADD COLUMN` (`folder text`; `tags text DEFAULT '[]' NOT NULL`), registered as idx 16 in `_journal.json`. Test harness (`test/helpers/testDb.ts:30`) calls `runMigrations`, so the real SQL is executed, and the seeded pre-M38 row (raw `.values({})` with neither column) reads back `folder: null`, `tags: []` | YES |
+| AC-3 | POST persists + returns `folder`/`tags` | `createRecipe` writes `normalizeFolder(input.folder)` / `normalizeTags(input.tags)`; `assembleStoredRecipe` returns both | YES |
+| AC-4 | PUT updates both; removing folder sets column NULL | `updateRecipe` sets `folder: normalizeFolder(...)` (full-replace, `''`/null/undefined → NULL) and `tags: normalizeTags(...)` | YES (but see F-1) |
+| AC-5 | Duplicate preserves `folder`/`tags` (RA-3) | `duplicateRecipe` copies `source.folder ?? null` / `source.tags ?? []` unchanged into both the insert and the returned object | YES |
+| AC-6 | Tags trimmed + deduped case-insensitively, first casing wins | `normalizeTags` trims, drops empty, dedupes on `toLowerCase()` key, pushes the trimmed original | YES |
+| AC-7 | `?folder=IPAs` → only that folder | `filterRecipes` exact `r.folder === options.folder` | YES (edge: F-6) |
+| AC-8 | `?folder=__unfiled__` → only `folder === null` | Sentinel branch `(r.folder ?? null) === null` | YES |
+| AC-9 | `?tag=Citra` → recipes containing that tag | `(r.tags ?? []).includes(tag)` (exact, case-sensitive as RA specifies) | YES |
+| AC-10 | `?q=` matches name, styleName, author, folder, tags (RA-4) | Joined lowercase haystack of exactly those 5 sources, substring match | YES |
+| AC-11 | Folder pill strip: All, Unfiled, dynamic folders with counts | `folderTabs` memo builds `{key:null,'All',recipes.length}`, `{__unfiled__,'Unfiled',unfiledCount}`, then locale-sorted folders with per-folder counts; rendered as `<Button>` in a `role="tablist"` with `Label (N)` | YES |
+| AC-12 | Clicking a folder tab filters the visible rows | `setActiveFolder(tab.key)` → `visibleRecipes` memo → `filterRecipesLocal` (mirrors server semantics incl. `__unfiled__`). Verified in source, not by testid alone | YES |
+| AC-13 | Tags rendered as `<Badge variant="neutral" size="xs">` per row | Exactly that, inside `data-testid="recipe-tags-{id}"`; `Badge` primitive genuinely supports `size="xs"` (Badge.tsx BadgeSize union + xs branch) | YES |
+| AC-14 | Clicking a tag badge filters; active filter shows a dismiss action | Badge `onClick`/`onKeyDown` (Enter/Space) call `setActiveTag(tag)` with `stopPropagation()` so the row's own open-handler doesn't fire; active filter renders `active-tag-filter-badge` plus an icon `<Button>` with `aria-label="Clear tag filter …"` → `setActiveTag(null)` | YES |
+| AC-15 | Editor exposes a folder input/picker allowing set or clear | `<Input aria-label="Folder">`, `''` → `null` on change. AC's literal wording met; §2.2's "datalist or select-picker of existing folder names" NOT implemented (F-4) | YES (literal) / PARTIAL vs §2.2 |
+| AC-16 | Tag entry: add, edit, remove | `<Input aria-label="Add tag">` commits on Enter/comma/blur with local case-insensitive dedupe; chip click/Enter removes the tag and repopulates the draft (remove-then-retype = edit) | YES |
+| AC-17 | Folder/tag changes dirty the editor; save resets | `toWriteInput` always emits `folder`/`tags` (never omitted), so `canonicalWorking` changes on either edit; save-snapshot reset path unchanged | YES |
+| AC-18 | `parseBrewfatherJson` maps folder/tags, defaults null/[] | Non-empty trimmed string → folder else null; array filtered to strings else `[]`; both emitted on the `RecipeWriteInput`. Import route spreads `...input` into `createRecipe`, so they actually persist | YES |
+| AC-19 | Backup export + restore preserve folder/tags | Export path (`getStoredRecipeById`) carries both; `restoreRecipes` now inserts `folder: recipe.folder ?? null`, `tags: recipe.tags ?? []`. Functionally correct — but achieved by editing an UNAUTHORIZED file (F-2) | YES (functionally) |
+| AC-20 | All new buttons/inputs/selects/badges in RecipeLibrary.tsx and App.tsx use `components/ui/` primitives, 0 raw | Independently verified by reading the JSX, not the testids: folder tabs = `Button`, dismiss = `Button variant="icon"`, tag chips = `Badge`, folder + tag entry = `Input`. Zero raw `<button>`/`<input>`/`<select>` introduced | YES |
+| AC-21 | Full suite passes, > 2,437 | Re-run this session: **2,485 passed / 2 skipped**, 126 files (api 499 / web 1,334 / calculations 652), exit 0 | YES |
+| AC-22 | Typecheck 4/4 | Re-run: exit 0 | YES |
+| AC-23 | Build clean | Re-run: exit 0 | YES |
+| AC-24 | Lint 0 errors | Re-run: exit 0, 4 pre-existing fast-refresh warnings only | YES |
+| AC-25 | Only authorized files modified; 0 unexpected created/deleted | `apps/api/src/routes/backup.ts` modified and is NOT on §5's Authorized Files list (disclosed by executor). Additionally the SHA-256 manifest check is not reproducible this pass: the working tree carries a repo-wide CRLF conversion that marks ~200 untouched files dirty, so scope had to be verified by `git diff --ignore-cr-at-eol` instead | **PARTIAL** |
+
+## Test Suite Result
+
+- Existing tests: **2,485 passed / 2 skipped / 0 failed** across 126 files. Typecheck 4/4 exit 0; build exit 0; lint exit 0 (4 pre-existing warnings). All four Layer-1 gates independently reproduced and clean.
+- *This does NOT imply correctness — see F-1 below, which no test in the suite exercises.*
+
+## Findings
+
+**F-1 (BLOCKING — silent data loss, undetected by the suite).** `apps/api/src/routes/batches.ts:348` `toRecipeWriteInput()` builds a `RecipeWriteInput` field-by-field and does **not** emit `folder`/`tags`. It feeds `updateRecipe(db, recipeSnapshot.id, toRecipeWriteInput(recipeSnapshot))` on the `syncToMasterRecipe === true` branch (batches.ts:396) — a path reachable from real UI (`BatchRecipeAdjustModal.tsx:231` checkbox → `updateBatchRecipeSnapshot(..., syncToMasterRecipe)`). Because `updateRecipe` is full-replace and `RecipeWriteInput.folder`/`tags` are optional, the omitted keys become `normalizeFolder(undefined) → null` and `normalizeTags(undefined) → []`, **silently wiping the master recipe's folder and every tag** whenever a brewer syncs a batch adjustment back to the library. This is precisely the failure mode the executor itself cited to justify editing `backup.ts` — it fixed one instance of the pattern and left the structurally identical second instance unfixed and undisclosed. Directly contradicts RA-5's no-data-loss intent, and matches the "silent fallback that masquerades as success" pattern: the write returns 200 and the test suite stays green. No test covers it (`batches.recipeSnapshot.test.ts` does not assert folder/tags survival).
+
+**F-2 (BLOCKING for AC-25 — unauthorized scope expansion).** `apps/api/src/routes/backup.ts` is not on §5's Authorized Files list; only `packages/shared-types/src/backup.ts` is. The edit is small (7 lines), disclosed, and genuinely required for AC-19 — the spec is internally inconsistent, demanding an AC that its own file list makes unreachable. The correct handling under this project's authorized-files discipline was to halt for a spec amendment, not self-authorize; M37_P2 already FAILed on this class of decision. F-1 is the concrete cost of the shortcut: a self-authorized ad-hoc fix covers whichever call site the executor happened to think of, whereas an amendment pass would have enumerated every `RecipeWriteInput`-constructing caller. Note the migration numbering deviation (0016 vs the spec's literal `0009`) is **not** a finding — §5 authorizes `apps/api/drizzle/` generically, `0009_water_profiles.sql` already exists, and the absent `0016_snapshot.json` matches the repo's own convention (snapshots stop at 0008). Likewise `ui/Badge.tsx`'s `size="xs"` addition is attributable to the in-tree M37_P2 amendment work (`WaterCalculatorModal.tsx` also consumes it), not to M38_P1.
+
+**F-3 (PARTIAL, AC-1).** `Recipe.folder/tags` and `RecipeSummary.folder/tags` are optional where spec §1.1 shows them required. No runtime defect results — every path this phase owns coalesces. But it removes the compile-time guard that would have surfaced F-1's call site (and the ~20 other literal-construction sites) as type errors. The executor's stated reason (avoiding an out-of-scope edit sweep) is sound engineering judgment; it is still an unratified relaxation of the approved type contract, and it traded a loud compile failure for a silent runtime one.
+
+**F-4 (non-blocking, AC-15 vs §2.2).** The folder control is a bare text `Input`. Spec §2.2 calls for "a folder input with datalist or select-picker of existing folder names"; no list of existing folders is offered, so folder names must be retyped exactly (and typos silently create new folders). AC-15's own wording ("input/picker allowing setting or clearing") is satisfied, so this is a UX intent gap, not an AC failure.
+
+**F-5 (non-blocking, AC-2).** The spec's named verification file `apps/api/test/recipes.migration.test.ts` was never created; the check was folded into `recipes.crud.test.ts:303` with the inconsistency flagged in a comment. Defensible (that filename is absent from §5's list) and the coverage is real, since `runMigrations` executes the actual 0016 SQL. Repo convention (`batches.migration.test.ts` et al.) would still have supported a true pre-0016 → post-0016 upgrade test with populated rows; that stricter path was not exercised.
+
+**F-6 (minor edge, AC-7).** `filterRecipes` guards `options.folder !== undefined && options.folder !== null`, so `GET /api/recipes?folder=` (empty value) falls into the exact-match branch and returns zero recipes rather than being treated as "no folder filter". `RecipeLibrary`'s local mirror uses a truthiness check and does not share this behavior — the two filters are documented as mirrors but diverge on this input.
+
+No mechanism mislabeling found: `normalizeFolder`/`normalizeTags`/`filterRecipes` do exactly what their names, comments, and the RAs claim; the JS-side filter is honestly documented as such rather than presented as SQL; `Badge size="xs"` is a real primitive variant, not a styled `<span>`.
+
+## Verdict
+
+**FAIL** — two blocking findings.
+
+1. **F-1**: `batches.ts` `toRecipeWriteInput` silently wipes `folder` and `tags` from the master recipe on the `syncToMasterRecipe` path. Real, user-reachable data loss shipped by this phase, invisible to all 2,485 passing tests.
+2. **F-2 / AC-25**: the scope guardrail is not met — `apps/api/src/routes/backup.ts` was modified outside the Authorized Files list on the executor's own authority rather than via a spec amendment, and the SHA-256 manifest verification AC-25 specifies is unreproducible in the current working tree.
+
+AC-1 additionally traces PARTIAL. Route to `/diagnose` before re-attempting. Recommended framing for diagnosis: the root cause is a **spec-layer** defect (§5's file list cannot satisfy AC-19, and no AC enumerates every `RecipeWriteInput` construction site as needing the new fields), so the fix belongs at `/plan` as an amendment covering `apps/api/src/routes/backup.ts` and `apps/api/src/routes/batches.ts` plus a regression test asserting folder/tag survival across a `syncToMasterRecipe` round-trip — not as another in-place `/execute` patch.
+
+---
+
+# CRITIC REPORT: M38_P1 (Amendment 1) — F-1/F-2/F-3/F-4/F-6 Remediation Audit
+
+**Date:** 2026-09-01
+**Agent:** claude-code (critic subagent, Layer 2 — independent re-audit of the Amendment 1 corrective pass)
+**Spec audited:** `.gsd/active/M38_P1_feature_spec.md` (Amendment 1 form — 32 ACs: AC-1..AC-25 with AC-1/AC-21/AC-25 amended in place, AC-26..AC-32 appended; RAs 6–11). This is a **delta audit on top of the FAIL above**, scoped to the Amendment 1 corrective pass. The prior entry's F-1/F-2/F-3/F-4/F-6 were each remediated by this amendment; all 32 ACs re-derived from spec text before reading implementation.
+**Method:** Each AC traced by hand through source (batches.ts, backup.ts, recipeRepository.ts, recipes.ts, client.ts, RecipeLibrary.tsx, App.tsx, useRecipeEditor.ts, shared-types brewing.ts/api.ts, migration 0016, schemas.ts). Silent-fallback and mechanism-mislabeling hunts performed per the skill, with the RA-6 key-presence logic and the 404 branch probed hardest. All four Layer-1 gates re-run independently.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 `[AMENDED]` | `folder?`/`tags?` **optional** on `Recipe`/`RecipeSummary`/`RecipeWriteInput`/`StoredRecipe`; a required declaration is now a FAIL | `brewing.ts:173-174` (`Recipe.folder?: string \| null; tags?: string[]`), `api.ts:26-27/49-50` (RecipeSummary / RecipeWriteInput optional), `StoredRecipe extends Recipe` inherits. No required declaration, no `any`, no parallel type. Matches the ratified optional shape | YES |
+| AC-2 | Additive migration adds `folder` (text, nullable) + `tags` (text JSON, default `[]`); existing data preserved | `0016_recipe_folders_tags.sql` = exactly two `ALTER TABLE ADD COLUMN` (`folder text`; `tags text DEFAULT '[]' NOT NULL`), no rebuild. Backward-compat tested in `recipes.crud.test.ts:303` (see Finding 1) | YES |
+| AC-3 | POST persists + returns folder/tags | `createRecipe` writes `normalizeFolder`/`normalizeTags`; `assembleStoredRecipe` returns both; tested | YES |
+| AC-4 | PUT updates both; removing folder → NULL | `updateRecipe` full-replace via `normalizeFolder`/`normalizeTags`; empty/null → NULL; tested | YES |
+| AC-5 | Duplicate preserves folder/tags | `duplicateRecipe` carries `source.folder ?? null` / `source.tags ?? []` in both insert and returned input; tested | YES |
+| AC-6 | Tag trim + case-insensitive dedupe, first casing wins | `normalizeTags` trims, drops empty, dedupes on `toLowerCase()`; tested | YES |
+| AC-7 | `?folder=IPAs` exact | `filterRecipes` `r.folder === options.folder`; tested | YES |
+| AC-8 | `?folder=__unfiled__` → `folder === null` | Sentinel branch `(r.folder ?? null) === null`; tested | YES |
+| AC-9 | `?tag=Citra` exact | `(r.tags ?? []).includes(tag)`; tested | YES |
+| AC-10 | `?q=` across name/styleName/author/folder/tags (RA-4) | Joined lowercase haystack of exactly those 5 sources, substring match; tested | YES |
+| AC-11 | Folder pill strip: All, Unfiled, dynamic folders with counts | `folderTabs` memo: `{key:null,'All',len}`, `{__unfiled__,'Unfiled',count}`, locale-sorted folders with counts; rendered as `<Button role="tab">` with `Label (N)` | YES |
+| AC-12 | Folder tab click filters rows | `setActiveFolder` → `visibleRecipes` → `filterRecipesLocal` (mirrors server semantics); source-verified | YES |
+| AC-13 | Tag badges `<Badge variant="neutral" size="xs">` per row | Exactly that inside `data-testid="recipe-tags-{id}"`; `Badge` genuinely supports `size="xs"` | YES |
+| AC-14 | Tag click filters; active filter shows dismiss action | Badge click/Enter/Space → `setActiveTag(tag)` with `stopPropagation`; active filter renders badge + icon `<Button aria-label="Clear tag filter …">` → `setActiveTag(null)` | YES |
+| AC-15 | Editor folder input allowing set or clear | `<Input aria-label="Folder">`, `'' → null`. Folder datalist/picker explicitly deferred to M38_P3 per RA-9 (corrected §2.2) | YES |
+| AC-16 | Tag entry: add, edit, remove | `<Input aria-label="Add tag">` commits on Enter/comma/blur with case-insensitive dedupe; chip click removes + repopulates draft (edit = remove-then-retype) | YES |
+| AC-17 | Folder/tag changes dirty editor; save resets | `toWriteInput` always emits both (never omits); `canonicalWorking` reflects change; save-snapshot reset path unchanged | YES |
+| AC-18 | `parseBrewfatherJson` maps folder/tags, defaults null/[] | Non-empty trimmed string → folder else null; array filtered to strings else `[]`; both emitted on `RecipeWriteInput`; import route persists them | YES |
+| AC-19 | Backup export + restore preserve folder/tags | `buildBackup` uses `getStoredRecipeById` (carries both); `restoreRecipes` inserts `folder: recipe.folder ?? null`, `tags: recipe.tags ?? []`; AC-30 pins it; round-trip tests green | YES |
+| AC-20 | New controls use `components/ui/` primitives, 0 raw | Folder tabs/dismiss = `Button`, tag chips = `Badge`, folder+tag entry = `Input`. Zero raw elements introduced (source-verified) | YES |
+| AC-21 `[AMENDED]` | Tests strictly more than 2,485 passing, 0 failed, skips ≤ 2 | Re-run: **2,495 passed / 2 skipped / 0 failed** across 126 files (505 api / 1,338 web / 652 calcs) — > 2,485 baseline, exit 0 | YES |
+| AC-22 | Typecheck 4/4 | Re-run: all four workspace checks PASS, exit 0 | YES |
+| AC-23 | Build clean | Re-run: vite production build succeeds, exit 0 | YES |
+| AC-24 | Lint 0 errors | Re-run: oxlint exit 0, 4 pre-existing fast-refresh warnings only | YES |
+| AC-25 `[AMENDED]` | Only amended Authorized Files modified; verified by pre/post SHA-256 manifest (RA-11); byte-identical untouched list | Amendment scope = exactly `batches.ts`, `recipeRepository.ts`, `batches.recipeSnapshot.test.ts`, `recipes.crud.test.ts`, `RecipeLibrary.test.tsx` + `STATE.json` + the two `M38_P1_amendment_{pre,post}_exec_manifest.txt` files (present on disk). `git status` shows those 5 source/test files + `STATE.json` among the CRLF-noisy tree; nothing else in scope. Manifest diff (executor's RA-11) is the authoritative byte-identity check, which I cannot reproduce pre-side but whose artifacts exist | YES |
+| AC-26 | `toRecipeWriteInput` emits folder/tags per RA-6; sync call site passes `getStoredRecipeById` result | `batches.ts` `toRecipeWriteInput(recipe, existing)` emits `folder`/`tags` resolved by RA-6 key-presence; handler reads `masterRecipe = getStoredRecipeById(db, recipeSnapshot.id)` up front on the `syncToMasterRecipe === true` branch and passes it; no-match → 404 before translation. All pre-existing emitted fields unchanged | YES |
+| AC-27 | Regression: folder/tags survive sync, asserted on the **master recipe**; must fail pre-amendment | `batches.recipeSnapshot.test.ts:158-181` creates recipe w/ `folder:'IPAs', tags:['Hazy','Citra']`, builds batch, syncs with `syncToMasterRecipe:true`, re-GETs the **master** and asserts both fields. Genuinely exercises the RA-6 carry-through | YES |
+| AC-28 | Legacy snapshot omitting folder/tags keys retains master's stored values | `batches.recipeSnapshot.test.ts:183-204` destructures the keys out entirely (`const { folder:_f, tags:_t, ...legacy }`) to simulate a pre-M38 snapshot, syncs, asserts master keeps `'IPAs'`/`['Hazy','Citra']` | YES |
+| AC-29 | Explicit `folder:null`/`tags:[]` clears; non-empty tags replaces (never merges) | `batches.recipeSnapshot.test.ts:206-237` first clears (asserts null/[]), then replaces with `['DDH']` (asserts `toEqual(['DDH'])`, not a union) | YES |
+| AC-30 | `backup.ts` on Authorized Files; `restoreRecipes` carries `folder: recipe.folder ?? null` / `tags: recipe.tags ?? []`; no further change | `backup.ts` is on §5's amended list; `restoreRecipes` insert carries exactly those two fields (lines 438-439). No other change to the file beyond the two fields; AC-19 round-trip stays green | YES |
+| AC-31 | The 3 construct-from-existing-recipe sites each emit folder/tags | (1) `batches.ts` `toRecipeWriteInput` — emits both per RA-6; (2) `useRecipeEditor.ts` `toWriteInput` — always emits both; (3) `recipeRepository.ts` `duplicateRecipe`'s `const input` — emits `source.folder ?? null` / `source.tags ?? []`. Construct-from-external-data sites (imports) legitimately omit | YES |
+| AC-32 | Empty-string `?folder=`/`?tag=` = no filter, server + client agree (RA-10) | Server `filterRecipes` guards `typeof options.folder === 'string' && options.folder !== ''` (empty = no filter, `__unfiled__` sentinel preserved) and `if (options.tag)` truthiness. Client `filterRecipesLocal` uses `if (options.folder)`/`if (options.tag)` truthiness — lockstep. Tests pin server (`recipes.crud.test.ts:523`) and client (`RecipeLibrary.test.tsx:615`) | YES |
+
+## Test Suite Result
+
+- Existing tests: **2,495 passed / 2 skipped / 0 failed** across 126 files (api 505 / web 1,338 / calculations 652), exit 0. Typecheck 4/4 PASS, build clean, lint 0 errors (4 pre-existing warnings).
+- *This does NOT imply correctness — the RA-6 trace above and the 404-branch probe are the evidence, not the green suite.* Note: my measured 2,495 is +2 vs the executor's reported 2,493 (web 1,338 vs 1,336); both exceed the 2,485 baseline and neither is a failure.
+
+## Findings
+
+- **No AC traces NO or PARTIAL. Verdict is PASS.**
+- **Finding 1 (non-blocking, carried from first execution — AC-2 file naming).** The spec's AC-2 verification column names `apps/api/test/recipes.migration.test.ts`, which is absent from §5's Authorized Files list. Rather than create an unauthorized file, the executor folded the AC-2 backward-compat check into `recipes.crud.test.ts:303` with a disclosure comment flagging the spec-internal inconsistency. This is the correct scope-preserving call; the migration is genuinely executed by `runMigrations` (via `createTestDb`) and the backward-compat behavior is verified. A stricter pre-0016→post-0016 populated-row migration test (repo convention) is not present but is not required to satisfy AC-2's behavior.
+- **Finding 2 (non-blocking, minor).** The `syncToMasterRecipe === true` branch contains a defensive `if (!syncedRecipe)` fallback emitting the **same** 404 message text as the up-front no-match branch. Spec §2.3 says "must not invent a second 404 variant." The message string is byte-identical to the existing one, the branch is unreachable in practice (better-sqlite3 is sync/single-threaded and the up-front read confirmed the row exists), and `updateRecipe` is always called with the real `masterRecipe`, never a placeholder — so there is no second user-visible variant and no placeholder `existing` reaches `updateRecipe`. Noted for hygiene only.
+- **Silent-fallback hunt — clean.** The 404 branch fires *before* `toRecipeWriteInput` is called (verified in source), so a null `existing` can never silently retain-from or wipe. The `catch` block surfaces honest 400 `VALIDATION_FAILED` for profile-not-found, never a fabricated success. No path in the RA-6 logic silently wipes folder/tags: absent/undefined/non-array-tags all retain from `existing`; explicit `null`/`[]` clear; non-empty tags array replaces (verified against the RA-6 truth table row by row).
+- **Mechanism-mislabeling hunt — clean.** `toRecipeWriteInput` genuinely implements key-presence (via `'folder' in recipe` / `'tags' in recipe` and `Array.isArray`), matching its comment and RA-6 exactly — it is not a truthiness stand-in. The empty-string filter guard is real (verified `typeof === 'string' && !== ''`), and the client/server mirrors genuinely agree on empty input. The `batchRecipeSnapshotWriteBodySchema` inner `recipeSnapshot` object has no `additionalProperties: false`, so folder/tags (and all other recipe fields) pass through the Fastify boundary unprescribed — the AC-27/AC-29 tests are therefore exercising the real data path, not a schema-stripped phantom.
+
+## Verdict
+
+**PASS** — all 32 acceptance criteria trace YES (zero NO, zero PARTIAL). The Amendment 1 corrective pass closes all four prior blockers/partials (F-1 data loss via RA-6 + AC-26..29, F-2 scope via RA-7 + AC-30, F-3 via RA-8 + AC-1/AC-31, F-4 via RA-9, F-6 via RA-10 + AC-32). Layer-1 gates independently re-verified (tests 2,495/0/2, typecheck 4/4, build clean, lint 0 errors). The two patterns the skill targets — silent fallbacks masquerading as success and mechanism mislabeling — are both clean in this pass. No route to /diagnose.
+
+---
+
+# CRITIC REPORT: M38_P2 (post-Amendments 1+2) — 2026-09-02
+
+Source of truth: `.gsd/active/M38_P2_feature_spec.md` (32 ACs; AC-1/AC-2, AC-9/AC-10/AC-11/AC-12 marked `[AMENDED]`). Independent audit — did not trust the executor's summary, the executor's tests, or the reported pass counts. All implementation reading and every data/evaluator check below was done by hand against source files (`packages/calculations/src/bjcp/{types,data,evaluate,index}.ts`, appended re-exports in `packages/calculations/src/index.ts`, `packages/calculations/test/bjcp.test.ts`).
+
+## Independent verification performed (before tracing ACs)
+
+- **Data structure (AC-1..AC-6, AC-14):** esbuild-transpiled `data.ts` in isolation. Measured: length **86**, ids unique (86/86), every id matches `/^\d{1,2}[A-Z]$/`, categories present = exactly `{1..26}` with **zero** entries in 27–34, all 5 vitals present on all 86 styles with zero non-finite / zero `low>high` / zero physical-domain violations, `BJCP_STYLE_COUNT === 86 === length`.
+- **Source-fidelity (mechanism check):** cross-checked all 86 `data.ts` entries against the cited official mirror `/tmp/bjcp_styleguide-2021.json` (beerjson) — **0 mismatches** on name + all 10 range bounds; `data.ts`'s id set is byte-identical to the source's categories-1–26 set (1A–26D). The beerjson file does carry 7 extra numeric entries outside 1–26 (28D, 29D, X1–X5 — stray/experimental ids); those are correctly excluded and the spec's "86 official range-carrying in 1–26" claim is confirmed. The throwaway generator `/tmp/gen_bjcp_data.mjs` reads the mirror directly, filters to `/^([1-9]|1[0-9]|2[0-6])[A-Z]$/`, validates the full data-AC matrix, then emits `data.ts` — the "machine-transcribed" claim is genuine, not a hand-typed stand-in.
+- **Evaluator (AC-15..AC-29):** esbuild-bundled `evaluate.ts` and ran 28 independent probes (inclusive endpoints, just-outside, unknown id, empty vitals, null/NaN/±Infinity, empty injected dataset, default dataset, SG-vs-Plato, ebc-ignored, determinism/freshness, found-but-empty bounds). **28/28 PASS.**
+- **Layer-1 gates re-run by me:** `npm test` exit 0 → api **505** / web **1,338** / calculations **696 passed + 2 skipped** = **2,539 passed / 2 skipped** across **127 files** (+44 vs the 2,495 baseline); `npm run typecheck` exit 0 (4/4 PASS incl. `@truchabrew/calculations`); `npm run build` exit 0 (clean, only the pre-existing chunk-size warning); `npm run lint` exit 0 (0 errors, same 4 pre-existing fast-refresh warnings).
+- **Scope guardrail (AC-30):** independently diffed `/tmp/m38p2_pre_exec_manifest.sha256` vs `/tmp/m38p2_post_exec_manifest.sha256` — exactly the 6 authorized paths changed (`src/bjcp/{types,data,evaluate,index}.ts`, `src/index.ts`, `test/bjcp.test.ts`), **zero** unauthorized paths.
+- **Test-file reality:** `bjcp.test.ts` contains 38 literal `it(` blocks; the AC-7..13 `cases` loop expands one literal into 7 runtime tests → 44 runtime tests (matches vitest's reported 44/44). It imports from the top-level barrel `../src/index` (not subpaths) and also imports/resolves the existing `BJCPTier`/`SensoryScoreInput`/`BJCPScoreResult`/`calculateBJCPScore`.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 `[AMENDED]` | `BJCP_STYLES` non-empty `readonly BJCPStyle[]`, length `=== 86` (categories 1–26) | `data.ts` exports `readonly BJCPStyle[]`; independent load measured exactly 86 valid elements | YES |
+| AC-2 `[AMENDED]` | Every category `1..26` covered; 27–34 excluded (RA-13) | Independent scan: categories = exactly `{1..26}`; no style ≥27; id set identical to source categories-1–26 set | YES |
+| AC-3 | Unique style ids | Set size 86 == array length 86 | YES |
+| AC-4 | Every id matches `/^\d{1,2}[A-Z]$/` | All 86 match | YES |
+| AC-5 | All five vitals, each finite, `low <= high` | 86×5 ranges: zero missing / non-finite / unordered | YES |
+| AC-6 | Physical-domain sanity bounds | Zero violations (`og.low>=1.0`, `fg.low>=0.99`, `abv/ibu/srm.low>=0`, highs finite) | YES |
+| AC-7 | 21A American IPA: og 1.056–1.070, fg 1.008–1.014, abv 5.5–7.5, ibu 40–70, srm 6–14 | `data.ts` 21A exact; independently re-verified against official mirror | YES |
+| AC-8 | 18B American Pale Ale: og 1.045–1.060, fg 1.010–1.015, abv 4.5–6.2, ibu 30–50, srm 5–10 | `data.ts` 18B exact; source-verified | YES |
+| AC-9 `[AMENDED]` | 10A Weissbier: og 1.044–1.053, fg 1.008–1.014, abv 4.3–5.6, ibu 8–15, srm 2–6 | `data.ts` 10A exact; source-verified | YES |
+| AC-10 `[AMENDED]` | 3B Czech Premium Pale Lager: og 1.044–1.060, fg 1.013–1.017, abv 4.2–5.8, ibu 30–45, srm 3.5–6 | `data.ts` 3B exact; source-verified | YES |
+| AC-11 `[AMENDED]` | 7A Vienna Lager: og 1.048–1.055, fg 1.010–1.014, abv 4.7–5.5, ibu 18–30, srm 9–15 | `data.ts` has `7A` = "Vienna Lager" with exact ranges; no `29A` entry anywhere in dataset | YES |
+| AC-12 `[AMENDED]` | 20A American Porter: og 1.050–1.070, fg 1.012–1.018, abv 4.8–6.5, ibu 25–50, srm 22–40 | `data.ts` 20A exact; source-verified | YES |
+| AC-13 | 1A American Light Lager: og 1.028–1.040, fg 0.998–1.008, abv 2.8–4.2, ibu 8–12, srm 2–3 | `data.ts` 1A exact; source-verified | YES |
+| AC-14 | `BJCP_STYLE_COUNT === BJCP_STYLES.length` | Both 86; guard holds | YES |
+| AC-15 | Full verdict, mid-range 21A (P=5, R=5, allInRange true, verdict `'full'`) | `evaluate.ts` verdict logic (`R===P` → full); live probe confirms | YES |
+| AC-16 | Inclusive lower bound (`og==1.056`, `srm==6` in range) | `isValueInRange` = `low<=v<=high`; probe: 1.056/6 → in range | YES |
+| AC-17 | Inclusive upper bound (`og==1.070`, `ibu==70` in range) | Probe: 1.070 → in range; 70 → in range (code symmetric, test pinned) | YES |
+| AC-18 | Exclusive just-outside (`1.071`/`1.055` out; same for abv/srm) | Probe: 1.055/1.071 out of range; no epsilon anywhere | YES |
+| AC-19 | Partial verdict (`og` in, `abv` out) | Probe: P=2, R=1 → `'partial'` | YES |
+| AC-20 | None verdict (`og` 1.100, `abv` 12) | Probe: R=0 → `'none'`, allInRange false | YES |
+| AC-21 | Unknown style `999Z`: found false, no throw, all inRange null | Probe confirms full no-match contract; `29A` also returns found:false | YES |
+| AC-22 | Empty vitals `{}`: found true, P=0, verdict/allInRange null | Probe confirms; bounds still populated from found style (no fabrication) | YES |
+| AC-23 | null/undefined/NaN/±Infinity excluded | Probe: all-nonfinite → P=0; mixed → only finite og judged | YES |
+| AC-24 | Single present vital (18B full / none) | Probe: og 1.050 → full; og 1.080 → none | YES |
+| AC-25 | Empty injected dataset `[]` | Probe: found false, verdict null | YES |
+| AC-26 | Default dataset param (2-arg call) | Probe: 2-arg resolves against `BJCP_STYLES`, found true | YES |
+| AC-27 | Determinism; no reuse/mutation across calls | Probe: deep-equal + fresh objects; test mutates a returned result w/o corrupting later calls or the dataset | YES |
+| AC-28 | Gravity is SG (no Plato confusion, no conversion) | Probe: og 1.060 in range, og 15 out; `evaluate.ts` compares vitals directly, no `platoToSg`/`sgToPlato` anywhere in module | YES |
+| AC-29 | Color is SRM only; `ebc` not a key | Probe: `srm:10` drives color; `{srm,ebc}` → P=1 (ebc ignored); no EBC path in evaluator | YES |
+| AC-30 | Scope guardrail (pre/post SHA-256 manifest: only the 6 authorized files change) | Independent manifest diff: exactly `src/bjcp/{types,data,evaluate,index}.ts`, `src/index.ts`, `test/bjcp.test.ts`; zero unauthorized paths | YES |
+| AC-31 | Barrel export integrity, no collision with BJCP-*sensory* surface | `src/index.ts` appends explicit named value + type re-exports (no `export *`); `bjcp.test.ts` imports from top-level barrel; `BJCPTier`/`SensoryScoreInput`/`BJCPScoreResult`/`calculateBJCPScore` still resolve & are distinct; typecheck 4/4 (no duplicate-export ambiguity) | YES |
+| AC-32 | Layer-1 gates: test+typecheck+build+lint exit 0; totals > 2,495 baseline with bjcp.test.ts green | Re-run by critic: tests 2,539 passed / 2 skipped / 0 failed across 127 files (505+1338+696), exit 0; typecheck 4/4 exit 0; build clean exit 0; lint 0 errors exit 0 | YES |
+
+**Score: 32 YES / 0 PARTIAL / 0 NO.**
+
+## Test Suite Result
+
+- Existing tests re-run by critic: **2,539 passed / 2 skipped / 0 failed** across 127 files (api 505 / web 1,338 / calculations 696 incl. 44 in `bjcp.test.ts`), exit 0. Typecheck 4/4 PASS, build clean, lint 0 errors (4 pre-existing warnings). All four gates independently re-run — not trusted from executor self-report.
+- *This does NOT imply correctness* — the source-fidelity cross-check (86/86 byte-exact vs the official mirror), the 28 independent evaluator probes, and the manifest diff are the evidence.
+
+## Findings
+
+- **No AC traces NO or PARTIAL. Verdict is PASS.**
+- **Finding 1 (non-blocking, spec-internal tension — element-level readonly).** The spec's §1 normative signature is `export const BJCP_STYLES: readonly BJCPStyle[]`, which `data.ts` implements byte-for-byte. But the Resolved-Ambiguity "Read-only dataset" bullet's prose adds "each style object is `Readonly<BJCPStyle>`", and Key Behavior 3 says "readonly/frozen". The implementation does **not** type elements as `Readonly<BJCPStyle>` (elements are plain `BJCPStyle`, so `BJCP_STYLES[0].og.low = 5` would typecheck) and does **not** `Object.freeze` at runtime. No AC pins element-level readonly or freeze, nothing in the code or tests mutates the dataset, and the §1 signature is the concrete contract — so this is not an AC failure. Flagging for hygiene only: if P3 wants the type to make mutation impossible, annotate elements as `Readonly<BJCPStyle>` (or `as const`-style) — a one-line change.
+- **Finding 2 (non-blocking, comment literal).** `evaluate.ts`'s module comment calls `styleIndex` a "frozen" Map; `new Map(...)` is not literally `Object.freeze`-able, but it is never mutated after construction (no `.set`/`.delete` anywhere) — semantically "read-only after construction" exactly as the spec's Stateful Integration Contract permits. Non-issue.
+- **Silent-fallback hunt — clean.** The dataset contains **no** fabricated ranges: 86/86 entries match the official mirror byte-exact, and categories 27–34 (including 29A Fruit Beer) are simply absent — a request for one returns the honest `found:false` no-match contract, never a placeholder range. The evaluator has no `catch`/default path; non-present vitals get `present:false`/`value:null`/`inRange:null`, `verdict`/`allInRange` are `null` when `!found || P===0`, and the only "0" bounds appear in the `!found` case, which the spec's own `VitalMatchResult` type doc authorizes (`low: 0 when !found`). Nothing masquerades as success.
+- **Mechanism-mislabeling hunt — clean.** "Machine-transcribed from beerjson/bjcp-json" is genuine (0 mismatches vs `/tmp/bjcp_styleguide-2021.json` across all 86 names + 10 bounds each; id set equals the source's categories-1–26 set). "Inclusive `[low,high]`" is genuine (`isValueInRange` uses `<=` on both ends, no epsilon). "No internal conversion" is genuine (`evaluate.ts` reads `vitals[key]` and compares against `style[key]` directly — no `platoToSg`/`sgToPlato`/`ebcToSrm`/`srmToEbc` anywhere in the `bjcp` module). The name/evaluator do exactly what they claim.
+
+## Verdict
+
+**PASS** — all 32 acceptance criteria (including the four `[AMENDED]` data ACs re-pinned by Amendments 1+2) trace YES against the implementation, with zero NO and zero PARTIAL. Independent verification: 86/86 dataset entries byte-exact vs the official BJCP 2021 mirror (categories 1–26 only, no 27–34 fabrication), all 7 spot-check styles match the amended spec values, 28/28 evaluator boundary/no-match probes pass from the code path, the pre/post SHA-256 manifest shows exactly the 6 authorized files changed, and all four Layer-1 gates re-run clean (2,539 passed / 2 skipped, typecheck 4/4, build, lint 0 errors — exit 0 each). The two patterns the skill targets — silent fallbacks masquerading as success and mechanism mislabeling — are both clean in this pass. No route to /diagnose.
+
+---
+
+# CRITIC REPORT: M38_P3 (2026-09-02) — Real-Time BJCP Style Target Gauges & Folder Datalist in the Recipe Designer
+
+Spec source of truth: `.gsd/active/M38_P3_feature_spec.md` (37 ACs, AC-1..AC-37; binding RA-P3-1..RA-P3-11). All code read by hand; tests run independently, not trusted.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | `bjcpStyleId?: string \| null` on `Recipe` + `RecipeWriteInput`, optional (RA-8) | `brewing.ts` Recipe adds `bjcpStyleId?: string \| null`; `api.ts` RecipeWriteInput adds `bjcpStyleId?: string \| null`; literals without it typecheck (4/4 typecheck green). | YES |
+| AC-2 | Additive nullable migration `0017` over 0016; seed rows read back null | `0017_recipe_bjcp_style.sql` = `ALTER TABLE "recipes" ADD COLUMN "bjcp_style_id" text;`; `_journal.json` idx 17 (18 entries); crud AC-2 test writes a pre-column row via harness and reads back `null`. | YES |
+| AC-3 | `recipes` schema column nullable, no default | `schema.ts:152 bjcpStyleId: text('bjcp_style_id')` (nullable, no default). | YES |
+| AC-4 | POST persists `bjcpStyleId`; GET refetches | `createRecipe` inserts `normalizeBjcpStyleId(input.bjcpStyleId)`; crud AC-4 create `'21A'` → returns + GET `/id` returns `'21A'`. | YES |
+| AC-5 | omitted/null/empty → stored null | `normalizeBjcpStyleId` nulls undefined/null/''/whitespace; crud AC-5 omitted/null/'   ' all → null. | YES |
+| AC-6 | PUT updates; clearing sets NULL (full-replace) | `updateRecipe .set({... bjcpStyleId: normalizeBjcpStyleId(...)})` full-replace; crud AC-6 update `'1C'` persists; empty/null clears to NULL. | YES |
+| AC-7 | Duplicate carries `bjcpStyleId` forward | `duplicateRecipe` inserts `bjcpStyleId: source.bjcpStyleId ?? null`; crud AC-7 copy `'21A'`. | YES |
+| AC-8 | Summary list unaffected; no `bjcpStyleId` key | `listRecipeSummaries` `.select({...})` omits bjcpStyleId; crud AC-8 asserts `hasOwnProperty('bjcpStyleId')===false`, folder/tags intact. | YES |
+| AC-9 | Validator accepts optional `bjcpStyleId`; >20 chars → 400 | `schemas.ts bjcpStyleId: {type:['string','null'], maxLength:20}` not in `required`; crud AC-9 accepts `'21A'`, omitting passes, 30 chars → VALIDATION_FAILED. | YES |
+| AC-10 | `normalizeBjcpStyleId` pure semantics | `recipeRepository.ts` trims; null/undefined/''→null; no membership check (RA-P3-11); crud AC-10 unit covers `' 21A '`, `''`, `'   '`, null, undefined, `'ZZ9'`. | YES |
+| AC-11 | `toWriteInput` always emits `bjcpStyleId ?? null`; dirty/save resets | `useRecipeEditor.ts:64 bjcpStyleId: recipe.bjcpStyleId ?? null`; hook AC-11 loaded-without-field → null; changing dirties; save resets isDirty; clearing reverts. | YES |
+| AC-12 | Fresh recipe starts `bjcpStyleId: null` | `EMPTY_RECIPE_FOR_STATS` (119) and `startNewRecipe` literal (203) set `bjcpStyleId: null`; hook AC-12 asserts null, not dirty. | YES |
+| AC-13 | Save→reload round-trips `bjcpStyleId` | Hook AC-11 save persists + loads response `'1C'`/`'21A'`; App AC-31 load test shows `'21A'` style in Select on editor open; API GET refetch (AC-4/6) completes the round-trip. | YES |
+| AC-14 | `statsToStyleVitals` passes five vitals unchanged | `styleTargets.ts` returns `{og,fg,abv,ibu,srm}` verbatim; tests byte-for-byte, source unmutated. | YES |
+| AC-15 | No conversion code path | `styleTargets.ts` imports only types (`CalculatedStats`, `RecipeVitals`); source-scan test asserts no `platoToSg/sgToPlato/ebcToSrm/srmToEbc`. | YES |
+| AC-16 | `distinctFolderNames` distinct + sorted + excludes unfiled | `folderSuggestions.ts` case-sensitive Set dedupe (first-casing wins), `localeCompare` sort, skips null/undefined/''; tests cover distinct/case/sort/unfiled/[]/non-mutation. | YES |
+| AC-17 | Selector lists 86 + null option, `"{id} — {name}"` | `StyleTargetPanel.tsx` builds `NULL_STYLE_OPTION` ('' "No BJCP Style") + 86 from `BJCP_STYLES`; test asserts length 87 and label/value per dataset entry. | YES |
+| AC-18 | Selecting calls `onStyleChange(id)`; null option → null | Panel `onChange` maps `''→null` else id → `onStyleChange`; test asserts both. | YES |
+| AC-19 | Five gauge rows render when style found | Panel maps `VITAL_KEYS = ['og','fg','abv','ibu','srm']` to `data-vital` rows; test AC-19 asserts 5 rows each in-range/out-of-range. | YES |
+| AC-20 | In-range at inclusive lower bound | Live read `style.og.low` → OG in-range (isValueInRange `<=` both ends); component test AC-20 reads live from `BJCP_STYLES`. | YES |
+| AC-21 | Out-of-range below low (no epsilon) | `style.og.low - 0.001` → out-of-range; `+ 0.001` → in-range; component AC-21. | YES |
+| AC-22 | In-range at inclusive upper bound | `style.ibu.high` → in-range; `+0.001` → out-of-range; component AC-22. | YES |
+| AC-23 | Out red / in green distinct states | `STATE_PILL_CLASS`: in-range `text-emerald-400`, out-of-range `text-rose-400`; component AC-23 asserts className mapping. | YES |
+| AC-24 | Verdict Full Match | Panel maps verdict `'full'→"Full Match"` (data-testid style-verdict); AC-24. | YES |
+| AC-25 | Verdict Partial Match | `'partial'→"Partial Match"`; AC-25 (≥1 in + ≥1 out). | YES |
+| AC-26 | Verdict No Match | `'none'→"No Match"`; AC-26 (all out). | YES |
+| AC-27 | Neutral when no style — no gauges/verdict | `neutral = bjcpStyleId===null||''||match.found===false` → `style-neutral` only, no `data-vital`, no `style-verdict`; AC-27. | YES |
+| AC-28 | Neutral for unknown style id | `'ZZ9'` → evaluateStyleMatch found:false → neutral, no fabricated range; AC-28. | YES |
+| AC-29 | Real-time recompute on vitals change | Panel `useMemo(evaluateStyleMatch, [bjcpStyleId, vitals])`, vitals memo on stats; AC-29 rerender OG in→out flips without style change. | YES |
+| AC-30 | Real-time recompute on style change | AC-30 flips OG by switching to a dataset style whose range excludes the fixed value (read live). | YES |
+| AC-31 | Selecting BJCP style does NOT write `styleName` | `App.tsx onStyleChange` only sets `recipe.bjcpStyleId`; App AC-31 asserts styleName untouched, state dirties. | YES |
+| AC-32 | Folder datalist offers existing folders on editor entry; input wired | `App.tsx` `[view]` effect → `listRecipes()` → `distinctFolderNames`; folder `ui/Input` gets `list="folder-suggestions"` + `<datalist id="folder-suggestions">`; App AC-32 renders options `IPAs`,`Lagers`. | YES |
+| AC-33 | Excludes unfiled; free text still allowed | `distinctFolderNames` excludes null; datalist not a constraint — typing new folder sets `recipe.folder`; App AC-33. | YES |
+| AC-34 | Fetch failure degrades silently | `[view]` effect `.catch(() => setFolderSuggestions([]))`, no error banner; App AC-34 mocks reject → empty datalist, folder functional. | YES |
+| AC-35 | Primitive-only; no raw controls; StatsHeader untouched | `StyleTargetPanel.tsx` uses `ui/Select` only, no raw select/input/button (source-scan AC-35); datalist/option are native suggestion elements (RA-P3-10 exemption); StatsHeader.tsx not modified (byte-check + source-scan). | YES |
+| AC-36 | Layer 1 gates: tests > 2,539/2, typecheck 4/4, build, lint 0 errors | Independently re-run: 2,585 passed / 2 skipped across 130 files (515 api + 1,374 web + 696 calc), exit 0; typecheck 4/4 PASS exit 0; build clean (392ms, pre-existing chunk advisory only) exit 0; lint 0 errors (only 4 pre-existing fast-refresh warnings, none new) exit 0. | YES |
+| AC-37 | Scope guardrail — exactly Authorized Files changed, zero others | Executor's pre/post SHA-256 manifest reports exactly the 19 authorized paths (7 NEW + 12 MODIFIED incl. `meta/_journal.json`); independent read confirms every inspected change lives inside the authorized set; untouched paths (`packages/calculations/**`, StatsHeader.tsx, recipeMapper.ts, RecipeLibrary.tsx, ui/**, drizzle 0000..0016) verified unmodified by inspection. | YES |
+
+## Test Suite Result
+- Existing + new tests: 2,585 / 2,585 passed (2 skipped) — api 515/515, web 1,374/1,374, calculations 696/696 (+2 skipped); 130 files. This does NOT imply correctness — the trace above is the basis.
+- Typecheck 4/4 PASS (exit 0), build clean (exit 0), lint 0 errors / 4 pre-existing warnings (exit 0). All four Layer-1 gates reproduced independently.
+
+## Findings
+- **No AC marked NO or PARTIAL.** All 37 trace YES.
+- **Flagged judgment call 1 (drizzle `meta/0017_snapshot.json` absent) — acceptable.** Verified `apps/api/drizzle/meta/` holds snapshots only for 0000..0008; migrations 0009..0016 (incl. the directly-preceding 0016_recipe_folders_tags from M38_P1) have no snapshot files, so the migration was correctly registered via `_journal.json` (idx 17, 18 entries) following the repo's actual handwritten-migration convention. The spec's Symbol Inventory anticipated a generated snapshot, but its absence is consistent with how every sibling migration since 0009 was shipped and breaks nothing (migration applies cleanly; AC-2 proves seed-row backfill). Minor artifact-consistency deviation from the letter of the Symbol Inventory only — not a functional or scope gap.
+- **Flagged judgment call 2 (`[view]`-keyed folder effect) — acceptable, arguably the correct reading.** RA-P3-8 wants a mount/editor-entry fetch that is static within an editor session. Keying on `[view]` (with the `editor.recipe`-guaranteed-by-redirect invariant) fires exactly on each editor entry and deliberately does NOT re-fetch when `editor.recipe`'s reference changes on every keystroke — keying on `[view, editor.recipe]` would contradict RA-P3-8's static-within-session requirement. Re-fetch on each fresh editor entry is preserved.
+- **Flagged judgment call 3 (`text-slate-400` for unset state) — acceptable.** The spec pins no unset color; `text-slate-400` is the design system's standard muted-content tone (METADATA_TEXT_CLASS, EMPTY_STATE_CLASS) and reads visually as neutral (never green/red), satisfying RA-P3-9's "neutral '—', never in/out-of-range". Cosmetic only.
+- **Silent-fallback hunt — clean.** The panel never fabricates a range/match/verdict: `neutral` short-circuits on null/''/`found:false`, rendering only `style-neutral` (no `data-vital`, no `style-verdict`); per-vital `inRange===null` renders `data-state="unset"` with `—`, never green/red (RA-P3-9 defensive path). Folder fetch failure is an explicitly authorized silent degradation to an empty datalist (RA-P3-8/AC-34) — not a masked success. `normalizeBjcpStyleId` is an honest trim/empty→null, no membership fabrication. `evaluateStyleMatch` comes verbatim from M38_P2 and its `found:false` contract is what drives neutral.
+- **Mechanism-mislabeling hunt — clean.** The selector genuinely is the `ui/Select` primitive (imported from `./ui`, no raw `<select>`), verified by direct read and source scan. `<datalist>`/`<option>` are correctly used as native non-interactive suggestion elements (the RA-P3-10 exemption), not dressed up as controls. `statsToStyleVitals` is genuinely a pure field pass-through importing only types (no unit-conversion surface). The component's names/comments match what the code does.
+- **Boundary semantics independently confirmed.** M38_P2 `isValueInRange` uses `low <= value <= high` (inclusive, no epsilon) and the panel consumes `match.vitals[key].inRange` verbatim — in-range at `low`/`high`, out-of-range at ±0.001. Real-time recompute is genuine: both `useMemo`s key correctly and App passes fresh `stats`/`bjcpStyleId` on every editor render (RA-P3-4).
+
+## Verdict
+PASS — all 37 acceptance criteria trace YES against the approved spec, with zero NO and zero PARTIAL. Independent Layer-1 re-run is clean (2,585 passed / 2 skipped across 130 files; typecheck 4/4; build; lint 0 errors — exit 0 each). The three flagged judgment calls (missing `0017_snapshot.json` per repo convention 0009–0016; `[view]`-keyed folder effect; `text-slate-400` unset color) are each verified acceptable and non-blocking. Both patterns the skill targets — silent fallbacks masquerading as success and mechanism mislabeling — are clean in this pass. No route to /diagnose.
+
+
+---
+
+# CRITIC REPORT: M39_P1 — SectionCard & Sticky Jump-Nav Primitives (2026-09-02)
+
+**Agent:** claude-code (critic, independent — did not write the code under review)
+**Spec audited:** `.gsd/active/M39_P1_feature_spec.md` (44 ACs; FEAT-005 umbrella Phase 1 of 3 — primitives only, zero form/page/section changes)
+**Method:** Every AC independently derived from the spec text before reading the implementation; each traced by hand through `SectionCard.tsx`, `StickyJumpNav.tsx`, `ui/index.ts` and both new test suites. All four Layer-1 gates re-run independently (not taken from the executor's self-report). Scope guardrail re-verified by re-diffing the on-disk pre/post SHA-256 manifests.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Non-collapsible renders root `<section>` with DOM `id === id` prop | `<section id={id} data-testid={\`${id}-section\`}>` always emitted; `document.getElementById('general')` is the SECTION | YES |
+| AC-2 | `title` text visible; plain header `data-testid` = `${id}-title` | Non-collapsible heading carries `data-testid={\`${id}-title\`}`; title text rendered | YES |
+| AC-3 | `headingLevel` defaults to `h2` | `headingLevel = 2` default; dynamic tag resolves to `h2` | YES |
+| AC-4 | `headingLevel={4}` renders `h4` | Dynamic `h{level}` tag renders H4 | YES |
+| AC-5 | Non-collapsible `children` always present; no toggle | Non-collapsible branch always emits `<div data-testid={\`${id}-panel\`}>`; no toggle rendered | YES |
+| AC-6 | `icon` decorative: inside `aria-hidden="true"` span, excluded from accessible name | `{icon && <span aria-hidden="true">{icon}</span>}` in both variants | YES |
+| AC-7 | `badge` renders at header, right of title | Badge `<span>` placed after the title span in both variants | YES |
+| AC-8 | `className` passthrough + `CARD_CLASS` on root `<section>` | `rootClass = [CARD_CLASS, className].filter(Boolean).join(' ')` | YES |
+| AC-9 | Collapsible renders a real `<button type="button">` | Toggle is a genuine `<button type="button">` (not a div) | YES |
+| AC-10 | Collapsible open by default | `defaultOpen=true`; uncontrolled → `aria-expanded="true"`, panel mounted | YES |
+| AC-11 | `defaultOpen={false}` starts collapsed, panel unmounted | `{resolvedOpen && <div…panel>}` unmounts body when closed | YES |
+| AC-12 | Uncontrolled click toggles open→closed | `handleToggle` (uncontrolled) flips internal state; panel removed | YES |
+| AC-13 | Uncontrolled click toggles closed→open | Same path flips false→true | YES |
+| AC-14 | Uncontrolled `onToggle` observes the flip | `onToggle?.(next)` after the internal flip (false then true) | YES |
+| AC-15 | Controlled `open={true}` stays open regardless of click | `isControlled = open !== undefined`; click only calls `onToggle?.(!open)`, never mutates | YES |
+| AC-16 | Controlled `open={false}` stays closed | Panel remains unmounted across click | YES |
+| AC-17 | Controlled click fires `onToggle` with negation | `onToggle?.(!open)` → false when open=true | YES |
+| AC-18 | `defaultOpen` ignored in controlled mode | Controlled uses `open`; `useState(defaultOpen)` never consulted when controlled | YES |
+| AC-19 | Toggle `aria-controls` = panel id; panel has that DOM id | `aria-controls={\`${id}-panel\`}`; panel `id={\`${id}-panel\`}` | YES |
+| AC-20 | Independent disclosures (toggling A doesn't change B) | Each card owns isolated `useState`; no cross-card coupling | YES |
+| AC-21 | Empty `items` renders `null` | `if (items.length === 0) return null;` | YES |
+| AC-22 | Renders `<nav>` with all item buttons + labels | `items.map` → button per item with `data-testid={\`jump-${id}\`}` | YES |
+| AC-23 | Root `<nav>` with section-navigation aria-label | `<nav … aria-label="Section navigation">` | YES |
+| AC-24 | Active item highlighted via `aria-current="true"` | `aria-current={isActive ? 'true' : undefined}` where `isActive = index === activeIndex` | YES |
+| AC-25 | Unknown `activeId` → no highlight, no crash | `resolveActiveIndex` returns -1; no index matches → all inactive | YES |
+| AC-26 | `activeId` undefined/'' → no highlight | Early return -1 for undefined/'' in `resolveActiveIndex` | YES |
+| AC-27 | `resolveActiveIndex` deterministic contract | findIndex; empty/''/undefined/no-match → -1; match → index | YES |
+| AC-28 | First match on duplicate ids | `Array.prototype.findIndex` returns first match | YES |
+| AC-29 | Click scrolls to matching `SectionCard` | `handleClick` → `getElementById` → `scrollIntoView({behavior:'smooth',block:'start'})`; test asserts instance === section | YES |
+| AC-30 | Click calls `onNavigate` with its id | `onNavigate?.(id)` always fired in `handleClick` | YES |
+| AC-31 | Click scrolls a collapsed card's root, no auto-expand | Root `<section>` persists regardless of open; panel stays unmounted | YES |
+| AC-32 | Missing DOM target → onNavigate, no scroll, no throw | `target` null-guard skips scroll; `onNavigate` already called; never throws | YES |
+| AC-33 | Coordination lockstep (SectionCard id === nav item id, nav scrolls) | Proven in test: `id="general"` equals item id; scroll target is that SECTION | YES |
+| AC-34 | Fallback never leaks into SectionCard state | Nav is fully presentational for active state; reads only controlled `activeId`; no write path into cards | YES |
+| AC-35 | No dead axis — every declared prop consumed | All SectionCard/StickyJumpNavProps members referenced in component bodies | YES |
+| AC-36 | Primitive-only imports (react/lucide-react/../designSystem/./ui) | SectionCard: react, lucide-react, ../designSystem; StickyJumpNav imports nothing (JSX-runtime only) | YES |
+| AC-37 | No new `designSystem.ts` exports; byte-identical; only CARD_CLASS/SECTION_HEADING_CLASS + module-local strings | designSystem.ts absent from manifest diff (byte-identical); no STICKY/DISCLOSURE token added; structural strings module-local | YES |
+| AC-38 | ui barrel exports primitives + helper + types | `index.ts` appends exactly the 4 specified lines; test resolves values and types | YES |
+| AC-39 | Typecheck exits 0 | Independently re-run: 4/4 PASS, exit 0 | YES |
+| AC-40 | Build exits 0 | Independently re-run: exit 0 (only pre-existing chunk-size advisory) | YES |
+| AC-41 | Lint exits 0 | Independently re-run: exit 0; 4 pre-existing warnings + 1 new by-design (see Findings) | YES |
+| AC-42 | Web suite passed count strictly > 2,585, 0 new failures/skips | Independently re-run: **2,620 passed / 2 skipped / 132 files** (515 api + 1,409 web + 696 calc), +35 vs baseline, 0 failures | YES |
+| AC-43 | Scope guardrail — authorized-file content manifest, only 5 paths change | Re-diffed on-disk manifests: exactly 4 NEW (SectionCard.tsx, StickyJumpNav.tsx, SectionCard.test.tsx, StickyJumpNav.test.tsx) + `index.ts` hash change; zero other paths | YES |
+| AC-44 | Only the 5 authorized files change; untouched files byte-identical | designSystem.ts, designSystem.test.ts, all forms/pages/sections, `.gsd/*`, `packages/*`, `apps/api/*` absent from diff | YES |
+
+## Test Suite Result
+- **Independent re-run:** `npm test` — **2,620 passed / 2 skipped / 132 files** across the three workspaces (api 515 / web 1,409 / calc 696 + 2 skipped), exit 0.
+- `npm run typecheck`: 4/4 PASS, exit 0. `npm run build`: exit 0. `npm run lint`: exit 0.
+- This does **not** imply correctness — the hand-trace above is the evidence, not the green suite. All 44 criteria trace YES on code inspection.
+
+## Findings
+
+No AC is marked NO or PARTIAL. Zero gaps.
+
+**Constant-rename deviation — judged NOT a real deviation, and legitimately forced.** The spec never names the collapsible header's structural constant; §"No new design tokens (P1)" and AC-37 mandate only that one-off structural strings live as *module-local constants*. No authorized symbol was renamed — `TOGGLE_BUTTON_CLASS` was never spec-mandated. The rename to `DISCLOSURE_TRIGGER_CLASS` is genuinely forced by the **pre-existing** `designTokens.test.ts` AC-12 drift guard (`/^\s*(export\s+)?const\s+[A-Z_]*(BUTTON|INPUT|SELECT)[A-Z_]*_CLASS\s*=/m`), which requires zero `*BUTTON*_CLASS`-style constants outside `designSystem.ts`; a module-local `TOGGLE_BUTTON_CLASS` would have tripped it (I re-ran the guard's regex across `apps/web/src`: clean, and it would match `TOGGLE_BUTTON_CLASS`). The shipped `DISCLOSURE_TRIGGER_CLASS` contains no `BUTTON/INPUT/SELECT` substring and is semantically accurate — it styles the real disclosure-trigger `<button type="button">`. No behavioral reference changed. Cosmetic, within spec, no authorization gap.
+
+**by-design lint warning — confirmed.** `StickyJumpNav.tsx:23` `react(only-export-components)` is on the exported pure helper `resolveActiveIndex`. Spec §1 mandates it be exported from `StickyJumpNav.tsx` ("Pure helper (exported from StickyJumpNav.tsx)"). A non-component export in a component file is inherent to that mandate. Lint still exits 0 (warnings do not fail the gate). Confirmed by-design, consistent with the 4 pre-existing warnings of the same class.
+
+**Silent-fallback / mechanism-mislabeling hunt — clean.**
+- The collapse is a **real** accessible disclosure: a genuine `<button type="button">` (Enter/Space activate natively), not a div styled as a button. `aria-expanded` and `aria-controls` are correctly wired to the `${id}-panel` element, which is the actual conditional-mount body. The heading wraps the button (valid disclosure-in-heading pattern).
+- Controlled/uncontrolled semantics are **honest**: `isControlled = open !== undefined` is the sole mode discriminator; controlled mode never touches internal state and only notifies `onToggle?.(!open)`; uncontrolled mode flips internal state then observes. A caller that supplies `open` but never updates it gets a card that genuinely does not toggle — the documented, spec-authorized controlled behaviour, surfaced honestly, not a hidden fallback.
+- Every no-match/empty fallback in `StickyJumpNav` is spec-mandated honest suppression, not fabricated output: empty items → `null` (no shell); unknown/`''`/undefined `activeId` → `-1` with **no** placeholder highlight; missing DOM target on click → `onNavigate` still fires but scroll is skipped (guarded), never throws.
+- `resolveActiveIndex` is a genuine pure helper (no side effects, no DOM). `StickyJumpNav` is genuinely fully controlled — no `IntersectionObserver`/scroll-spy, as the spec requires; `activeId` is page-owned. `scrollIntoView` with smooth/start is genuine; the tests stub `Element.prototype.scrollIntoView` exactly as the spec directs (jsdom doesn't implement it).
+- No spec'd-but-unread prop (AC-35): every declared member of both prop interfaces is consumed.
+
+**Scope.** Re-diffing the on-disk `/tmp/m39p1_manifest_before.txt` vs `after.txt` shows **exactly** the 5 authorized files (4 NEW + `index.ts` hash change) and nothing else; `designSystem.ts` is byte-identical (AC-37) and every Untouched-listed form/page/section/`.gsd`/`packages`/`apps/api` path is absent from the diff (AC-43/44).
+
+## Verdict
+PASS — all 44 acceptance criteria trace YES against the approved spec, with zero NO and zero PARTIAL. Independent Layer-1 re-run is clean (2,620 passed / 2 skipped across 132 files; typecheck 4/4; build; lint 0 errors — all exit 0). The constant rename is judged not a spec deviation (never spec-named, and forced by a pre-existing design-token guard) and the new lint warning is by-design per spec §1. Both patterns the skill targets — silent fallbacks masquerading as success and mechanism mislabeling — are clean in this pass. No route to /diagnose.
+
+---
+
+# CRITIC REPORT: M39_P2 — Recipe Editor & Equipment Form Sectioning (2026-09-02)
+
+Approved spec: `.gsd/active/M39_P2_feature_spec.md` (44 ACs). This is the first phase
+that *applies* the M39_P1 primitives (`SectionCard`, `StickyJumpNav`) to real forms. All
+file reads and the Layer-1 gate re-runs below were done by this critic independently; the
+executor's summary was used only as a map, not as evidence.
+
+## Acceptance Criteria Trace
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | FermentableSection is a `SectionCard` `id=recipe-fermentables`, h3, title "Fermentables & Malts" | Source wraps the section in `<SectionCard id={sectionId ?? 'recipe-fermentables'} title="Fermentables & Malts" headingLevel={3} icon=Wheat badge=Total collapsible>`. Root carries `recipe-fermentables-section` + DOM id. | YES |
+| AC-2 | HopSection → `recipe-hops`, h3, title "Hops & Contextual Hop Schedule", `estimated-ibu-display` in body | Same SectionCard pattern (Sprout icon, collapsible); `estimated-ibu-display` sits inside a body-table IBU cell AND in the badge; kept in section. | YES |
+| AC-3 | YeastSection → `recipe-yeast`, h3, "Yeast Strain & Fermentation" | SectionCard id default `recipe-yeast`, headingLevel 3, FlaskConical icon, no badge, collapsible. | YES |
+| AC-4 | MiscSection → `recipe-miscs`, h3, "Misc & Water Agents" | SectionCard default `recipe-miscs`, h3, Droplet icon, italic badge note, collapsible. | YES |
+| AC-5 | Each ingredient card collapsible & open by default (panels mounted on first render) | `collapsible` with no `open` prop ⇒ `defaultOpen=true`; body conditionally mounted on `resolvedOpen`. Panels present at mount. | YES |
+| AC-6 | Click `{id}-toggle` collapses (panel unmounts, aria-expanded false); click again reopens | Uncontrolled `handleToggle` flips internal state; body unmounts on false. Verified round-trip in test AC-6. | YES |
+| AC-7 | Collapsing one card does not collapse siblings | Each SectionCard owns independent `useState`; only the toggled panel unmounts. | YES |
+| AC-8 | Header summary in badge slot, non-interactive (no nested button) | Badges are plain `span`/`div` (Fermentables "Total", Hops IBU block, Misc italic note); no button/input inside toggle. | YES |
+| AC-9 | Recipe nav `StickyJumpNav` with exactly 4 items Fermentables/Hops/Yeast/Miscs | `App.tsx` renders `<StickyJumpNav items={RECIPE_NAV_ITEMS} .../>` (4 items, module-level) before MashSection. | YES |
+| AC-10 | Clicking recipe nav item calls `onNavigate` AND scrollIntoView on the SectionCard root | Click does `scrollIntoView({smooth,start})` on `document.getElementById(id)` (works). **No `onNavigate` is passed** by App (executor-disclosed). See Findings — PARTIAL. | PARTIAL |
+| AC-11 | Nav active highlight follows the hook (aria-current on matching item; undefined → none) | `activeId` = `useSectionScrollSpy(RECIPE_SECTION_IDS)`; `resolveActiveIndex` → `aria-current`. Wiring is correct, but the hook only recomputes on **window** scroll/resize/mount while the app's real scroll container is `<main>` (PageContainer) — see Findings. Frozen in real use. | PARTIAL |
+| AC-12 | Editing a fermentable amount still dirties/save path intact | Table NumberInput `onUpdate` → `editor.setRecipe`; dirty + Brew This disabled. Test passes. | YES |
+| AC-13 | Add/remove hop row inside collapsed-capable `recipe-hops` | Picker → row append/remove verified inside the card (default-open). | YES |
+| AC-14 | Optional `sectionId` prop; default = canonical; custom overrides | All four take `sectionId?: string`, used `id={sectionId ?? '<canonical>'}`. AC-14 test covers default + override. | YES |
+| AC-15 | BatchRecipeAdjustModal renders F/H/Y sections unchanged, default ids, no dup/crash | Modal source untouched; it omits `sectionId` so canonical ids are used; modal & editor never co-mount. Suite green. | YES |
+| AC-16 | `equipment-general` SectionCard h4 "General", Profile Name + 7 core fields | Non-collapsible SectionCard headingLevel 4 title "General"; body has `equipment-field-name` + batchSizeL/boilTimeMin/brewhouseEfficiencyPct/mashEfficiencyPct/boilOffRate/trubChillerLoss/hopUtilization. | YES |
+| AC-17 | `equipment-altitude` re-emits `equipment-altitude-section`, h4 title | `id="equipment-altitude"` ⇒ root `equipment-altitude-section` preserved; h4 "Altitude & Atmospheric Physics". | YES |
+| AC-18 | `equipment-thermal-mass` re-emits testid, h4, checkbox toggles strike calc | Non-collapsible card `id="equipment-thermal-mass"`, h4; checkbox `equipment-field-calcStrikeWithThermalMass` lives in the badge slot; toggling switches mashTunWeightKg/mashTunHeatCapacity vs mashTunHeatCapacityL. | YES |
+| AC-19 | `equipment-losses` re-emits testid, h4 title | Preserved; h4 "Vessel Losses & Dead Space". | YES |
+| AC-20 | `equipment-hopstand` and `equipment-notes` SectionCards (h4) render | Both present with new testids `equipment-hopstand-section`/`equipment-notes-section`. | YES |
+| AC-21 | All six equipment sections NON-collapsible; no `{id}-toggle`; content always mounted | None pass `collapsible` (default false) ⇒ no toggle button; panels always mounted. | YES |
+| AC-22 | Equipment nav exactly 5 items, no Notes | `EQUIPMENT_NAV_ITEMS` = General/Altitude/Thermal Mass/Losses/Hopstand; `jump-equipment-notes` absent. | YES |
+| AC-23 | Clicking equipment nav item scrolls to section and fires onNavigate | Click scrollIntoView works (test AC-23 asserts scroll target). **No onNavigate passed**; see Findings — PARTIAL. | PARTIAL |
+| AC-24 | Equipment CRUD unchanged (create/edit/save round-trip) | Create/save path intact; edit tested via EquipmentManager suite; all pass. | YES |
+| AC-25 | `batchSizeL` renders binding hint under input | `hint` string present in NUMERIC_FIELDS, emitted via FormField when no error. | YES |
+| AC-26 | All 8 binding captions render | All 8 exact strings present in `NUMERIC_FIELDS`; each renders. | YES |
+| AC-27 | Error suppresses hint | `renderField` passes `hint={!fieldErrors[key] ? spec.hint : undefined}`; FormField hides hint when error. AC-27 test confirms. | YES |
+| AC-28 | useSectionScrollSpy → undefined when no id resolves | `computeActiveSectionId` returns undefined when every getTop null; hook returns it. Pure + hook tests pass. | YES |
+| AC-29 | all real tops > offset → first id | Code returns `sectionIds[0]` in that branch. | YES |
+| AC-30 | returns LAST id whose top ≤ offset | `atOrBelow[atOrBelow.length-1].id`. | YES |
+| AC-31 | undefined on empty sectionIds | `real.length===0` ⇒ undefined. | YES |
+| AC-32 | Hook mounts passive scroll listener, resolves live DOM tops, updates on scroll, cleans up | Listener attached to **window**; test dispatches `window` scroll. Cleanup removes both. But real scroll container is `<main>` (PageContainer), not window — see Findings. | PARTIAL |
+| AC-33 | Recipe collapse leaves isDirty/SaveBar untouched | Collapse is pure SectionCard local state; test confirms Brew This stays enabled. | YES |
+| AC-34 | Every recipe ingredient heading h3; every equipment heading h4 | headingLevel 3 (ingredients) / 4 (equipment) verified in tests. | YES |
+| AC-35 | No ad-hoc CARD_CLASS section shells remain in the 4 + EquipmentForm | Source read: all use SectionCard; grep-asserts on source confirm no literal wrapper. | YES |
+| AC-36 | Converted files import only SectionCard/StickyJumpNav/useSectionScrollSpy/FormField + existing tokens/icons | Imports verified (lucide-react icons + ui barrel + existing designSystem tokens); no new tokens. | YES |
+| AC-37 | useSectionScrollSpy consumed by exactly 2 callers | Grep: imported only in `App.tsx` and `EquipmentForm.tsx`. | YES |
+| AC-38 | MashSection/WaterSection/StatsHeader/StyleTargetPanel/identity header unwrapped, unchanged | These remain hand-rolled; internal `mash-*`/`water-*`/`style-target-panel`/header testids intact; AC-38 test asserts presence. | YES |
+| AC-39 | Batch-adjust modal keeps standardized cards; existing suite green | Modal source byte-identical; rendered via the shared (now-SectionCard) components; web suite green. | YES |
+| AC-40 | Layer 1 tests: total > 2,620, all workspaces exit 0 | Independently re-run `npm test`: **2,659 passed / 2 skipped** (api 515 / web 1,448 / calc 696+2), exit 0; > 2,620 baseline. | YES |
+| AC-41 | Layer 1 typecheck: 4/4 exit 0 | Independently re-run: typecheck-all 4/4 PASS, exit 0. | YES |
+| AC-42 | Layer 1 build & lint exit 0 | Build exit 0 (chunk advisory only); lint exit 0 (5 warnings: 4 pre-existing + P1 StickyJumpNav by-design; 0 new from P2). | YES |
+| AC-43 | Scope positive: changed-path set ⊆ Authorized Files | Re-diffed `/tmp/m39p2_manifest_{before,after}.txt`: exactly 15 authorized paths (6 source + 4 NEW + 5 of 9 reconciliation tests). No out-of-authorized path. | YES |
+| AC-44 | Scope negative: authorized present; untouched byte-identical | MashSection/WaterSection/ui/*/designSystem.ts/BatchRecipeAdjustModal source/packages/*/apps/api/*/.gsd/* all absent from diff. | YES |
+
+## Test Suite Result
+- **Independent re-run:** `npm test` — **2,659 passed / 2 skipped across 135 files**
+  (api 515 / web 1,448 / calc 696 + 2 skipped), exit 0. +39 vs the 2,620 baseline.
+- `npm run typecheck`: 4/4 PASS, exit 0. `npm run build`: exit 0 (chunk advisory only).
+  `npm run lint`: exit 0 (0 errors; 5 warnings = 4 pre-existing + 1 P1 by-design; 0 new).
+- Green suite is one input, not the verdict — the hand-trace above is the evidence.
+
+## Findings
+
+**Primary finding — the scroll-spy listens to `window`, but the app's real scroll
+container is `<main>` (`PageContainer`), so the active nav highlight does not follow
+scroll in the running app (affects AC-10/11/23/32 → PARTIAL).**
+
+`useSectionScrollSpy` attaches its `scroll`/`resize` listeners with
+`window.addEventListener('scroll', compute, { passive: true })` (bubble phase, capture
+defaults false). Both owning views — the Recipe Editor composition and `EquipmentForm`
+(each of which renders its own `PageContainer`) — sit inside the app shell
+(`h-screen overflow-hidden` → `flex-1 flex flex-col h-full overflow-hidden` →
+`<main class="flex-1 overflow-y-auto …">`). Per `PageContainer.tsx`'s own doc comment,
+`<main>` is the **sole scroll owner** of the app shell; the `h-screen overflow-hidden`
+ancestors pin the document height so the `window`/document never scrolls. The `scroll`
+event does **not** bubble, so a real user scroll of the editor/equipment content fires
+`scroll` on `<main>` and never reaches a bubble-phase `window` listener. Net effect:
+`computeActiveSectionId` runs once on mount and on `window` resize only; it never
+recomputes as the user scrolls, so `activeId` is effectively frozen (at the top of the
+page the first ingredient / `General` item is highlighted and stays highlighted while
+the user scrolls to Hops/Yeast/Miscs or Hopstand). This defeats AC-11's intent and the
+hook's stated purpose ("page-owned active-section derivation … by document order").
+
+**Why the tests pass anyway (the silent-masquerade shape).** Every test that exercises
+the spy drives it with a synthetic `window` event: `useSectionScrollSpy.test.ts` AC-32
+and `M39_P2_RecipeEditorSectioning.test.tsx` AC-11 both call
+`window.dispatchEvent(new Event('scroll'))`. That is the same mechanism the hook listens
+on, so the unit/integration tests pass while the real scroll container (`<main>`), which
+the hook never listens on, never triggers a recompute. The executor's own tests are built
+around `window` being the scroller, which mismatches the shipped layout. This is the exact
+"mechanism mismatch that a passing suite can't catch" pattern the audit targets.
+
+**Disclosed no-`onNavigate` nuance — accepted in isolation, but it compounds the defect.**
+`App.tsx` and `EquipmentForm.tsx` pass no `onNavigate` to `StickyJumpNav`. That is
+consistent with the spec's fully-controlled design (the page owns `activeId` from the
+scroll-spy; P1 covers the primitive's `onNavigate`/click-scroll behavior, which still
+works because `StickyJumpNav` scrolls internally on click regardless of `onNavigate`).
+Standing alone this is fine. But combined with the finding above it means there is *no*
+mechanism that ever moves the highlight: not `onNavigate` (absent) and not the scroll-spy
+(inert on real scroll). A user clicking "Hops" gets the content scrolled but the nav
+keeps "Fermentables"/"General" highlighted. So AC-10/AC-23 are PARTIAL for the missing
+`onNavigate` clause and AC-11/AC-32 for the frozen derivation.
+
+**No other AC is NO/PARTIAL.** Sectioning is genuine (real `SectionCard`/`StickyJumpNav`
+primitives, real disclosure toggle with `aria-expanded`/`aria-controls`/`${id}-panel`,
+correct heading levels, default-open content preserved, independent per-card state,
+thermal-mass checkbox correctly relocated into the non-collapsible header's badge slot
+with its strike-calc wiring intact). All 8 binding caption strings match verbatim and
+suppress on error. Test reconciliation removed no behavior assertion — verified by spot
+check: `MashSection` retains its CARD_CLASS/SECTION_HEADING_CLASS import check, the four
+ingredient files now assert SectionCard adoption + zero literal card wrappers, and
+`EquipmentManager.test.tsx` still asserts `fixed`/`inset-0`/`z-50` are absent while
+scoping the new legitimate `backdrop-blur` to the jump-nav element. Scope guardrail
+(AC-43/44) independently confirmed by re-diffing the on-disk manifests.
+
+**Minor (non-failing) observation.** The collapsible Hops badge is block content
+(`<div>`) nested inside the disclosure `<button>` (SectionCard wraps `badge` in a
+`<span>`). Browsers render it and tests pass, but `<button>`'s content model is phrasing
+content, so a block `<div>` inside it is technically invalid HTML and inflates the
+heading's accessible name with badge text. This stems from P1's SectionCard badge slot +
+passing a block badge; cosmetic, not a spec-intent failure.
+
+## Verdict
+**FAIL** — 4 acceptance criteria are PARTIAL (AC-10, AC-11, AC-23, AC-32) for a single
+root cause: `useSectionScrollSpy` attaches its scroll listener to `window` while the app's
+real scroll container is `PageContainer`'s `<main>` (scroll does not bubble), so the
+jump-nav active highlight never follows the user's scroll in the running app and never
+updates after a nav click. The sectioning/collapse/caption/CRUD work itself is correct and
+the Layer-1 gates are green, but a green suite cannot surface this because every
+scroll-spy test drives synthetic `window` scroll events. Route to `/diagnose` before
+re-attempting (the fix belongs in the hook's listener target — e.g. listen to the actual
+scroll container / `document.getElementById('page-container')`, or window with capture —
+plus deciding whether the forms should also pass `onNavigate`).
+
+
+# CRITIC REPORT: M39_P2 (post-Amendment 3)
+
+Date: 2026-09-02. Independent critic audit of the M39_P2 final state after the user-directed **Amendment 3** removal pivot (StickyJumpNav jump-nav + useSectionScrollSpy scroll-spy removed from BOTH the Recipe Editor and the Equipment Form). Spec read in full: `.gsd/active/M39_P2_feature_spec.md` (Amendment 1/2/3 banners, RA-1..RA-7, section 0 resolved ambiguities, section 1 caption copy, section 3 AC matrix). All three amendment banners confirm a same-phase amendment (no M39_P3 opened). The Amendment 3 banner is the binding reconciliation: it SUPERSEDES AC-9/10/11, AC-22/23, AC-47, the scroll-spy portions of AC-32/AC-37, and RA-1..RA-7, keeping the sectioning/collapse/caption/CRUD set active.
+
+## Acceptance Criteria Trace (ACTIVE ACs)
+
+**Superseded by Amendment 3 (nav/spy removed - not traced, tests removed):** AC-9 (recipe nav render), AC-10 (recipe nav click/scroll), AC-11 (recipe highlight), AC-22 (equipment nav render), AC-23 (equipment nav click/scroll), AC-28/29/30/31 (spy pure-function unit tests - file deleted), AC-32 (spy listener registration), AC-37 (spy no-dead-axis 2-caller), AC-45/46/47 (spy capture/cleanup/masking guards). Total **14 superseded** ACs. RA-1..RA-7 (scroll-spy listener target, scroll convention, onNavigate, suite-masking, manifest method, sticky offset) likewise superseded for M39_P2's shipped scope.
+
+**Active set = 33 ACs.**
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | FermentableSection is a SectionCard `recipe-fermentables`, `-section` testid, h3, "Fermentables & Malts" | `FermentableSection.tsx` renders `<SectionCard id={sectionId ?? 'recipe-fermentables'} headingLevel={3} title="Fermentables & Malts" icon={Wheat} badge=Total collapsible>` | YES |
+| AC-2 | HopSection -> `recipe-hops` SectionCard, h3, title, `estimated-ibu-display` kept | `HopSection.tsx` renders SectionCard id default `recipe-hops`, h3, title, badge carries Total Hops + IBU block with `data-testid="estimated-ibu-display"` | YES |
+| AC-3 | YeastSection -> `recipe-yeast` SectionCard, h3, "Yeast Strain & Fermentation" | `YeastSection.tsx` renders SectionCard id default `recipe-yeast`, h3, title, no badge | YES |
+| AC-4 | MiscSection -> `recipe-miscs` SectionCard, h3, "Misc & Water Agents" | `MiscSection.tsx` renders SectionCard id default `recipe-miscs`, h3, title, italic badge note | YES |
+| AC-5 | Each ingredient card collapsible + open by default (panel mounted first render) | `SectionCard` `collapsible` with `defaultOpen=true`; tests assert all four `recipe-*-panel` present initially | YES |
+| AC-6 | Click `{id}-toggle` collapses (panel unmounts, aria-expanded false); click again remounts | SectionCard uncontrolled internal state; round-trip test on `recipe-hops-toggle` passes | YES |
+| AC-7 | Independent disclosures (collapsing hops doesn't collapse others) | Each SectionCard owns its own `useState`; test collapses hops and asserts fermentables panel stays | YES |
+| AC-8 | Header summary in badge slot present & non-interactive (no nested button) | Hop badge is plain `<div>`/`<span>`s (no button/input); test asserts no nested button & 0 inputs inside toggle | YES |
+| AC-12 | Editing/saving a recipe still works (dirty+save path) | Test types a fermentable amount; `Brew This` disables w/ save-changes title -> dirty tracking intact | YES |
+| AC-13 | Add/remove hop row works inside collapsed-capable `recipe-hops` | Test opens picker, adds Citra, removes it, all inside `recipe-hops-section` | YES |
+| AC-14 | Ingredient components accept optional `sectionId`; default canonical, custom overrides | All four: `id={sectionId ?? '<canonical>'}`; tests cover default + custom `custom-ingredients` | YES |
+| AC-15 | BatchRecipeAdjustModal renders ingredient sections unchanged w/ default ids, no dup/crash | Source UNTOUCHED; modal uses components' default sectionId; suite green | YES |
+| AC-16 | Equipment `General` SectionCard `equipment-general`, h4, "General", Profile Name + 7 core fields | `EquipmentForm.tsx` `<SectionCard id="equipment-general" headingLevel={4} title="General">`; test asserts name + batchSizeL/boilTimeMin/brewhouseEfficiencyPct/mashEfficiencyPct/boilOffRateLPerHour/trubChillerLossL/hopUtilizationPct | YES |
+| AC-17 | `equipment-altitude` re-emits `-section` testid, h4 "Altitude & Atmospheric Physics" | SectionCard id `equipment-altitude` -> root emits `equipment-altitude-section`; h4 title verified | YES |
+| AC-18 | `equipment-thermal-mass` re-emits testid, h4, checkbox `equipment-field-calcStrikeWithThermalMass` functional | Checkbox relocated to the SectionCard `badge` slot (only way to keep it in the non-collapsible header); toggling shows/hides `mashTunWeightKg`/`mashTunHeatCapacity` vs `mashTunHeatCapacityL`; test passes | YES |
+| AC-19 | `equipment-losses` re-emits testid, h4 "Vessel Losses & Dead Space" | SectionCard id `equipment-losses`, h4 title | YES |
+| AC-20 | `equipment-hopstand` + `equipment-notes` SectionCards render | Both present, h4 titles | YES |
+| AC-21 | All six equipment sections NON-collapsible: no `{id}-toggle`, content always mounted | No `collapsible` prop on any equipment SectionCard; test asserts no toggle + all `{id}-panel` mounted | YES |
+| AC-24 | Equipment CRUD unchanged (create + edit + save round-trip) | Test: `mockCreate` called with name/batchSizeL on Save Profile | YES |
+| AC-25 | `batchSizeL` renders binding hint | NUMERIC_FIELDS `hint` for `batchSizeL` verbatim; test finds text | YES |
+| AC-26 | All 8 binding captions render | All 8 exact hint strings present in `NUMERIC_FIELDS` and asserted | YES |
+| AC-27 | Caption suppressed when field has an error | `renderField` passes `hint` only when `!fieldErrors[key]`; test sets batchSizeL=0 -> hint gone, error shown | YES |
+| AC-33 | Recipe collapse/expand leaves `editor.isDirty`/SaveBar unaffected | Test collapses a card; `Brew This` stays enabled (not dirty) | YES |
+| AC-34 | Heading-level contract: recipe ingredient h3, equipment h4 | Recipe tests assert h3 headings; equipment `expectSectionHeading` asserts tagName H4 | YES |
+| AC-35 | No raw sectioning markup - only SectionCard shells | All four ingredient components + EquipmentForm render SectionCard; no hand-rolled `CARD_CLASS` section shells remain (EquipmentForm no longer imports CARD_CLASS) | YES |
+| AC-36 | Primitive-only imports; converted files import SectionCard/ui/tokens only | Components import `SectionCard` from `./ui` barrel (SectionCard exported at ui/index.ts:22), lucide icons, calculations, FormField; no new design tokens | YES |
+| AC-38 | MashSection/WaterSection/StyleTargetPanel/identity header un-wrapped & render unchanged | `App.tsx` still composes them; test asserts `mash-profile-picker`, `water-summary-row`, `style-target-panel`, identity header | YES |
+| AC-39 | Batch-adjust modal retains standardized cards, passes its suite | Source unchanged; default-id reuse; suite green (web 1,435 passed) | YES |
+| AC-40 | Layer 1 tests exit 0 | Independently run: **2,646 passed / 2 skipped across 134 files** (515 api + 1,435 web + 696 calc), exit 0. Count is below the pre-removal 2,659/135 baseline **only** because the nav/spy tests were removed - documented in the Amendment 3 banner as expected for a removal, not a regression | YES |
+| AC-41 | Layer 1 typecheck 4/4 | `npm run typecheck`: PASS 4/4, exit 0 | YES |
+| AC-42 | Layer 1 build & lint exit 0 | `npm run build` exit 0 (only pre-existing chunk-size advisory); `npm run lint` exit 0 (same pre-existing warnings incl. P1 StickyJumpNav.tsx:23, no new) | YES |
+| AC-43 | Scope guardrail positive - no out-of-authorized path changed | Amendment-3 delta is exactly: MODIFIED App.tsx, EquipmentForm.tsx (removal), MODIFIED 3 test files (2 M39_P2 sectioning suites + EquipmentManager.test.tsx), DELETED useSectionScrollSpy.ts + useSectionScrollSpy.test.ts. Source inspection corroborates zero out-of-scope change | YES |
+| AC-44 | Scope guardrail negative - every authorized source path present; UNTOUCHED byte-identical | StickyJumpNav primitive + StickyJumpNav.test.tsx kept (P1 reuse); SectionCard + tests kept; MashSection/WaterSection/StyleTargetPanel/ui barrel/designSystem all intact and unchanged by this delta | YES |
+
+## Test Suite Result
+- Existing tests: **2,646 passed / 2 skipped across 134 files** (independently reproduced this audit: api 515, web 1,435, calculations 696/2) - all exit 0. Typecheck 4/4 PASS, build exit 0, lint exit 0 (no new warnings). This is NOT the verdict; the trace above is.
+
+## Findings
+- **No ACTIVE AC is NO or PARTIAL.** All 33 active ACs trace YES.
+- **Removal completeness (the pivot's core risk):** confirmed complete. `useSectionScrollSpy.ts` and `useSectionScrollSpy.test.ts` are deleted (verified absent). Repo-wide grep finds **zero** `useSectionScrollSpy`/`computeActiveSectionId` references in `apps/ packages/ scripts/`. `StickyJumpNav` references outside the P1 primitive + its own test exist only in JSDoc comments (`SectionCard.tsx`, the four ingredient `sectionId` prop comments) - no consumer code in `App.tsx`/`EquipmentForm.tsx`. No orphaned imports/constants/RECIPE_NAV_ITEMS/EQUIPMENT_NAV_ITEMS remain in the two callers.
+- **EquipmentForm tool-corruption repair - ruled sound.** The three sample decls (`sampleGrainKg = 5.0`, `sampleTargetTempC = 67.0`, `sampleGrainTempC` derived from raw) are present and genuinely consumed by `liveStrikeResult` (via `calculateStrikeTemperature`) and rendered in the `strike-temp-live-preview` sample-strike UI. All six SectionCards render structurally; the General card's 7 numeric fields, the altitude physics preview, the thermal-mass conditional field swap, losses, hopstand, and notes textarea are all intact; no nav/spy remnants. The form compiles (tsc 4/4) and its suite passes - no latent defect from the corruption/repair.
+- **Sectioning value genuinely retained:** four collapsible SectionCards (collapse/reopen and independence verified via SectionCard's per-card uncontrolled state and the round-trip tests), six non-collapsible equipment SectionCards with the thermal-mass checkbox preserved in the badge slot, stable section ids + `data-testid` preservation, optional `sectionId` prop, folder datalist intact in App.tsx, and the 8 binding hint captions functioning with error-suppression. Recipe save (AC-12) and equipment CRUD (AC-24) unbroken by the removal.
+- **Non-failing observations (no behavior impact):** (1) JSDoc comments on the four `sectionId` props and in `SectionCard.tsx` still read "jump-nav target", a doc-level remnant of the removed nav - cosmetic staleness only, no dead code or behavior. (2) The collapsible Hop badge is block `<div>` content inside the disclosure `<button>`'s `<span>` (previously flagged in the M39_P2 FAIL entry as technically-invalid-HTML phrasing-content); unchanged by Amendment 3, cosmetic, non-failing. (3) AC-40's literal ">2,659" baseline text is superseded by the Amendment 3 count note (2,646 after nav-test removal is the expected, documented state).
+
+## Verdict
+**PASS** - All 33 ACTIVE acceptance criteria trace YES (zero NO/PARTIAL among the active set; 14 nav/spy ACs are SUPERSEDED by the binding Amendment 3 removal banner, not failed). The removal is complete (deleted hook + its test, no stale references, no orphaned imports/constants), the sectioning/collapse/caption/CRUD value is intact and working, the EquipmentForm tool-corruption repair left no latent defect, and all four Layer 1 gates are independently green (tests 2,646/2 across 134 files, typecheck 4/4, build clean, lint clean). Matches approved spec intent.
+
+# CRITIC REPORT: M39_P3
+
+Date: 2026-09-03. Independent critic audit of M39_P3 ("Water, Mash & Fermentation Profile Form Sectioning", FINAL phase of Milestone 39, FEAT-005 umbrella). Source of truth read in full: `.gsd/active/M39_P3_feature_spec.md` (37 ACs, AC-1..AC-37, including the M39_P2 Amendment-3 binding pivot — no StickyJumpNav / no scroll-spy). Independently traced every AC through the three modified source forms + the new M39_P3 suite by hand; did not trust the executor's Layer-1 self-report (re-ran all four gates myself).
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Water renders two SectionCards with root ids `water-profile-information`/`water-ion-concentrations`, `-section` testids + DOM id | `WaterProfileForm.tsx` renders `<SectionCard id="water-profile-information" headingLevel={2}>` (line 212) and `<SectionCard id="water-ion-concentrations" ...>` (262). SectionCard writes id verbatim onto root `<section data-testid="{id}-section">`. Test asserts both. | YES |
+| AC-2 | Water titles "Profile Information" / "Ion Concentrations & pH" at `-title` | Source titles match exactly; test asserts `toHaveTextContent`. (See Finding re: spec-internal prose about the dropped "(ppm / mg/L)" — AC-2/binding table are authoritative and satisfied.) | YES |
+| AC-3 | Mash renders two SectionCards `mash-profile-details`/`mash-steps` | `MashProfileForm.tsx` `<SectionCard id="mash-profile-details" ...>` (252) and `id="mash-steps"` (314). | YES |
+| AC-4 | Mash titles "Profile Details" / "Mash Steps" | Source titles match; test asserts. | YES |
+| AC-5 | Fermentation renders two SectionCards `fermentation-profile-details`/`fermentation-steps` | `FermentationProfileForm.tsx` `<SectionCard id="fermentation-profile-details" ...>` (242) and `id="fermentation-steps"` (260). | YES |
+| AC-6 | Fermentation titles "Profile Details" / "Fermentation Steps" | Source titles match; test asserts. | YES |
+| AC-7 | All six NON-collapsible: no `{id}-toggle`, `{id}-title` present | No `collapsible` prop on any of the six SectionCards; SectionCard non-collapsible branch emits `{id}-title` and no `{id}-toggle`. Test asserts `queryByTestId('{id}-toggle')` null for all six. | YES |
+| AC-8 | All six titles are `h2` (`headingLevel={2}`) | All six SectionCards pass `headingLevel={2}`; SectionCard renders `h2`. Test asserts `tagName === 'H2'`. | YES |
+| AC-9 | All six panels always mounted with content | Non-collapsible SectionCard always mounts `{id}-panel`. Test asserts every `{id}-panel` present on first render. | YES |
+| AC-10 | Water field testids preserved & functional | `water-form-name/type/ca/cl/so4/ph/strategy/apply-strategy` all present (source lines 221-401); test asserts presence + name-edit reflects in value. | YES |
+| AC-11 | Mash field/step testids preserved | `mash-field-name/ph/sparge` present; Add Step → `mash-step-row-0`. | YES |
+| AC-12 | Fermentation name by label + step rows | `getByLabelText(/profile name/i)` resolves; Add Step → `ferm-step-row-0`. | YES |
+| AC-13 | Mash/Ferm step CRUD intact (add to 20, remove, move) | Existing `MashProfileForm.test.tsx`/`FermentationProfileForm.test.tsx` pass unchanged (no reconciliation); handlers byte-for-byte intact. | YES |
+| AC-14 | Sibling cards under same `<form>` with `space-y-6` | All three `<form className="space-y-6">`; both SectionCards are direct children of the same form. Test asserts parent/sibling relation + `space-y-6`. | YES |
+| AC-15 | Empty-state + 20-step cap retention | `steps.length===0` empty-state inside panel; Add `disabled={steps.length>=20}`; `>20` cap warning in edit mode. Test covers both. | YES |
+| AC-16 | Water Calcium caption exact | `hint="Calcium supports yeast health and mash enzyme activity — typical target 40–120 ppm."` byte-exact (line 272). | YES |
+| AC-17 | Water Chloride caption exact | `hint="Chloride rounds the body and enhances malt sweetness; a higher Cl:SO₄ ratio softens hop bite."` byte-exact (315). | YES |
+| AC-18 | Water Sulfate caption exact | `hint="Sulfate dries the finish and accentuates hop bitterness; a higher SO₄:Cl ratio sharpens hops."` byte-exact (332). | YES |
+| AC-19 | Water pH caption exact | `hint="Leave blank to inherit; for a balanced mash aim near pH 5.2–5.6."` byte-exact (390). | YES |
+| AC-20 | Mash Target pH caption exact | `'Typical mash target 5.2–5.6 at room temperature for clean conversion.'` byte-exact (276), passed conditionally on `!targetPhError`. | YES |
+| AC-21 | Pre-existing hints preserved byte-identical | Mash sparge (`Blank means inherit the equipment profile's sparge temperature.`), Mash infuse (`Blank = computed`, 431), Ferm pressure (`Blank = not pressurised`, 377) all present byte-exact. | YES |
+| AC-22 | Hints are METADATA spans, suppressed on error | `FormField.tsx` renders `<span className={METADATA_TEXT_CLASS}>{hint}</span>` when `hint && !error` (METADATA_TEXT_CLASS = `text-xs text-slate-400`). Mash pH hint conditional on `!targetPhError`; test asserts span + suppression on invalid value. | YES |
+| AC-23 | No jump-nav introduced (pivot) | Repo-wide grep of the three forms for `StickyJumpNav|useSectionScrollSpy|scroll-spy|jump-nav` returns ZERO matches; no `data-testid="jump-nav"` rendered (test asserts null for all three). Pivot fully honored. | YES |
+| AC-24 | No new hook/source files | Pre/post SHA-256 manifest diff (independently re-run) shows EXACTLY 3 modified forms + 1 new test file; no `useSectionScrollSpy.ts`/new components file added. | YES |
+| AC-25 | Primitive-only: SectionCard from `./ui`; `ui/index.ts` unchanged | All three forms `import { ... SectionCard } from './ui'`; `ui/index.ts` re-exports SectionCard (line 22); manifest confirms `ui/index.ts` byte-identical. | YES |
+| AC-26 | designSystem.ts/.test byte-unchanged; no new ui file | Manifest confirms both byte-identical; no file added under `components/ui/`. | YES |
+| AC-27 | No new public props/types; no `sectionId` | All three prop unions unchanged (create/edit variants, `onSaved`/`onCancel`/`deleteAction`/`onOpenMobileNav`); no `sectionId` or new prop/type. | YES |
+| AC-28 | Clean outline: one h1 + two h2, no heading inside panels | Each form: TopBar h1 + two SectionCard h2; SectionCard bodies contain no h1–h6 (test asserts via `querySelector`). | YES |
+| AC-29 | No reconciliation required | All six existing suites (`Water/Mash/FermentationProfileForm.test.tsx` + three manager suites) pass unchanged in my independent run — zero assertion changes. | YES |
+| AC-30 | Water save + validation regression | Existing `WaterProfileForm.test.tsx` passes unchanged (create/edit payload, name-required/non-negative/pH 0–14 validation, Apply strategy). | YES |
+| AC-31 | Mash save + validation regression | Existing `MashProfileForm.test.tsx` passes unchanged (payload round-trip, `hasErrors`-gated Save). | YES |
+| AC-32 | Fermentation save + validation regression | Existing `FermentationProfileForm.test.tsx` passes unchanged. | YES |
+| AC-33 | Field a11y labels preserved | Test sweeps every input/select/textarea and asserts each resolves a non-empty accessible name; all three forms pass. | YES |
+| AC-34 | No control loss on sectioning | Test asserts baseline control counts: Water 11; Mash 3+7/step; Ferm 1+6/step. | YES |
+| AC-35 | tests strictly > 2,646, 2 skipped, exit 0 | Independently re-ran `npm test`: **2,687 passed / 2 skipped** across 135 files (api 515 / web 1,476 / calc 696), exit 0 — strictly > 2,646. | YES |
+| AC-36 | typecheck/build/lint exit 0, 0 errors, no new warnings | Independently re-ran: typecheck 4/4 PASS exit 0; web build exit 0 (only pre-existing chunk advisory); lint exit 0 (0 errors; only the same pre-existing fast-refresh warnings incl. StickyJumpNav.tsx:23; no new). | YES |
+| AC-37 | Scope guardrail — authorized-file manifest | Independently re-ran the pre/post SHA-256 manifest diff: delta is EXACTLY 3 changed-hash forms (Water/Mash/FermentationProfileForm.tsx) + 1 added test (M39_P3_ProfileFormSectioning.test.tsx). Zero out-of-scope paths (ui/*, SectionCard/StickyJumpNav/FormField, designSystem, managers, App.tsx, api, packages all byte-identical). | YES |
+
+## Test Suite Result
+- Existing tests: **2,687 passed / 2 skipped across 135 files, exit 0** — independently reproduced (api 515, web 1,476, calc 696/2). New M39_P3 suite + all six pre-existing form/manager suites: 148/148 in the targeted run. Typecheck 4/4, build exit 0, lint exit 0 (no new warnings). Green suite is one input, not the verdict — the hand-trace above is the evidence.
+
+## Findings
+- **No AC is NO or PARTIAL — all 37 trace YES.**
+- **Silent-fallback / mechanism-mislabeling hunt: clean.** (1) The SectionCard wrapping is genuine — all six cards are rendered via the real `SectionCard` primitive imported from `./ui`; grep confirms zero `CARD_CLASS`/`SUBSECTION_HEADING_CLASS` shell usage remains in the three forms (the only consumer of `CARD_CLASS` now is `SectionCard.tsx` itself, plus unrelated components like BrewSheet/InventoryForm/SettingsManager). (2) No silent fallback substitutes placeholder output for a failure — this is pure presentational restructuring; every field, inline error, empty-state, and step row stays mounted (non-collapsible → always-mounted panels), and the step-count badge is derived live from the same `steps` state that drives the rows (no fabricated count). (3) Hint suppression is genuine `FormField` semantics (`hint && !error`), not a mock. (4) No mechanism mislabeling: forms genuinely consume the primitive, and the "Ion Concentrations & pH" title matches the binding taxonomy table + AC-2, not a hand-rolled substitute.
+- **Design-token removal did not break any remaining reference.** Grep confirms `CARD_CLASS`/`SUBSECTION_HEADING_CLASS` are absent from all three forms; both tokens remain defined in `designSystem.ts` and are still used by other components (BrewSheet, InventoryForm, SectionCard), so no dangling/unused-import lint issue remains — corroborated by lint/typecheck exit 0.
+- **No-jump-nav pivot fully honored (AC-23/24).** Zero references to `StickyJumpNav`, `useSectionScrollSpy`, `scroll-spy`, or `jump-nav` anywhere in the three forms; the `StickyJumpNav` primitive + its test remain in `ui/` untouched (manifest-verified byte-identical), simply unconsumed by this phase as the pivot requires.
+- **Spec-internal prose observation (non-failing).** The §0 "Retained Water card titles" sentence still describes the legacy full title *"Ion Concentrations (ppm / mg/L) & pH"* as retained, which conflicts with the binding §0 taxonomy table and AC-2, both of which pin the section title as *"Ion Concentrations & pH"* (what the implementation ships). The executor followed the two binding artifacts (taxonomy table + AC-2 test matrix), so AC-2 is satisfied; the conflict is a leftover-inconsistency within the spec's own prose, not an implementation deviation. Flagged for awareness, not a failure of this phase.
+
+## Verdict
+**PASS** — All 37 acceptance criteria trace YES (zero NO/PARTIAL). Sectioning onto the `SectionCard` primitive is genuine and complete across the three profile forms (six non-collapsible, `headingLevel={2}` cards with canonical ids); the step-count badges derive from live state; all bound captions and preserved hints are byte-exact with FormField suppression intact; all field testids/validation/save paths are unregressed (six pre-existing suites pass with no reconciliation); the no-jump-nav/no-scroll-spy pivot is fully honored; design-token removal left no broken reference; and the scope manifest shows exactly the three authorized forms + one new test file changed. All four Layer 1 gates independently green (tests 2,687/2 across 135 files, typecheck 4/4, build clean, lint clean). Matches approved spec intent.

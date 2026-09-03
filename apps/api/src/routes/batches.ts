@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'crypto';
-import type { Batch, BatchNoteWriteInput, BatchWriteInput, ClosingSnapshot, ReadingWriteInput, Recipe, RecipeWriteInput } from '@truchabrew/shared-types';
+import type { Batch, BatchNoteWriteInput, BatchWriteInput, ClosingSnapshot, ReadingWriteInput, Recipe, RecipeWriteInput, StoredRecipe } from '@truchabrew/shared-types';
 import { calculateRecipeStats, canTransitionBatchStatus, buildClosingSnapshot, peakFermentationTempC } from '@truchabrew/calculations';
 import { batchRepository } from '../repositories/batchRepository';
 import {
@@ -343,13 +343,36 @@ export function registerBatchRoutes(app: FastifyInstance, db: Db): void {
   // path is not silently dropped; nothing about this translation depends on
   // the batch's substitution intent, so no ambiguity in the SUBSTITUTION
   // itself is being resolved here — only the spec's wrong function name.
+  //
+  // M38_P1 Amendment 1 (F-1, RA-6, §2.3): `existing` is now REQUIRED (it was
+  // previously omitted entirely). `updateRecipe` is full-replace, so omitting
+  // `folder`/`tags` from the returned RecipeWriteInput made normalizeFolder/
+  // normalizeTags coalesce them to null/[] and silently WIPE the master
+  // recipe's folder and every tag on every sync — the F-1 data-loss bug.
+  // Both fields are now resolved by RA-6's KEY-PRESENCE rule against
+  // `existing` (the StoredRecipe read from the DB), never by truthiness:
+  // an absent/undefined key RETAINS existing.folder/existing.tags; an
+  // explicit `null`/`[]` clears; a non-empty `tags` array REPLACES (never
+  // merges). The function stays total and side-effect-free — no throw, no
+  // fetch, no mutation of either argument.
   // -----------------------------------------------------------------------
 
-  function toRecipeWriteInput(recipe: Recipe): RecipeWriteInput {
+  function toRecipeWriteInput(recipe: Recipe, existing: StoredRecipe): RecipeWriteInput {
     return {
       name: recipe.name,
       author: recipe.author,
       styleName: recipe.styleName,
+      // RA-6 folder: key absent OR value undefined -> retain existing; else
+      // pass through verbatim (null = explicit clear, string = write-through).
+      folder:
+        !('folder' in recipe) || recipe.folder === undefined ? existing.folder ?? null : recipe.folder,
+      // RA-6 tags: key absent OR value undefined OR non-array truthy -> retain
+      // existing (never coerced); else (Array.isArray) pass through — [] clears,
+      // non-empty replaces, never merges/union with existing.tags.
+      tags:
+        !('tags' in recipe) || recipe.tags === undefined || !Array.isArray(recipe.tags)
+          ? existing.tags ?? []
+          : recipe.tags,
       notes: recipe.notes,
       equipmentId: recipe.equipment.id,
       fermentables: recipe.fermentables,
@@ -392,14 +415,29 @@ export function registerBatchRoutes(app: FastifyInstance, db: Db): void {
       // Flagged for critic review alongside the updateStoredRecipe naming
       // deviation noted above.
       if (syncToMasterRecipe === true) {
+        // M38_P1 Amendment 1 (F-1, RA-6, §2.3): the sync is a full-replace
+        // updateRecipe, so folder/tags are resolved against the master
+        // recipe's CURRENT stored values by RA-6's key-presence rule —
+        // omitting them would normalize to null/[] and silently wipe the
+        // recipe's folder and every tag (the F-1 data-loss bug). The master
+        // is read up front; if it no longer exists, the existing 404 below
+        // fires BEFORE toRecipeWriteInput is ever called — there is no
+        // `existing` to retain from, and a placeholder object must never be
+        // constructed or reach updateRecipe.
+        const masterRecipe = getStoredRecipeById(db, recipeSnapshot.id);
+        if (!masterRecipe) {
+          sendApiError(reply, 404, 'NOT_FOUND', `Batch recipe snapshot saved, but master recipe sync failed: recipe not found: ${recipeSnapshot.id}`);
+          return;
+        }
         try {
-          const syncedRecipe = updateRecipe(db, recipeSnapshot.id, toRecipeWriteInput(recipeSnapshot));
+          const syncedRecipe = updateRecipe(db, recipeSnapshot.id, toRecipeWriteInput(recipeSnapshot, masterRecipe));
           if (!syncedRecipe) {
-            // recipeSnapshot.id doesn't resolve to any master recipe row —
-            // this batch's own snapshot write above already committed, but
-            // reporting 200 here would tell the caller the sync succeeded
-            // when nothing was written. Mirrors the same 404 NOT_FOUND
-            // convention recipes.ts uses for a missing update target.
+            // Defensive fallback only: the up-front getStoredRecipeById above
+            // already confirmed the row exists, and better-sqlite3 is
+            // synchronous/single-threaded so no concurrent delete can
+            // interleave — unreachable in practice, kept solely to preserve
+            // the pre-amendment 404 behavior/message verbatim (same variant,
+            // never a new one; never a placeholder `existing`).
             sendApiError(reply, 404, 'NOT_FOUND', `Batch recipe snapshot saved, but master recipe sync failed: recipe not found: ${recipeSnapshot.id}`);
             return;
           }

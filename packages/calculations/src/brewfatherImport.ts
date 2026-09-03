@@ -215,6 +215,12 @@ interface RawBrewfatherRecipe {
   styleName?: string;
   notes?: string;
   boilTime?: number;
+  // NEW in M38_P1 (AC-18) — Brewfather's own recipe folder/tag fields. Both
+  // optional; absent (or non-string/non-array) input falls through to
+  // null/[] (RA-5), exactly like a manually-created recipe that never set
+  // either.
+  folder?: string | null;
+  tags?: string[];
   fermentables?: RawBrewfatherFermentable[];
   hops?: RawBrewfatherHop[];
   yeast?: RawBrewfatherYeast[];
@@ -274,6 +280,12 @@ export function parseBrewfatherJson(raw: unknown, options: BrewfatherImportOptio
     const author = typeof r.author === 'string' ? r.author.trim() : '';
     const styleName = r.style?.name ?? (typeof r.styleName === 'string' ? r.styleName : '');
     const notes = typeof r.notes === 'string' ? r.notes : '';
+    // AC-18: maps Brewfather's folder/tags (if present) to the recipe's
+    // folder/tags — final trim/dedup normalization happens server-side
+    // (recipeRepository.ts's normalizeFolder/normalizeTags) when this
+    // RecipeWriteInput is actually persisted, same as any other write path.
+    const folder = typeof r.folder === 'string' && r.folder.trim() !== '' ? r.folder.trim() : null;
+    const tags = Array.isArray(r.tags) ? r.tags.filter((t): t is string => typeof t === 'string') : [];
 
     // 1. Fermentables
     const rawFermentables = Array.isArray(r.fermentables) ? r.fermentables : [];
@@ -452,6 +464,8 @@ export function parseBrewfatherJson(raw: unknown, options: BrewfatherImportOptio
       name,
       author,
       styleName,
+      folder,
+      tags,
       notes,
       equipmentId: options.defaultEquipmentId,
       mashProfileId: options.defaultMashProfileId ?? null,

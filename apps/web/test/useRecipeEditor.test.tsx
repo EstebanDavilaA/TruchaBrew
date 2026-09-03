@@ -602,3 +602,180 @@ describe('AC-50 (M3_P2): lockstep plan and stats update', () => {
     expect(result.current.mashPlan.strikeTemperatureC).toBeCloseTo(expectedStrikeTempC, 9);
   });
 });
+
+// ---------------------------------------------------------------------------
+// M38_P1 AC-17 — the spec's §5 Authorized Files to Modify names this file as
+// `apps/web/test/useRecipeEditor.test.ts` (no `x`). This hook already has a
+// substantial pre-existing suite at `useRecipeEditor.test.tsx` (with the
+// `x` — see imports above); treating the spec's filename as a typo for this
+// file, rather than starting a second, disconnected `.ts` file for the same
+// hook, is a judgment call flagged here for critic attention.
+// ---------------------------------------------------------------------------
+
+describe('M38_P1 AC-17: folder/tags dirty-state tracking', () => {
+  it('changing folder dirties the editor; saving resets isDirty', async () => {
+    const stored = baseStoredRecipe({ folder: null });
+    mockedGetRecipe.mockResolvedValueOnce(stored);
+    const { result } = renderHook(() => useRecipeEditor());
+
+    await act(async () => {
+      await result.current.loadRecipe('r-1');
+    });
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => {
+      result.current.setRecipe((prev) => ({ ...prev, folder: 'IPAs' }));
+    });
+    expect(result.current.isDirty).toBe(true);
+
+    const saved = { ...stored, folder: 'IPAs' };
+    mockedUpdateRecipe.mockResolvedValueOnce(saved);
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(result.current.isDirty).toBe(false);
+    expect(result.current.recipe?.folder).toBe('IPAs');
+  });
+
+  it('changing tags dirties the editor; saving resets isDirty', async () => {
+    const stored = baseStoredRecipe({ tags: [] });
+    mockedGetRecipe.mockResolvedValueOnce(stored);
+    const { result } = renderHook(() => useRecipeEditor());
+
+    await act(async () => {
+      await result.current.loadRecipe('r-1');
+    });
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => {
+      result.current.setRecipe((prev) => ({ ...prev, tags: ['Hazy', 'Citra'] }));
+    });
+    expect(result.current.isDirty).toBe(true);
+
+    const saved = { ...stored, tags: ['Hazy', 'Citra'] };
+    mockedUpdateRecipe.mockResolvedValueOnce(saved);
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(result.current.isDirty).toBe(false);
+    expect(result.current.recipe?.tags).toEqual(['Hazy', 'Citra']);
+  });
+
+  it('reverting folder/tags back to the loaded snapshot values clears isDirty again', async () => {
+    const stored = baseStoredRecipe({ folder: 'Lagers', tags: ['Crisp'] });
+    mockedGetRecipe.mockResolvedValueOnce(stored);
+    const { result } = renderHook(() => useRecipeEditor());
+
+    await act(async () => {
+      await result.current.loadRecipe('r-1');
+    });
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => {
+      result.current.setRecipe((prev) => ({ ...prev, folder: 'IPAs' }));
+    });
+    expect(result.current.isDirty).toBe(true);
+
+    act(() => {
+      result.current.setRecipe((prev) => ({ ...prev, folder: 'Lagers' }));
+    });
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('a brand-new recipe starts with folder: null, tags: []', () => {
+    // A never-saved recipe is always dirty (savedSnapshot is null until the
+    // first save resolves — startNewRecipe's existing, pre-M38_P1 contract),
+    // so this only asserts the new folder/tags fields' default values, not
+    // isDirty.
+    const { result } = renderHook(() => useRecipeEditor());
+    act(() => {
+      result.current.startNewRecipe(baseEquipment());
+    });
+    expect(result.current.recipe?.folder).toBeNull();
+    expect(result.current.recipe?.tags).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M38_P3 AC-11 / AC-12 — bjcpStyleId round-trips through toWriteInput and the
+// fresh-recipe literals (RA-P3-1). Mirrors the M38_P1 AC-17 dirty-state
+// pattern: toWriteInput ALWAYS emits bjcpStyleId ?? null so isDirty reacts to
+// a style change exactly like every other field.
+// ---------------------------------------------------------------------------
+
+describe('M38_P3 AC-11/AC-12: bjcpStyleId dirty-state tracking & fresh-recipe default', () => {
+  it('AC-11: a loaded recipe without the field round-trips toWriteInput as bjcpStyleId: null', async () => {
+    const stored = baseStoredRecipe(); // fixture never sets bjcpStyleId
+    mockedGetRecipe.mockResolvedValueOnce(stored);
+    const { result } = renderHook(() => useRecipeEditor());
+    await act(async () => {
+      await result.current.loadRecipe('r-1');
+    });
+    expect(result.current.isDirty).toBe(false);
+
+    // Mutate a real field and save; the server response carries bjcpStyleId.
+    const saved = { ...stored, bjcpStyleId: '21A' };
+    mockedUpdateRecipe.mockResolvedValueOnce(saved);
+    act(() => {
+      result.current.setRecipe((prev) => ({ ...prev, styleName: 'Changed' }));
+    });
+    expect(result.current.isDirty).toBe(true);
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(result.current.isDirty).toBe(false);
+    expect(result.current.recipe?.bjcpStyleId).toBe('21A');
+  });
+
+  it('AC-11: changing bjcpStyleId dirties the editor; saving resets isDirty', async () => {
+    const stored = baseStoredRecipe({ bjcpStyleId: null });
+    mockedGetRecipe.mockResolvedValueOnce(stored);
+    const { result } = renderHook(() => useRecipeEditor());
+    await act(async () => {
+      await result.current.loadRecipe('r-1');
+    });
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => {
+      result.current.setRecipe((prev) => ({ ...prev, bjcpStyleId: '1C' }));
+    });
+    expect(result.current.isDirty).toBe(true);
+
+    const saved = { ...stored, bjcpStyleId: '1C' };
+    mockedUpdateRecipe.mockResolvedValueOnce(saved);
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(result.current.isDirty).toBe(false);
+    expect(result.current.recipe?.bjcpStyleId).toBe('1C');
+  });
+
+  it('AC-11: clearing bjcpStyleId back to null clears isDirty again (revert to snapshot)', async () => {
+    const stored = baseStoredRecipe({ bjcpStyleId: '21A' });
+    mockedGetRecipe.mockResolvedValueOnce(stored);
+    const { result } = renderHook(() => useRecipeEditor());
+    await act(async () => {
+      await result.current.loadRecipe('r-1');
+    });
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => {
+      result.current.setRecipe((prev) => ({ ...prev, bjcpStyleId: null }));
+    });
+    expect(result.current.isDirty).toBe(true);
+
+    act(() => {
+      result.current.setRecipe((prev) => ({ ...prev, bjcpStyleId: '21A' }));
+    });
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('AC-12: a brand-new recipe (startNewRecipe) initializes bjcpStyleId: null', () => {
+    const { result } = renderHook(() => useRecipeEditor());
+    act(() => {
+      result.current.startNewRecipe(baseEquipment());
+    });
+    expect(result.current.recipe?.bjcpStyleId).toBeNull();
+  });
+});
+

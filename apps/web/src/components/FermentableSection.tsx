@@ -4,17 +4,18 @@ import { useCatalog } from '../context/CatalogContext';
 import { useConfig } from '../context/ConfigContext';
 import { formatMass } from '@truchabrew/calculations';
 import { Plus, Trash2, Wheat } from 'lucide-react';
-import { CARD_CLASS, SECTION_HEADING_CLASS } from './designSystem';
-import { Button, NumberInput, Table, TableHeaderCell, TableCell } from './ui';
+import { Button, NumberInput, Table, TableHeaderCell, TableCell, SectionCard } from './ui';
 import { PresetPickerModal } from './PresetPickerModal';
 
 interface FermentableSectionProps {
   fermentables: FermentableItem[];
   totalGrainKg: number;
   onUpdate: (updated: FermentableItem[]) => void;
+  /** Optional stable anchor id (jump-nav target). Defaults to 'recipe-fermentables'. */
+  sectionId?: string;
 }
 
-export const FermentableSection: React.FC<FermentableSectionProps> = ({ fermentables, totalGrainKg, onUpdate }) => {
+export const FermentableSection: React.FC<FermentableSectionProps> = ({ fermentables, totalGrainKg, onUpdate, sectionId }) => {
   const { error: catalogError } = useCatalog();
   const { config } = useConfig();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -29,14 +30,19 @@ export const FermentableSection: React.FC<FermentableSectionProps> = ({ fermenta
   };
 
   return (
-    <div className={CARD_CLASS}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={SECTION_HEADING_CLASS}>
-          <Wheat className="w-5 h-5 text-amber-500" /> Fermentables & Malts
-        </h3>
-        <span className="text-xs text-slate-400">Total: <strong className="text-slate-200">{formatMass(totalGrainKg, config.unitSystem)}</strong></span>
-      </div>
-
+    <SectionCard
+      id={sectionId ?? 'recipe-fermentables'}
+      title="Fermentables & Malts"
+      headingLevel={3}
+      icon={<Wheat className="w-5 h-5 text-amber-500" />}
+      badge={
+        <span className="text-xs text-slate-400">
+          Total:{' '}
+          <strong className="text-slate-200">{formatMass(totalGrainKg, config.unitSystem)}</strong>
+        </span>
+      }
+      collapsible
+    >
       {/* Fermentables Table */}
       <div className="mb-4">
         <Table>
@@ -146,6 +152,6 @@ export const FermentableSection: React.FC<FermentableSectionProps> = ({ fermenta
           setIsPickerOpen(false);
         }}
       />
-    </div>
+    </SectionCard>
   );
 };

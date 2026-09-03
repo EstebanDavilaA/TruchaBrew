@@ -157,6 +157,29 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       const el = screen.getByTestId('input-mono');
       expect(el).toHaveClass('font-mono', 'tabular-nums');
     });
+
+    it('renders variant="underline" with the inline metadata style (transparent, bottom-border, no box)', () => {
+      render(<Input variant="underline" data-testid="input-underline" />);
+      const el = screen.getByTestId('input-underline');
+      expect(el).toHaveClass(
+        'w-full',
+        'bg-transparent',
+        'border-b',
+        'border-transparent',
+        'hover:border-slate-700',
+        'focus:border-amber-500',
+      );
+      // focus:outline-none is deliberately NOT in the token (design governance,
+      // M30_P2 AC-14/15); callers append it inline via className.
+      expect(el).not.toHaveClass('focus:outline-none');
+      expect(el).not.toHaveClass('bg-slate-800', 'rounded-lg', 'rounded', 'px-3', 'px-2.5', 'py-2', 'py-1', 'h-10');
+    });
+
+    it('variant="underline" appends an inline className (e.g. focus:outline-none) after the token classes', () => {
+      render(<Input variant="underline" className="focus:outline-none" data-testid="input-underline-focus" />);
+      const el = screen.getByTestId('input-underline-focus');
+      expect(el).toHaveClass('focus:outline-none', 'bg-transparent', 'border-b');
+    });
   });
 
   describe('AC-7, AC-8, AC-9, AC-10: Select component', () => {
@@ -927,6 +950,35 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       expect(content).toMatch(/<NumberInput[\s\S]*?disabled=\{!treatSpargeWater\}/);
       expect(content).toMatch(/<NumberInput[\s\S]*?disabled=\{!addMashAcid\}/);
       expect(content).toMatch(/<NumberInput[\s\S]*?disabled=\{!addSpargeAcid\}/);
+    });
+  });
+
+  describe('M37_P2 Amendment 1: WaterCalculatorModal static sweeps (AC-22, AC-24)', () => {
+    const COMPONENTS_DIR = path.resolve(__dirname, '../src/components');
+    const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'WaterCalculatorModal.tsx'), 'utf-8');
+
+    it('AC-22: 0 raw pseudo-badge spans (any accent) and 0 raw ion-tile class literal in the modal', () => {
+      expect(content).not.toMatch(/px-2 py-0\.5 rounded bg-/);
+      expect(content).not.toContain('p-2 rounded-lg bg-slate-950/50 border border-slate-800/70');
+    });
+
+    it('AC-24 [AMENDED]: 0 local weights definitions and 0 strategy symbols — delegates to calculateProfileFitScore/optimizeWaterProfile from @truchabrew/calculations', () => {
+      expect(content).not.toMatch(/\bconst DEFAULT_ION_WEIGHTS\b/);
+      expect(content).not.toMatch(/\binterface IonWeights\b/);
+      expect(content).not.toMatch(/\bSTRATEGY_WEIGHTS\b/);
+      expect(content).not.toMatch(/\bBALANCE_STRATEGIES\b/);
+      expect(content).not.toMatch(/\bbalanceStrategy\b/);
+      expect(content).not.toMatch(/Object\.values\(DEFAULT_ION_WEIGHTS\)/);
+      expect(content).toMatch(/import\s*\{[^}]*\bcalculateProfileFitScore\b[^}]*\}\s*from\s*['"]@truchabrew\/calculations['"]/);
+      expect(content).toMatch(/import\s*\{[^}]*\boptimizeWaterProfile\b[^}]*\}\s*from\s*['"]@truchabrew\/calculations['"]/);
+    });
+
+    it('AC-15/AC-36: 0 <Badge ... className=> occurrences in the modal (no per-call-site override of the primitive)', () => {
+      expect(content).not.toMatch(/<Badge\b[^>]*className=/);
+    });
+
+    it('AC-36: the modal consumes the Badge xs size (>= 1 call site)', () => {
+      expect(content).toMatch(/<Badge[^>]*size="xs"/);
     });
   });
 
@@ -2221,6 +2273,75 @@ describe('M35_P2: the 10-table migration — TableCell axes, per-file adoption, 
       expect(inputs).toEqual([]);
       expect(content).toMatch(/import\s*\{\s*BackupRestoreModal\s*\}\s*from\s*'\.\/BackupRestoreModal'/);
     });
+  });
+});
+
+describe('M38_P1 AC-20: Primitive Adherence — folder/tag controls in RecipeLibrary.tsx and App.tsx', () => {
+  const COMPONENTS_DIR = path.resolve(__dirname, '../src/components');
+  const APP_SRC_PATH = path.resolve(__dirname, '../src/App.tsx');
+
+  function rawControlsM38(content: string) {
+    const clean = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+    const buttons = clean.match(/<button\b/g) || [];
+    const selects = clean.match(/<select\b/g) || [];
+    const inputs = (clean.match(/<input\b[^>]*>/g) || []).filter((el) => !/type=["']file["']/.test(el));
+    return { buttons, selects, inputs };
+  }
+
+  it('RecipeLibrary.tsx has zero raw buttons/selects/non-file inputs after the folder-tab/tag-filter addition (pre-existing AC-19 invariant still holds)', () => {
+    const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'RecipeLibrary.tsx'), 'utf-8');
+    const { buttons, selects, inputs } = rawControlsM38(content);
+    expect(buttons).toEqual([]);
+    expect(selects).toEqual([]);
+    expect(inputs).toEqual([]);
+  });
+
+  it('RecipeLibrary.tsx builds the folder tab strip and tag badges from Button/Badge', () => {
+    const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'RecipeLibrary.tsx'), 'utf-8');
+    expect(content).toMatch(/import\s*\{[^}]*\bButton\b[^}]*\bInput\b[^}]*\bBadge\b[^}]*\}\s*from\s*'\.\/ui'/);
+    expect(content).toMatch(/<Button[\s\S]*?data-testid=\{`folder-tab-/);
+    expect(content).toMatch(/<Badge[\s\S]*?variant="neutral"[\s\S]*?size="xs"/);
+  });
+
+  it('App.tsx recipe editor header exposes Folder and Add-tag inputs built from the Input primitive, and tag chips from Badge', () => {
+    const content = fs.readFileSync(APP_SRC_PATH, 'utf-8');
+    expect(content).toMatch(/import\s*\{[^}]*\bInput\b[^}]*\bBadge\b[^}]*\}\s*from\s*'\.\/components\/ui'/);
+    expect(content).toMatch(/<Input[\s\S]*?aria-label="Folder"/);
+    expect(content).toMatch(/<Input[\s\S]*?aria-label="Add tag"/);
+    expect(content).toMatch(/<Badge[\s\S]*?variant="neutral"[\s\S]*?size="xs"/);
+  });
+});
+
+describe('M38_P3 AC-35: Primitive Adherence — StyleTargetPanel and the folder datalist', () => {
+  const COMPONENTS_DIR = path.resolve(__dirname, '../src/components');
+  const APP_SRC_PATH = path.resolve(__dirname, '../src/App.tsx');
+
+  it('StyleTargetPanel.tsx itself contains no raw <select>/<input>/<button> (RA-P3-10) — the selector is a ui/Select', () => {
+    const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'StyleTargetPanel.tsx'), 'utf-8');
+    const clean = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+    expect(clean.match(/<button\b/g) || []).toEqual([]);
+    expect(clean.match(/<input\b/g) || []).toEqual([]);
+    expect(clean.match(/<select\b/g) || []).toEqual([]);
+    // The selector is wired through the ui/Select primitive.
+    expect(content).toMatch(/import\s*\{[^}]*\bSelect\b[^}]*\}\s*from\s*'\.\/ui'/);
+    expect(content).toMatch(/<Select\b/);
+  });
+
+  it('App.tsx wires the BJCP selector through StyleTargetPanel and folder suggestions via native <datalist>/<option> only (RA-P3-10)', () => {
+    const content = fs.readFileSync(APP_SRC_PATH, 'utf-8');
+    expect(content).toMatch(/import\s*\{[^}]*\bStyleTargetPanel\b[^}]*\}\s*from\s*'\.\/components\/StyleTargetPanel'/);
+    expect(content).toMatch(/<StyleTargetPanel\b/);
+    // Folder suggestions are native <datalist>/<option> suggestion elements —
+    // exempt from the "no raw controls" sweep, and not ui primitives.
+    expect(content).toMatch(/<datalist id="folder-suggestions"/);
+    expect(content).toMatch(/<option value=\{name\} key=\{name\} \/>/);
+  });
+
+  it('StatsHeader.tsx is not modified to host the style target (RA-P3-3)', () => {
+    const content = fs.readFileSync(path.join(COMPONENTS_DIR, 'StatsHeader.tsx'), 'utf-8');
+    // StatsHeader keeps its display-only presentational contract — it receives
+    // stats/equipment/config and renders no style selector or gauge.
+    expect(content).not.toMatch(/StyleTargetPanel|bjcpStyleId|evaluateStyleMatch/);
   });
 });
 

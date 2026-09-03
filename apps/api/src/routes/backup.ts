@@ -430,6 +430,13 @@ function restoreRecipes(
         name: recipe.name,
         author: recipe.author,
         styleName: recipe.styleName,
+        // NEW in M38_P1 (AC-19/RA-5) — an older backup predating M38_P1 never
+        // has these keys at all; StoredRecipe now declares them optional
+        // (see shared-types/src/brewing.ts's Recipe comment) specifically so
+        // that shape still type-checks here. Falls back to null/[] rather
+        // than losing the restore entirely.
+        folder: recipe.folder ?? null,
+        tags: recipe.tags ?? [],
         equipmentId,
         notes: recipe.notes,
         mashProfileId,

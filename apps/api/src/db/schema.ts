@@ -142,6 +142,14 @@ export const recipes = sqliteTable(
     name: text('name').notNull(),
     author: text('author').notNull().default(''),
     styleName: text('style_name').notNull().default(''),
+    // NEW in M38_P1 — folder: nullable, no default (NULL = unfiled, RA-1).
+    // tags: JSON-mode array, NOT NULL DEFAULT '[]' so every pre-existing row
+    // backfills to an empty array with zero data loss (RA-5/AC-2).
+    folder: text('folder'),
+    tags: text('tags', { mode: 'json' }).$type<string[]>().notNull().default([]),
+    // NEW in M38_P3 — nullable, no default (NULL = no BJCP style, RA-P3-1);
+    // mirrors `folder`. Text column, no dataset validation (RA-P3-11).
+    bjcpStyleId: text('bjcp_style_id'),
     equipmentId: text('equipment_id')
       .notNull()
       .references(() => equipmentProfiles.id, { onDelete: 'restrict' }),

@@ -28,6 +28,42 @@ class TestEnvRequest extends NativeRequest {
 }
 globalThis.Request = TestEnvRequest as unknown as typeof Request;
 
+// Node 26+ ships its own experimental global `localStorage` accessor (gated
+// behind `--localstorage-file`, unset here), and this project's jsdom
+// version (25.0.1) no longer implements Storage itself — it defers to the
+// host's global, which resolves to Node's disabled implementation
+// (undefined) on both `globalThis.localStorage` and `window.localStorage`.
+// A minimal in-memory Storage polyfill, defined directly rather than
+// derived from either global, restores it for tests.
+class MemoryStorage implements Storage {
+  #store = new Map<string, string>();
+  get length() {
+    return this.#store.size;
+  }
+  clear() {
+    this.#store.clear();
+  }
+  getItem(key: string) {
+    return this.#store.has(key) ? this.#store.get(key)! : null;
+  }
+  key(index: number) {
+    return Array.from(this.#store.keys())[index] ?? null;
+  }
+  removeItem(key: string) {
+    this.#store.delete(key);
+  }
+  setItem(key: string, value: string) {
+    this.#store.set(key, String(value));
+  }
+}
+for (const target of [globalThis, window]) {
+  Object.defineProperty(target, 'localStorage', {
+    value: new MemoryStorage(),
+    configurable: true,
+    writable: true,
+  });
+}
+
 // @testing-library/react's own auto-cleanup only registers when `afterEach`
 // is a *global* (see its source: `if (typeof afterEach === 'function')`).
 // This project's vitest.config.ts does not set `test.globals: true` — every

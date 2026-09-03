@@ -531,7 +531,7 @@ describe('AC-21: Hydration derives acidType last-wins, and dosages independently
   it('hydrates acidType from the last acid misc entry and preserves both dosages', () => {
     const miscsWithAcids: MiscItem[] = [
       { id: 'm-1', name: 'Lactic Acid 88%', type: 'WaterAgent', use: 'Mash', timeMinutes: 0, amount: 2, unit: 'ml' },
-      { id: 'm-2', name: 'Phosphoric Acid 75% (Sparge)', type: 'WaterAgent', use: 'Mash', timeMinutes: 0, amount: 1, unit: 'ml' },
+      { id: 'm-2', name: 'Phosphoric Acid 75%', type: 'WaterAgent', use: 'Sparge', timeMinutes: 0, amount: 1, unit: 'ml' },
     ];
 
     render(<WaterCalculatorModal {...fixtureProps({ miscs: miscsWithAcids })} />);
@@ -539,6 +539,18 @@ describe('AC-21: Hydration derives acidType last-wins, and dosages independently
     expect(screen.getByLabelText('Acid Type')).toHaveValue('Phosphoric Acid 75%');
     expect(screen.getByLabelText('Mash Acid Dosage')).toHaveValue(2);
     expect(screen.getByLabelText('Sparge Acid Dosage')).toHaveValue(1);
+  });
+
+  it('RA-20: legacy "(Sparge)" name-suffix miscs still hydrate as sparge', () => {
+    const legacyMiscs: MiscItem[] = [
+      { id: 'm-1', name: 'Gypsum', type: 'WaterAgent', use: 'Mash', timeMinutes: 0, amount: 4, unit: 'g' },
+      { id: 'm-2', name: 'Calcium Chloride (Sparge)', type: 'WaterAgent', use: 'Mash', timeMinutes: 0, amount: 2, unit: 'g' },
+    ];
+
+    render(<WaterCalculatorModal {...fixtureProps({ miscs: legacyMiscs })} />);
+
+    expect(screen.getByLabelText('Mash Gypsum')).toHaveValue(4);
+    expect(screen.getByLabelText('Sparge Calcium Chloride')).toHaveValue(2);
   });
 });
 
@@ -555,7 +567,7 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
     const payload = onSaveAdjustments.mock.calls[0][0];
     const acidMiscs = payload.miscs.filter((m: MiscItem) => m.name.includes('Acid') || m.name.includes('Malt'));
     expect(acidMiscs).toHaveLength(1);
-    expect(acidMiscs[0]).toMatchObject({ name: 'Lactic Acid 88% (Sparge)', amount: 2.1, unit: 'ml' });
+    expect(acidMiscs[0]).toMatchObject({ name: 'Lactic Acid 88%', use: 'Sparge', amount: 2.1, unit: 'ml' });
   });
 
   it('(b) sparge acid OFF saves only mash acid', () => {
@@ -584,8 +596,8 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
     const payload = onSaveAdjustments.mock.calls[0][0];
     const acidMiscs = payload.miscs.filter((m: MiscItem) => m.name.includes('Acid') || m.name.includes('Malt'));
     expect(acidMiscs).toHaveLength(2);
-    expect(acidMiscs.find((m: MiscItem) => m.name === 'Lactic Acid 88%')).toMatchObject({ amount: 3.5, unit: 'ml' });
-    expect(acidMiscs.find((m: MiscItem) => m.name === 'Lactic Acid 88% (Sparge)')).toMatchObject({ amount: 2.1, unit: 'ml' });
+    expect(acidMiscs.find((m: MiscItem) => m.name === 'Lactic Acid 88%' && m.use === 'Mash')).toMatchObject({ amount: 3.5, unit: 'ml' });
+    expect(acidMiscs.find((m: MiscItem) => m.name === 'Lactic Acid 88%' && m.use === 'Sparge')).toMatchObject({ amount: 2.1, unit: 'ml' });
   });
 
   it('(d) AUTO then Save with sparge ON saves mash and sparge salts', () => {
@@ -596,8 +608,8 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
     fireEvent.click(screen.getByTestId('water-calc-save-btn'));
 
     const payload = onSaveAdjustments.mock.calls[0][0];
-    const mashGypsum = payload.miscs.find((m: MiscItem) => m.name === 'Gypsum');
-    const spargeGypsum = payload.miscs.find((m: MiscItem) => m.name === 'Gypsum (Sparge)');
+    const mashGypsum = payload.miscs.find((m: MiscItem) => m.name === 'Gypsum' && m.use === 'Mash');
+    const spargeGypsum = payload.miscs.find((m: MiscItem) => m.name === 'Gypsum' && m.use === 'Sparge');
     expect(mashGypsum?.amount).toBe(13.9);
     expect(spargeGypsum?.amount).toBe(9.26);
   });
@@ -612,8 +624,8 @@ describe('AC-22: Save guards — both acid additions gated on their toggles (RA-
     fireEvent.click(screen.getByTestId('water-calc-save-btn'));
 
     const payload = onSaveAdjustments.mock.calls[0][0];
-    const mashMalt = payload.miscs.find((m: MiscItem) => m.name === 'Acidulated Malt');
-    const spargeMalt = payload.miscs.find((m: MiscItem) => m.name === 'Acidulated Malt (Sparge)');
+    const mashMalt = payload.miscs.find((m: MiscItem) => m.name === 'Acidulated Malt' && m.use === 'Mash');
+    const spargeMalt = payload.miscs.find((m: MiscItem) => m.name === 'Acidulated Malt' && m.use === 'Sparge');
     expect(mashMalt).toMatchObject({ amount: 50, unit: 'g' });
     expect(spargeMalt).toMatchObject({ amount: 4, unit: 'ml' });
   });
@@ -737,39 +749,112 @@ describe('M37_P2 AC-1/AC-2/AC-3: Auto-Optimize executes the solver and populates
     // Sodium target → Table Salt dosed (nonzero)
     expect(screen.getByLabelText('Mash Table Salt')).not.toHaveValue(null);
   });
+
+  it('AC-3/RA-8: split denominator is effectiveMashL + effectiveSpargeL, an explicitly out-of-sync fixture (waterVolumeL=30, mashWaterL=15, spargeWaterL=10)', () => {
+    // mashWaterL + spargeWaterL (25) != waterVolumeL (30) here on purpose —
+    // RA-8 requires the split ratio to use the sum of the two volume props,
+    // never waterVolumeL/totalVolumeL as the denominator.
+    render(
+      <WaterCalculatorModal
+        {...fixtureProps({ waterVolumeL: 30, mashWaterL: 15, spargeWaterL: 10 })}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+
+    const mashGypsum = Number(screen.getByLabelText('Mash Gypsum').getAttribute('value'));
+    const spargeGypsum = Number(screen.getByLabelText('Sparge Gypsum').getAttribute('value'));
+    // g_mash : g_sparge == 15 : 10 == 1.5, within rounding slack.
+    expect(mashGypsum / spargeGypsum).toBeCloseTo(1.5, 1);
+    // g_mash + g_sparge == g_total (the solver's own dose on totalVolumeL=30),
+    // to within 0.02 g of rounding slack.
+    expect(Math.abs(mashGypsum + spargeGypsum - 30.21)).toBeLessThanOrEqual(0.02);
+
+    const mashCaCl2 = Number(screen.getByLabelText('Mash Calcium Chloride').getAttribute('value'));
+    const spargeCaCl2 = Number(screen.getByLabelText('Sparge Calcium Chloride').getAttribute('value'));
+    expect(mashCaCl2 / spargeCaCl2).toBeCloseTo(1.5, 1);
+    expect(Math.abs(mashCaCl2 + spargeCaCl2 - 14.37)).toBeLessThanOrEqual(0.02);
+  });
 });
 
-describe('M37_P2 AC-4/AC-5: Live fit score badge with semantic colors', () => {
+describe('M37_P2 AC-4/AC-5: Live fit score badge with semantic colors (AC-5 AMENDED, RA-5)', () => {
   it('AC-4: renders the fit score badge with a percentage', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
     const fitBadge = screen.getByTestId('water-calc-fit-score');
     expect(fitBadge).toBeInTheDocument();
-    expect(fitBadge.textContent).toMatch(/Fit: \d+% \((Optimal|Good|Approx)\)/);
+    // RA-5: display is always toFixed(1), never toFixed(0).
+    expect(fitBadge.textContent).toMatch(/Fit: \d+\.\d% \((Optimal|Good|Approx)\)/);
   });
 
-  it('AC-5: the fit score badge adopts the emerald palette for a high-match target', () => {
+  it('AC-5: the fit score badge selects its variant/label from the unrounded score and displays toFixed(1) (RA-5)', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
     fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
     const fitBadge = screen.getByTestId('water-calc-fit-score');
-    // The Balanced IPA target with the solver lands ~82-90% — check the badge
-    // has one of the semantic color palettes (emerald/amber/slate).
-    const text = fitBadge.textContent ?? '';
-    expect(text).toMatch(/Fit:/);
-    // The class reflects one of the three semantic palettes.
-    expect(fitBadge.className).toMatch(/emerald|amber|slate/);
+    // Pinned fixture value: RO -> Balanced IPA (23 L, 13.8/9.2 split) lands
+    // fitScorePct = 82.77 via calculateProfileFitScore with the Balanced
+    // strategy's (= DEFAULT_ION_WEIGHTS) weights -> amber "(Good)" band,
+    // displayed at 1 decimal (82.77 -> "82.8").
+    expect(fitBadge).toHaveTextContent('Fit: 82.8% (Good)');
+    // AC-5 requires asserting the SPECIFIC variant class, not a shared regex.
+    expect(fitBadge.className).toContain(designSystem.SEMANTIC_BADGE_CLASS.amber);
+    expect(fitBadge.className).not.toContain(designSystem.SEMANTIC_BADGE_CLASS.emerald);
+    expect(fitBadge.className).not.toContain(designSystem.SEMANTIC_BADGE_CLASS.slate);
+  });
+
+  it('AC-38: the Balance Strategy selector is removed (FEAT-044)', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    expect(screen.queryByLabelText('Balance Strategy')).toBeNull();
+  });
+
+  it('AC-39: fit score is graded against the target profile with default weights (no strategy bias)', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+    // FEAT-044 removed the strategy weighting; the score now uses
+    // DEFAULT_ION_WEIGHTS, so the pre-existing 82.77 fixture still pins 82.8.
+    expect(screen.getByTestId('water-calc-fit-score')).toHaveTextContent('Fit: 82.8% (Good)');
+  });
+
+  it('AC-36: ion-tile delta badges render on the Badge xs size (pill radius, no className override)', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    const caDelta = screen.getByTestId('water-calc-ion-delta-calcium');
+    expect(caDelta.className).toContain('rounded-full'); // primitive pill radius
+    expect(caDelta.className).toContain('text-[10px]'); // xs size, not the old 9px override
+    expect(caDelta.className).not.toContain('text-[9px]');
+    expect(caDelta.className).not.toContain('rounded-md');
+  });
+
+  it('AC-36: header-strip badges drop their rounded-md override (primitive pill radius)', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    const fitBadge = screen.getByTestId('water-calc-fit-score');
+    expect(fitBadge.className).toContain('rounded-full');
+    expect(fitBadge.className).not.toContain('rounded-md');
   });
 });
 
-describe('M37_P2 AC-6: Sulfate/Chloride ratio display', () => {
+describe('M37_P2 AC-6: Sulfate/Chloride ratio display (AMENDED, RA-4)', () => {
   it('renders the live SO4:Cl ratio tag with flavor descriptor', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
     const ratioBadge = screen.getByTestId('water-calc-so4-cl-ratio');
     expect(ratioBadge).toBeInTheDocument();
     expect(ratioBadge.textContent).toContain('SO₄²⁻ : Cl⁻');
   });
+
+  it('AC-6: renders one of the 4 exact §1.2 descriptors, not just the label prefix', () => {
+    // fixtureProps()'s default source is null (RO, 0 ppm sulfate/chloride),
+    // which renders '—' rather than a descriptor — use the tap-water source
+    // so sulfate/chloride are nonzero and a real band is selected.
+    render(<WaterCalculatorModal {...fixtureProps({ waterSourceId: 'wp-src-tap' })} />);
+    const ratioBadge = screen.getByTestId('water-calc-so4-cl-ratio');
+    const text = ratioBadge.textContent ?? '';
+    const descriptors = ['Very Bitter / Dry', 'Crisp / Hop-Forward', 'Balanced', 'Full / Malty / Soft'];
+    expect(descriptors.some((d) => text.includes(d))).toBe(true);
+    // Legacy 5-band strings must never appear.
+    expect(text).not.toContain('Bitter / Crisp');
+    expect(text).not.toContain('Malty / Full');
+    expect(text).not.toContain('Very Malty');
+  });
 });
 
-describe('M37_P2 AC-7: Per-ion target match badges', () => {
+describe('M37_P2 AC-7: Per-ion target match badges (AMENDED, RA-7)', () => {
   it('renders all 6 ion delta indicators', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
     for (const ion of ['calcium', 'magnesium', 'sodium', 'chloride', 'sulfate', 'bicarbonate']) {
@@ -777,12 +862,41 @@ describe('M37_P2 AC-7: Per-ion target match badges', () => {
     }
   });
 
-  it('shows a signed delta or Target badge per ion', () => {
+  it('shows a signed delta rounded away from zero to 1 decimal, or the literal "Target Matched" text, per ion (RA-7)', () => {
     render(<WaterCalculatorModal {...fixtureProps()} />);
-    // With no salts and RO source vs Balanced IPA target, the ions are far
-    // out of range → signed delta badges (e.g. "-40 ppm" for calcium).
+    // With no salts and RO source vs Balanced IPA target, every ion is far
+    // out of range → signed delta badges with no "Target Matched" text.
     const caDelta = screen.getByTestId('water-calc-ion-delta-calcium');
-    expect(caDelta.textContent).toMatch(/[+-]?\d+ ppm/);
+    expect(caDelta).toHaveTextContent('-100.0 ppm');
+    expect(caDelta.textContent).not.toContain('Target Matched');
+  });
+
+  it('RA-7: after Auto-Optimize, in-range ions show the literal "Target Matched" text with no number, out-of-range ions round away from zero', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    fireEvent.click(screen.getByTestId('water-calc-auto-dose-btn'));
+
+    // Pinned fixture values (computed from the solver's exact dose split):
+    // calcium/sodium/chloride/sulfate land in-range (|delta| <= 5);
+    // magnesium (-9.4...) and bicarbonate (-10.7...) are out of range.
+    const caCard = screen.getByTestId('water-calc-ion-calcium');
+    expect(caCard).toHaveTextContent('Target Matched');
+    expect(screen.queryByTestId('water-calc-ion-delta-calcium')).toBeNull();
+
+    const mgDelta = screen.getByTestId('water-calc-ion-delta-magnesium');
+    expect(mgDelta).toHaveTextContent('-9.5 ppm');
+    expect(Math.abs(parseFloat(mgDelta.textContent!))).toBeGreaterThan(5);
+
+    const hco3Delta = screen.getByTestId('water-calc-ion-delta-bicarbonate');
+    expect(hco3Delta).toHaveTextContent('-10.8 ppm');
+    expect(Math.abs(parseFloat(hco3Delta.textContent!))).toBeGreaterThan(5);
+  });
+
+  it('AC-30: ion tiles render with the ION_TILE_CLASS designSystem token', () => {
+    render(<WaterCalculatorModal {...fixtureProps()} />);
+    const caTile = screen.getByTestId('water-calc-ion-calcium');
+    for (const cls of designSystem.ION_TILE_CLASS.split(' ')) {
+      expect(caTile.className).toContain(cls);
+    }
   });
 });
 

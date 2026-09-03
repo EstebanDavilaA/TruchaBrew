@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   solveOptimalSalts,
   optimizeWaterProfile,
+  DEFAULT_ION_WEIGHTS,
+  calculateProfileFitScore,
   type OptimizeWaterProfileResult,
+  type IonWeights,
 } from '../src/waterOptimization';
 import { suggestSaltAdditions } from '../src/water';
 import type { WaterProfile } from '@truchabrew/shared-types';
@@ -377,5 +382,57 @@ describe('M37_P1 AC-15: backward compatibility', () => {
       'Baking Soda',
       'Table Salt',
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M37_P2 Amendment 1 AC-23: Shared Weights & Fit Formula — Exports
+// ---------------------------------------------------------------------------
+
+describe('M37_P2 Amendment 1 AC-23: waterOptimization.ts promotes ION_WEIGHTS/fitScore to public exports', () => {
+  it('exports IonWeights (type), DEFAULT_ION_WEIGHTS, and calculateProfileFitScore', () => {
+    expect(typeof DEFAULT_ION_WEIGHTS).toBe('object');
+    expect(typeof calculateProfileFitScore).toBe('function');
+    const weights: IonWeights = DEFAULT_ION_WEIGHTS;
+    expect(weights).toEqual({
+      sulfate: 1.0,
+      chloride: 1.0,
+      calcium: 0.8,
+      magnesium: 0.5,
+      sodium: 0.4,
+      bicarbonate: 0.3,
+    });
+  });
+
+  it('all 3 symbols resolve through the @truchabrew/calculations barrel', async () => {
+    const barrel = await import('../src/index');
+    expect(barrel.DEFAULT_ION_WEIGHTS).toEqual(DEFAULT_ION_WEIGHTS);
+    expect(typeof barrel.calculateProfileFitScore).toBe('function');
+    // IonWeights is a type-only export; verify the barrel re-exports the module.
+    expect(barrel).toHaveProperty('DEFAULT_ION_WEIGHTS');
+  });
+
+  it('the private ION_WEIGHTS const and private fitScore function are gone (0 occurrences of a second definition)', () => {
+    const srcPath = path.resolve(__dirname, '../src/waterOptimization.ts');
+    const content = fs.readFileSync(srcPath, 'utf-8');
+    expect(content).not.toMatch(/\bconst ION_WEIGHTS\b/);
+    expect(content).not.toMatch(/\bfunction fitScore\s*\(/);
+    // Exactly one weights constant and one fit-score implementation.
+    expect((content.match(/\bexport const DEFAULT_ION_WEIGHTS\b/g) ?? []).length).toBe(1);
+    expect((content.match(/\bexport function calculateProfileFitScore\b/g) ?? []).length).toBe(1);
+  });
+
+  it('calculateProfileFitScore matches the documented formula: perfect match on a fully-achievable single-ion profile scores near 100', () => {
+    const target = profile(
+      { calcium: 50, magnesium: 0, sodium: 0, chloride: 0, sulfate: 120, bicarbonate: 0 },
+      'Gypsum-only',
+    );
+    const finished = { calcium: 50, magnesium: 0, sodium: 0, chloride: 0, sulfate: 120, bicarbonate: 0 };
+    expect(calculateProfileFitScore(finished, target)).toBe(100);
+  });
+
+  it('a target whose every ion is 0 with an all-zero finished water returns 100 (degenerate denom = max(1,0) = 1 per ion)', () => {
+    const allZero = { calcium: 0, magnesium: 0, sodium: 0, chloride: 0, sulfate: 0, bicarbonate: 0 };
+    expect(calculateProfileFitScore(allZero, allZero)).toBe(100);
   });
 });

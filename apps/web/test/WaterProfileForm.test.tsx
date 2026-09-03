@@ -227,3 +227,44 @@ describe('M31_P2: WaterProfileForm UI Primitives & Accessibility (AC-13..AC-24)'
   });
 });
 
+// ---------------------------------------------------------------------------
+// M37_P2 Amendment 2 AC-37: Balance Strategy preset (FEAT-044)
+// ---------------------------------------------------------------------------
+describe('WaterProfileForm AC-37: Balance Strategy preset', () => {
+  it('renders the Balance Strategy select and Apply button', () => {
+    render(<WaterProfileForm mode="create" onSaved={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.getByTestId('water-form-strategy')).toBeInTheDocument();
+    expect(screen.getByTestId('water-form-apply-strategy')).toBeInTheDocument();
+  });
+
+  it('applying Crisp Hop-Forward sets sulfate = 2 × chloride (other ions untouched)', () => {
+    render(<WaterProfileForm mode="create" onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByTestId('water-form-cl'), { target: { value: '100' } });
+    fireEvent.change(screen.getByTestId('water-form-ca'), { target: { value: '80' } });
+    fireEvent.change(screen.getByTestId('water-form-strategy'), { target: { value: 'Crisp Hop-Forward' } });
+    fireEvent.click(screen.getByTestId('water-form-apply-strategy'));
+
+    expect(screen.getByTestId('water-form-cl')).toHaveValue(100);
+    expect(screen.getByTestId('water-form-so4')).toHaveValue(200);
+    expect(screen.getByTestId('water-form-ca')).toHaveValue(80); // preserved
+  });
+
+  it('applying Malty/Full sets a chloride-dominant ratio (Cl:SO4 ≈ 2:1)', () => {
+    render(<WaterProfileForm mode="create" onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByTestId('water-form-cl'), { target: { value: '100' } });
+    fireEvent.change(screen.getByTestId('water-form-strategy'), { target: { value: 'Malty/Full' } });
+    fireEvent.click(screen.getByTestId('water-form-apply-strategy'));
+
+    expect(screen.getByTestId('water-form-cl')).toHaveValue(100);
+    expect(screen.getByTestId('water-form-so4')).toHaveValue(50);
+  });
+
+  it('applying Balanced with both ions zero seeds 50/50 (RA-15 degenerate rule)', () => {
+    render(<WaterProfileForm mode="create" onSaved={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.click(screen.getByTestId('water-form-apply-strategy'));
+
+    expect(screen.getByTestId('water-form-cl')).toHaveValue(50);
+    expect(screen.getByTestId('water-form-so4')).toHaveValue(50);
+  });
+});
+

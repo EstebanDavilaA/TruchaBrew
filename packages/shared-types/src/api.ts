@@ -19,6 +19,12 @@ export interface RecipeSummary {
   hopCount: number;
   createdAt: string;
   updatedAt: string;
+  // NEW in M38_P1 — see Recipe's folder/tags comment (brewing.ts) for why
+  // these are optional rather than the spec §1.1 illustration's non-optional
+  // form: apps/web/test/accessibilityAndPolish.test.tsx builds RecipeSummary
+  // literals outside this phase's Authorized Files, none of which set these.
+  folder?: string | null;
+  tags?: string[];
 }
 
 export interface RecipeImportResponse {
@@ -38,6 +44,14 @@ export interface RecipeWriteInput {
   name: string;
   author: string;
   styleName: string;
+  // NEW in M38_P1 — optional on input (RA-1/RA-5): omitted or empty-string
+  // folder normalizes to null; omitted tags normalizes to [].
+  folder?: string | null;
+  tags?: string[];
+  // NEW in M38_P3 — optional structured BJCP style id on write (RA-P3-1);
+  // omitted/empty/null normalize to null in the repository, mirroring
+  // folder. Independent of the free-text styleName.
+  bjcpStyleId?: string | null;
   notes: string;
   equipmentId: string;
   fermentables: LineItemInput<FermentableItem>[];

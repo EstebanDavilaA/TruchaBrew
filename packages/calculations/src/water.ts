@@ -271,13 +271,35 @@ export function calculateDilutedWaterProfile(
   };
 }
 
+/**
+ * SO₄²⁻:Cl⁻ flavor-balance descriptor (M37_P2 Amendment 1, §1.2). The 4-band
+ * table below replaced the previous 5-band table — the three legacy
+ * descriptor strings it used are retired and must not reappear (AC-29).
+ */
+export type SulfateChlorideDescriptor =
+  | 'Very Bitter / Dry'
+  | 'Crisp / Hop-Forward'
+  | 'Balanced'
+  | 'Full / Malty / Soft'
+  | 'None';
+
 export interface SulfateToChlorideRatio {
   ratio: number | null;
-  descriptor: string;
+  descriptor: SulfateChlorideDescriptor;
 }
 
 /**
  * Calculates Sulfate to Chloride ratio and descriptive profile balance.
+ *
+ * Binding 4-band table (M37_P2 Amendment 1 §1.2): `ratio` is
+ * `parseFloat((sulfate/chloride).toFixed(2))`, so banding is applied to the
+ * same 2-decimal value that is displayed.
+ *   ratio > 2.0             -> 'Very Bitter / Dry'
+ *   1.3 <= ratio <= 2.0     -> 'Crisp / Hop-Forward'
+ *   0.8 <= ratio < 1.3      -> 'Balanced'
+ *   ratio < 0.8             -> 'Full / Malty / Soft'
+ * Degenerate: chloride <= 0 && sulfate <= 0 -> { ratio: null, descriptor: 'None' }.
+ * chloride <= 0 && sulfate > 0 -> { ratio: 99.9, descriptor: 'Very Bitter / Dry' }.
  */
 export function calculateSulfateToChlorideRatio(
   sulfate: number,
@@ -290,20 +312,77 @@ export function calculateSulfateToChlorideRatio(
     return { ratio: 99.9, descriptor: 'Very Bitter / Dry' };
   }
   const ratio = parseFloat((sulfate / chloride).toFixed(2));
-  let descriptor = 'Balanced';
+  let descriptor: SulfateChlorideDescriptor;
   if (ratio > 2.0) {
     descriptor = 'Very Bitter / Dry';
   } else if (ratio >= 1.3) {
-    descriptor = 'Bitter / Crisp';
+    descriptor = 'Crisp / Hop-Forward';
   } else if (ratio >= 0.8) {
     descriptor = 'Balanced';
-  } else if (ratio >= 0.5) {
-    descriptor = 'Malty / Full';
   } else {
-    descriptor = 'Very Malty';
+    descriptor = 'Full / Malty / Soft';
   }
 
   return { ratio, descriptor };
+}
+
+/**
+ * Balance-strategy flavor presets (M37_P2 Amendment 2, FEAT-044). Each preset
+ * describes a target Sulfate:Chloride ratio the brewer wants a water profile
+ * to hit: Balanced ≈ 1:1, Crisp Hop-Forward ≈ 2:1 (sulfate-dominant, dry/bitter),
+ * Malty/Full ≈ 1:2 (chloride-dominant, full/soft).
+ */
+export type BalanceStrategy = 'Balanced' | 'Crisp Hop-Forward' | 'Malty/Full';
+
+/** Target SO4:Cl ratio per balance strategy (RA-15/RA-17). */
+export const BALANCE_STRATEGY_RATIO: Record<BalanceStrategy, number> = {
+  Balanced: 1.0,
+  'Crisp Hop-Forward': 2.0,
+  'Malty/Full': 0.5,
+};
+
+/**
+ * Compute a target-ion preset from a balance strategy (M37_P2 Amendment 2,
+ * FEAT-044). Adjusts ONLY chloride and sulfate to the strategy's target
+ * SO4:Cl ratio; calcium/magnesium/sodium/bicarbonate are returned unchanged.
+ *
+ * Anchor rule (RA-15), total and deterministic — never throws, never returns
+ * NaN/Infinity (negative inputs clamped to 0):
+ *   - chloride <= 0 && sulfate <= 0 -> seed chloride 50, sulfate = 50 * ratio
+ *   - chloride <= 0                  -> derive chloride = sulfate / ratio
+ *   - otherwise                       -> derive sulfate = chloride * ratio
+ * Returns a new object; the input is never mutated.
+ */
+export function applyBalanceStrategy(
+  ions: IonConcentrations,
+  strategy: BalanceStrategy,
+): IonConcentrations {
+  const ratio = BALANCE_STRATEGY_RATIO[strategy];
+  const chloride = Math.max(0, ions.chloride);
+  const sulfate = Math.max(0, ions.sulfate);
+
+  let outChloride: number;
+  let outSulfate: number;
+
+  if (chloride <= 0 && sulfate <= 0) {
+    outChloride = 50;
+    outSulfate = 50 * ratio;
+  } else if (chloride <= 0) {
+    outChloride = sulfate / ratio;
+    outSulfate = sulfate;
+  } else {
+    outChloride = chloride;
+    outSulfate = chloride * ratio;
+  }
+
+  return {
+    calcium: ions.calcium,
+    magnesium: ions.magnesium,
+    sodium: ions.sodium,
+    chloride: parseFloat(outChloride.toFixed(2)),
+    sulfate: parseFloat(outSulfate.toFixed(2)),
+    bicarbonate: ions.bicarbonate,
+  };
 }
 
 /**

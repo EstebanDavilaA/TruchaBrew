@@ -67,10 +67,11 @@ describe('M32_P3: YeastSection source-level contracts (AC-3..AC-8, AC-15)', () =
     expect(tag).not.toContain('className');
   });
 
-  it('AC-8: INPUT_COMPACT_CLASS is no longer imported, but CARD_CLASS/SECTION_HEADING_CLASS still are', () => {
+  it('AC-8: no designSystem card/heading token import remains; the section adopts SectionCard', () => {
     expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bINPUT_COMPACT_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
-    expect(SRC_TEXT).toMatch(/import\s*\{[^}]*\bCARD_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
-    expect(SRC_TEXT).toMatch(/import\s*\{[^}]*\bSECTION_HEADING_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bCARD_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).not.toMatch(/import\s*\{[^}]*\bSECTION_HEADING_CLASS\b[^}]*\}\s*from\s*['"]\.\/designSystem['"]/);
+    expect(SRC_TEXT).toMatch(/SectionCard/);
   });
 
   it('AC-15: out-of-scope elements are untouched', () => {

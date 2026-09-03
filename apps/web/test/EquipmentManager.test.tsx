@@ -369,9 +369,12 @@ describe('M5.5_P2 AC-2/AC-4/AC-5/AC-6: create form is a full page, not a modal',
     );
     fireEvent.click(screen.getByTestId('equipment-new-profile'));
 
-    for (const cls of ['fixed', 'inset-0', 'backdrop-blur', 'z-50']) {
+    for (const cls of ['fixed', 'inset-0', 'z-50']) {
       expect(container.querySelector(`.${cls}`)).toBeNull();
     }
+    // M39_P2 removal: the sticky jump-nav (the only backdrop-blur element) is
+    // gone. A full-page, non-modal create form carries no translucent overlay.
+    expect(container.querySelectorAll('.backdrop-blur')).toHaveLength(0);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 1 })).toHaveAccessibleName('New Equipment Profile');

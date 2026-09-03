@@ -1885,3 +1885,168 @@ Delivered a constrained multi-ion water chemistry optimization solver in `packag
 - **Selection:** Option B (Proceed Phase)
 - **Action:** Accept Milestone 37 Phase 1 delivery. Archive `M37_P1_feature_spec.md` to `.gsd/archive/specs/`. Advance to Milestone 37 Phase 2 ("Target Auto-Tuning UI, Fit Score Visualization & WaterCalculatorModal Integration: Live fit score ring/bar, interactive salt sliders, optimization presets, and milestone closure").
 - **Agent:** antigravity-gemini
+
+# STEERING LOG: M37_P2 Amendment 2
+
+## Summary
+M37_P2 Amendment 2 (BUG-041 badge conformance + FEAT-044 balance-strategy relocation) built and verified: `Badge` gained a first-class `xs` size and all WaterCalculatorModal badges conform to the primitive; the Balance Strategy selector + STRATEGY_WEIGHTS were removed from the calculator and moved into `WaterProfileForm` as a transient preset tool backed by a new `applyBalanceStrategy` in `@truchabrew/calculations`.
+
+## Verification Reference
+- Executor tests: 2,433 passed / 2 skipped
+- Critic verdict: PASS (38/38 active ACs; CRITIC_REPORT.md 2026-09-01)
+- Regression: clean (monotonic vs 2,416 baseline)
+- Layer 1: tests/typecheck/build/lint all green
+
+## Decision
+- Option selected: A (Refine)
+- Notes: fold FEAT-043 ("Proper 'Sparge' MiscUse Category") into this same phase — the Water Calculator's "Save to Recipe" currently tags sparge salt/acid miscs with a `" (Sparge)"` name suffix while leaving `use: 'Mash'`. Refinement amends the active spec (Amendment 3): add `'Sparge'` to `MiscUse` + API validator, save with `use: 'Sparge'` + plain name, load via `use === 'Sparge'` (legacy suffix shim), and add `'Sparge'` to `MiscSection`'s use select. Spec updated and presented for re-approval; code NOT yet touched.
+
+
+
+---
+
+## 2026-09-01 — Milestone 37 Phase 2: "Target Auto-Tuning UI, Fit Score Visualization & WaterCalculatorModal Integration" (M37_P2) — MILESTONE COMPLETE
+
+### Summary
+Delivered the complete Water Chemistry Target Auto-Tuning UI and Water Calculator integration, closing Milestone 37. Incorporates the bounded multi-ion optimization solver into `WaterCalculatorModal.tsx` with Auto-Optimize dosing, live Profile Fit Score badge (bash-100\%$ with default weights), dynamic Sulfate-to-Chloride ratio badge with exact 4-band brewing descriptors, real-time per-ion delta badges with `<Badge size="xs">`, transient balance strategy presets on `WaterProfileForm.tsx`, clean `use: 'Sparge'` additions across shared-types, API validators, and recipe integration (FEAT-043), and recipe mash pH alignment excluding sparge acid (BUG-042).
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,437 passed / 2 skipped across 126 test files (api 473 + web 1,315 + calculations 649). `npm run typecheck` (4/4 packages clean), `npm run build` clean in 623ms, `npm run lint` clean (0 errors, 4 pre-existing fast-refresh warnings).
+- **Critic verdict (Layer 2):** PASS — 46/46 active ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry "M37_P2 — Amendments 3 & 4 Cumulative Audit", dated 2026-09-01). Scope guardrails verified.
+- **Regression (Layer 3):** Clean monotonic test progression across the entire repository.
+
+### Checkpoint Status
+- **Milestone progress:** Milestone 37 ("Multi-Ion Water Chemistry Solver & Target Tuning") is COMPLETE across both phases (M37_P1..M37_P2).
+- **Defects & Features Resolved:**
+  - `BUG-024` (Greedy salt dosing overshoots target ions) — VERIFIED RESOLVED
+  - `BUG-041` (Water Calculator badge primitive conformance & size) — VERIFIED RESOLVED
+  - `BUG-042` (Recipe mash pH diverges from modal adjusted pH after sparge acid save) — VERIFIED RESOLVED
+  - `FEAT-043` (Proper 'Sparge' MiscUse category) — VERIFIED COMPLETED
+  - `FEAT-044` (Balance strategy preset in Water Profile) — VERIFIED COMPLETED
+- **Pending:** Steering decision.
+
+### Steering Decision (Option D: Complete Milestone 37)
+- **Date:** 2026-09-01
+- **Selection:** Option D (Complete Milestone)
+- **Action:** Mark Milestone 37 ("Multi-Ion Water Chemistry Solver & Target Tuning") COMPLETE in full. Archive `M37_P2_feature_spec.md` to `.gsd/archive/specs/`. Archive manual verification artifacts to `.gsd/archive/manual_verification/M37_P2/`. Close `BUG-024`, `BUG-041`, `BUG-042`, `FEAT-043`, and `FEAT-044`. Perform Rule 21 state history archival. Advance to Milestone 38 Phase 1 ("Recipe Folders & Tag Taxonomy") and trigger `/plan`.
+- **Agent:** antigravity-gemini
+
+## 2026-09-01 — Milestone 38 Phase 1: "Recipe Folders & Tag Taxonomy" (M38_P1, Amendment 1)
+
+### Summary
+Closed the M38_P1 Layer 2 critic FAIL via a corrective Amendment 1 (32 ACs, RA-6..RA-11 binding) — post-`/diagnose` root-cause was spec-layer (Authorized Files list didn't cover requirements its own ACs demanded). F-1 (real data-loss bug) closed in `apps/api/src/routes/batches.ts`: `toRecipeWriteInput` now takes a required `existing: StoredRecipe` and resolves `folder`/`tags` by RA-6 key-presence (retain/clear/replace, never merge), with the 404 branch firing before translation. F-2 closed via RA-7 retroactive authorization of `backup.ts`. All 32 ACs independently traced YES by the critic.
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,495 passed / 2 skipped across 126 test files (api 505 + web 1,338 + calculations 652). `npm run typecheck` 4/4 clean, `npm run build` clean in 351ms, `npm run lint` clean (0 errors, 4 pre-existing fast-refresh warnings).
+- **Critic verdict (Layer 2):** PASS — 32/32 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry "M38_P1 (Amendment 1) — F-1/F-2/F-3/F-4/F-6 Remediation Audit", dated 2026-09-01).
+- **Regression (Layer 3):** Clean — 2,495 passed / 2 skipped re-run independently this session, monotonic vs the 2,485 baseline.
+
+### Checkpoint Status
+- **Milestone progress:** M38_P1 of an estimated 3 phases (Milestone 38 — "Recipe Folders, Tags & BJCP 2021 Style Targets"). P1 ("Recipe Folders & Tag Taxonomy") is verified complete pending steering decision.
+- **Pending:** Steering decision.
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-09-02
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Advance Milestone 38 from Phase 1 to Phase 2. Archive `M38_P1_feature_spec.md` to `.gsd/archive/specs/`. Archive `manual_verification/` (RA-11 pre/post scope manifests) to `.gsd/archive/manual_verification/M38_P1/`. Increment `active_phase` 1 → 2 in `.gsd/STATE.json`. Trigger `/plan` for Milestone 38 Phase 2 ("BJCP 2021 Style Guide Dataset & Evaluator").
+- **Agent:** claude-code
+
+## 2026-09-02 — Milestone 38 Phase 2: "BJCP 2021 Style Guide Dataset & Evaluator" (M38_P2)
+
+### Summary
+Delivered the M38_P2 pure data + evaluator slice. Typed dataset of all 86 official BJCP 2021 styles carrying numeric guideline ranges (categories 1-26 only, 1A-26D — categories 27-34 excluded per RA-13 since they publish "Variable by base style") in `packages/calculations/src/bjcp/{types,data,evaluate,index}.ts`, with `evaluateStyleMatch(styleId, vitals, styles?)` (inclusive `[low,high]` per-vital bounds, SG + SRM only, no internal conversion, no-match triple for unknown/empty/non-finite). Two spec amendments pre-build (both re-SPEC_APPROVED): Amendment 1 corrected spot-check AC-9/10/11/12 to official values (Vienna Lager 29A→7A); Amendment 2 re-scoped AC-1/AC-2 to the verified 86-style/1-26 coverage. Explicit-name barrel re-exports avoid collision with the pre-existing `BJCPTier`/`calculateBJCPScore` sensory surface.
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,539 passed / 2 skipped across 127 test files (api 505 + web 1,338 + calculations 696). `npm run typecheck` 4/4 clean, `npm run build` clean, `npm run lint` clean (0 errors, 4 pre-existing fast-refresh warnings).
+- **Critic verdict (Layer 2):** PASS — 32/32 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry "M38_P2 (post-Amendments 1+2)", dated 2026-09-02). Source-fidelity 86/86 byte-exact vs official mirror; 28/28 evaluator probes; barrel non-collision verified.
+- **Regression (Layer 3):** Clean — 2,539 passed / 2 skipped re-run independently this session, monotonic vs the 2,495 baseline.
+
+### Checkpoint Status
+- **Milestone progress:** M38_P2 of an estimated 3 phases (Milestone 38 — "Recipe Folders, Tags & BJCP 2021 Style Targets"). P2 ("BJCP 2021 Style Guide Dataset & Evaluator") is verified complete pending steering decision.
+- **Pending:** Steering decision.
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-09-02
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Advance Milestone 38 from Phase 2 to Phase 3. Archive `M38_P2_feature_spec.md` to `.gsd/archive/specs/`. (No manual_verification evidence to archive — M38_P2 was a pure data/logic slice.) Increment `active_phase` 2 → 3 in `.gsd/STATE.json`. Trigger `/plan` for Milestone 38 Phase 3 ("Real-Time Style Target Gauges in Recipe Designer", which also absorbs the folder datalist/picker deferred out of P1 per RA-9).
+- **Agent:** claude-code
+
+## 2026-09-02 — Milestone 38 Phase 3: "Real-Time BJCP Style Target Gauges & Folder Datalist in the Recipe Designer" (M38_P3) — FINAL PHASE
+
+### Summary
+Delivered the M38_P3 UI slice, completing Milestone 38 in full. A persisted nullable `bjcpStyleId` on recipes (additive migration 0017) drives a new `StyleTargetPanel` in the Recipe Designer showing live in-range comparison gauges (OG/FG/ABV/IBU/SRM) against the selected BJCP 2021 style's guideline ranges via the M38_P2 `evaluateStyleMatch`, plus the RA-9 folder datalist (existing folder names via `distinctFolderNames`). `StatsHeader.tsx` and `packages/calculations/**` untouched; `RecipeSummary` deliberately unchanged (library gauges deferred).
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,585 passed / 2 skipped across 130 test files (api 515 + web 1,374 + calculations 696). `npm run typecheck` 4/4 clean, `npm run build` clean, `npm run lint` clean (0 errors, 4 pre-existing fast-refresh warnings).
+- **Critic verdict (Layer 2):** PASS — 37/37 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry "M38_P3 (2026-09-02)", dated 2026-09-02). bjcpStyleId persistence traced end-to-end; gauges consume inclusive boundary semantics verbatim; neutral no-style state never fabricates; three flagged judgment calls each ruled acceptable.
+- **Regression (Layer 3):** Clean — 2,585 passed / 2 skipped re-run independently this session, monotonic vs the 2,539 baseline.
+
+### Checkpoint Status
+- **Milestone progress:** M38_P3 of an estimated 3 phases (Milestone 38 — "Recipe Folders, Tags & BJCP 2021 Style Targets"). This is the closing phase — **Milestone 38 is complete in full across P1/P2/P3** pending the steering decision (Option D would close the milestone and advance to Milestone 39).
+- **Pending:** Steering decision.
+
+### Steering Decision (Option D: Complete Milestone)
+- **Date:** 2026-09-02
+- **Selection:** Option D (Complete Milestone)
+- **Action:** Mark Milestone 38 ("Recipe Folders, Tags & BJCP 2021 Style Targets") COMPLETE in full across P1/P2/P3. Archive `M38_P3_feature_spec.md` to `.gsd/archive/specs/`. Archive manual verification artifacts (none — no manual_verification evidence) to `.gsd/archive/manual_verification/M38_P3/`. Close Milestone 38 and perform rule 21 state-history archival (M36/M37 blocks to STATE_HISTORY.md). Advance to Milestone 39 ("Form Sectioning, Sticky Navigation & Contextual Field Captions") Phase 1 and trigger `/plan`.
+- **Agent:** claude-code
+
+## 2026-09-02 — Milestone 39 Phase 1: "SectionCard & Sticky Jump-Nav Primitives" (M39_P1)
+
+### Summary
+Delivered the M39_P1 scaffolding phase (FEAT-005 umbrella). Two new `components/ui/` primitives for P2/P3's form sectioning: `SectionCard` (controlled-or-uncontrolled collapsible anchored section shell consuming CARD_CLASS/SECTION_HEADING_CLASS, accessible disclosure button with aria-expanded/aria-controls, data-testid {id}-section/toggle/title/panel) and `StickyJumpNav` (fully controlled sticky nav, empty→null, unknown active→no highlight, scroll guarded by element presence), bound by an exact-string id-equality anchor coordination contract proven in a P1 test. `ui/index.ts` gained 4 export lines. Two new test suites (35 tests).
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,620 passed / 2 skipped across 132 test files (api 515 + web 1,409 + calculations 696). `npm run typecheck` 4/4 clean, `npm run build` clean, `npm run lint` clean (0 errors, 4 pre-existing + 1 by-design fast-refresh warning).
+- **Critic verdict (Layer 2):** PASS — 44/44 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry "M39_P1 — SectionCard & Sticky Jump-Nav Primitives (2026-09-02)"). Constant rename ruled not a deviation; new lint warning by-design.
+- **Regression (Layer 3):** Clean — 2,620 passed / 2 skipped re-run independently this session, monotonic vs the 2,585 baseline.
+
+### Checkpoint Status
+- **Milestone progress:** M39_P1 of an estimated 3 phases (Milestone 39 — "Form Sectioning, Sticky Navigation & Contextual Field Captions"). P1 ("SectionCard & Sticky Jump-Nav Primitives") verified complete pending steering decision.
+- **Pending:** Steering decision.
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-09-02
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Advance Milestone 39 from Phase 1 to Phase 2. Archive `M39_P1_feature_spec.md` to `.gsd/archive/specs/`. (No manual_verification evidence to archive — M39_P1 was a UI-primitives slice.) Increment `active_phase` 1 → 2 in `.gsd/STATE.json`. Trigger `/plan` for Milestone 39 Phase 2 ("Recipe Editor & Equipment Form Sectioning").
+- **Agent:** claude-code
+
+## 2026-09-02 — Milestone 39 Phase 2: "Recipe Editor & Equipment Form Sectioning" (M39_P2) — post-Amendment 3
+
+### Summary
+M39_P2 reached a verified final state after three same-phase amendments. The initial Layer 2 FAIL (scroll-spy listener target) was routed through /diagnose (spec error) to Amendment 1 (capture-phase window listener). A user UX pivot then removed the StickyJumpNav jump-nav + useSectionScrollSpy scroll-spy from BOTH the Recipe Editor and EquipmentForm (Amendment 3) because the sticky bar still read as unprofessional in the running app — while keeping the real sectioning value: four collapsible SectionCard ingredient cards (Fermentables/Hops/Yeast/Miscs), six non-collapsible EquipmentForm SectionCards (thermal-mass checkbox preserved in the badge slot), stable section ids/data-testids, optional sectionId props, folder datalist, and 8 FormField hint captions. useSectionScrollSpy.ts + its test deleted; StickyJumpNav primitive kept (P1, future reuse).
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,646 passed / 2 skipped across 134 test files (api 515 + web 1,435 + calculations 696). `npm run typecheck` 4/4 clean, `npm run build` clean, `npm run lint` clean (0 errors, pre-existing warnings only, no new).
+- **Critic verdict (Layer 2):** PASS — 33/33 ACTIVE ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry "M39_P2 (post-Amendment 3)", dated 2026-09-02; 14 nav/spy ACs superseded). EquipmentForm tool-corruption repair ruled sound; removal complete (zero spy/nav references).
+- **Regression (Layer 3):** Clean — 2,646 passed / 2 skipped re-run independently this session; reduction vs 2,661 fully accounted for by the A3 nav/spy test removal.
+
+### Checkpoint Status
+- **Milestone progress:** M39_P2 of an estimated 3 phases (Milestone 39 — "Form Sectioning, Sticky Navigation & Contextual Field Captions"). P2 verified complete pending steering decision. (Note: the roadmap's "Sticky Navigation" outcome was re-scoped by the user's Amendment 3 pivot — the jump-nav was removed from the shipped forms though the StickyJumpNav primitive remains in ui/.)
+- **Pending:** Steering decision.
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-09-02
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Advance Milestone 39 from Phase 2 to Phase 3. Archive `M39_P2_feature_spec.md` to `.gsd/archive/specs/`. (No manual_verification evidence to archive — M39_P2 was a UI-sectioning slice.) Increment `active_phase` 2 → 3 in `.gsd/STATE.json`. Trigger `/plan` for Milestone 39 Phase 3 ("Water, Mash & Fermentation Profile Form Sectioning"), which per the M39_P2 Amendment 3 pivot applies SectionCard sectioning (no StickyJumpNav jump-nav, consistent with the re-scoped "Sticky Navigation" outcome).
+- **Agent:** claude-code
+
+## 2026-09-03 — Milestone 39 Phase 3: "Water, Mash & Fermentation Profile Form Sectioning" (M39_P3) — FINAL PHASE
+
+### Summary
+Delivered the M39_P3 sectioning slice, completing Milestone 39 in full. The three profile forms (WaterProfileForm, MashProfileForm, FermentationProfileForm) are sectioned onto the `SectionCard` primitive as six non-collapsible cards (headingLevel 2), with bound `FormField` hint captions (Water Ca/Cl/SO4/pH, Mash target pH) and preserved pre-existing hints. Consistent with the M39_P2 Amendment 3 pivot, NO StickyJumpNav jump-nav and NO scroll-spy was introduced. Unused design tokens removed cleanly; no existing test reconciliation required (all six prior suites pass unchanged).
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,687 passed / 2 skipped across 135 test files (api 515 + web 1,476 + calculations 696). `npm run typecheck` 4/4 clean, `npm run build` clean, `npm run lint` clean (0 errors, pre-existing warnings only, no new).
+- **Critic verdict (Layer 2):** PASS — 37/37 ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry "M39_P3", dated 2026-09-03). No-jump-nav pivot compliance verified; forms intact; design-token removal clean.
+- **Regression (Layer 3):** Clean — 2,687 passed / 2 skipped re-run independently this session, monotonic vs the 2,646 baseline.
+
+### Checkpoint Status
+- **Milestone progress:** M39_P3 of an estimated 3 phases (Milestone 39 — "Form Sectioning, Sticky Navigation & Contextual Field Captions"). This is the closing phase — **Milestone 39 is complete in full across P1/P2/P3** pending the steering decision (Option D would close the milestone and advance to Milestone 40).
+- **Pending:** Steering decision.
+
+### Steering Decision (Option D: Complete Milestone — no advance to next)
+- **Date:** 2026-09-03
+- **Selection:** Option D (Complete Milestone), with explicit instruction to **NOT advance to Milestone 40**.
+- **Action:** Mark Milestone 39 ("Form Sectioning, Sticky Navigation & Contextual Field Captions") COMPLETE in full across P1/P2/P3. Archive `M39_P3_feature_spec.md` to `.gsd/archive/specs/`. Rule 21 state-history archival (nothing older than M38 remains inline — the inline set is M38 + M39 only). ROADMAP.md updated. Do **NOT** advance `active_milestone` to 40 and do **NOT** trigger `/plan` for M40 — Milestone 40 ("Desktop & Mobile Deployment") is left unstarted on the roadmap, awaiting an explicit future go-ahead.
+- **Agent:** claude-code

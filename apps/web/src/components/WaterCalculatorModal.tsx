@@ -10,10 +10,11 @@ import {
   calculatePostAcidMashPh,
   calculateSulfateToChlorideRatio,
   calculateSpargeAcid,
+  calculateProfileFitScore,
   type IonConcentrations,
 } from '@truchabrew/calculations';
 import { X, Droplets, Sparkles, FlaskConical, RotateCcw, Check, Target } from 'lucide-react';
-import { SUBPANEL_CLASS } from './designSystem';
+import { SUBPANEL_CLASS, ION_TILE_CLASS } from './designSystem';
 import { Modal } from './Modal';
 import { Button, Select, NumberInput, FormField, Table, TableHeaderCell, TableCell, Badge } from './ui';
 
@@ -41,37 +42,6 @@ type SaltName = typeof SALT_NAMES[number];
 
 const ACID_TYPES = ['Lactic Acid 88%', 'Phosphoric Acid 75%', 'Acidulated Malt'] as const;
 type AcidType = typeof ACID_TYPES[number];
-
-// M37_P2 — balance strategy presets for the Auto-Optimize action. Each preset
-// scales the ion weights passed to optimizeWaterProfile to bias the solver
-// toward a flavor profile (RA-3): balanced keeps the default weights, crisp
-// favors sulfate (bitter/hop-forward), malty favors chloride (full/soft).
-const BALANCE_STRATEGIES = ['Balanced', 'Crisp Hop-Forward', 'Malty/Full'] as const;
-type BalanceStrategy = typeof BALANCE_STRATEGIES[number];
-
-interface IonWeights {
-  calcium: number;
-  magnesium: number;
-  sodium: number;
-  chloride: number;
-  sulfate: number;
-  bicarbonate: number;
-}
-
-const DEFAULT_ION_WEIGHTS: IonWeights = {
-  sulfate: 1.0,
-  chloride: 1.0,
-  calcium: 0.8,
-  magnesium: 0.5,
-  sodium: 0.4,
-  bicarbonate: 0.3,
-};
-
-const STRATEGY_WEIGHTS: Record<BalanceStrategy, IonWeights> = {
-  Balanced: { ...DEFAULT_ION_WEIGHTS },
-  'Crisp Hop-Forward': { ...DEFAULT_ION_WEIGHTS, sulfate: 1.6, chloride: 0.7 },
-  'Malty/Full': { ...DEFAULT_ION_WEIGHTS, chloride: 1.6, sulfate: 0.7 },
-};
 
 // Ion keys in the canonical order used by the minerals table + delta badges.
 const ION_KEYS: (keyof IonConcentrations)[] = [
@@ -158,9 +128,6 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
   const [mashAcidAmount, setMashAcidAmount] = useState<number>(0);
   const [spargeAcidAmount, setSpargeAcidAmount] = useState<number>(0);
 
-  // M37_P2 — balance strategy for the Auto-Optimize solver (RA-3)
-  const [balanceStrategy, setBalanceStrategy] = useState<BalanceStrategy>('Balanced');
-
   // Sync state when modal opens
   useEffect(() => {
     if (!isOpen) return;
@@ -192,8 +159,10 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
 
     for (const m of miscs) {
       if (m.type === 'WaterAgent') {
-        const isSparge = m.name.includes('(Sparge)');
-        const baseName = m.name.replace(' (Sparge)', '') as SaltName | AcidType;
+        // RA-20: classify sparge via the proper `use` field, with a legacy
+        // fallback for recipes saved under the old " (Sparge)" name-suffix hack.
+        const isSparge = m.use === 'Sparge' || m.name.includes('(Sparge)');
+        const baseName = (m.use === 'Sparge' ? m.name : m.name.replace(' (Sparge)', '')) as SaltName | AcidType;
 
         if (SALT_NAMES.includes(baseName as SaltName)) {
           if (isSparge) {
@@ -233,7 +202,7 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
         list.push({ id: `m-salt-${name}`, name, type: 'WaterAgent', use: 'Mash', timeMinutes: 0, amount: mashG, unit: 'g' });
       }
       if (spargeG > 0) {
-        list.push({ id: `s-salt-${name}`, name, type: 'WaterAgent', use: 'Mash', timeMinutes: 0, amount: spargeG, unit: 'g' });
+        list.push({ id: `s-salt-${name}`, name, type: 'WaterAgent', use: 'Sparge', timeMinutes: 0, amount: spargeG, unit: 'g' });
       }
     });
     return list;
@@ -259,7 +228,7 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
   const so4ClRatio = useMemo(() => calculateSulfateToChlorideRatio(finishedIons.sulfate, finishedIons.chloride), [finishedIons]);
 
   // M37_P2 — the Auto-Optimize action (handleAutoAdjustAll) calls
-  // optimizeWaterProfile directly with the selected balance strategy weights.
+  // optimizeWaterProfile directly with default (balanced) ion weights.
   // The *displayed* fit score (AC-8) is computed from the current finished
   // water so typing a salt input updates it live.
 
@@ -291,25 +260,22 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
     };
   }, [finishedIons, targetIons]);
 
-  // Live fit score from the actual finished water (current salt inputs).
-  // Closeness per ion = max(0, 1 − |delta| / max(target, 1)); weighted by the
-  // same default weights the solver uses so the number reads consistently.
-  const fitScorePct = useMemo(() => {
-    if (!targetIons) return 0;
-    const totalWeight = Object.values(DEFAULT_ION_WEIGHTS).reduce((a, b) => a + b, 0);
-    let weighted = 0;
-    for (const key of ION_KEYS) {
-      const w = DEFAULT_ION_WEIGHTS[key];
-      const t = targetIons[key];
-      const denom = Math.max(1, Math.abs(t));
-      const closeness = Math.max(0, 1 - Math.abs(finishedIons[key] - t) / denom);
-      weighted += w * closeness;
-    }
-    return Math.round((totalWeight > 0 ? (weighted / totalWeight) * 100 : 100) * 10) / 10;
+  // Live fit score from the actual finished water (current salt inputs),
+  // delegated to the shared calculateProfileFitScore (AC-23/AC-24) with
+  // DEFAULT weights (RA-19 — FEAT-044 moved the balance strategy out of the
+  // calculator, so the score grades the finished water against the chosen
+  // target profile's exact ions). Band/label selection happens on this
+  // unrounded (round2) value; display uses toFixed(1) so a score like 89.6
+  // can never print "90%" beside an amber "(Good)" (RA-5).
+  const fitScoreRaw: number | null = useMemo(() => {
+    if (!targetIons) return null;
+    return calculateProfileFitScore(finishedIons, targetIons);
   }, [finishedIons, targetIons]);
 
+  const fitScoreVariant: 'emerald' | 'amber' | 'slate' =
+    fitScoreRaw !== null && fitScoreRaw >= 90 ? 'emerald' : fitScoreRaw !== null && fitScoreRaw >= 75 ? 'amber' : 'slate';
   const fitScoreLabel =
-    fitScorePct >= 90 ? 'Optimal' : fitScorePct >= 75 ? 'Good' : 'Approx';
+    fitScoreRaw !== null && fitScoreRaw >= 90 ? 'Optimal' : fitScoreRaw !== null && fitScoreRaw >= 75 ? 'Good' : 'Approx';
 
   // Suggested salts for the batch (Needed reference column)
   const suggestedSaltsMap = useMemo(() => {
@@ -370,24 +336,35 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
   // computes both optimal salt additions and mash/sparge acid additions cleanly,
   // respecting the treatSpargeWater / addMashAcid / addSpargeAcid toggles.
   // M37_P2: salt allocations now come from optimizeWaterProfile (the bounded
-  // multi-ion solver) with the selected balance strategy's ion weights.
+  // multi-ion solver) with default (balanced) ion weights.
   const handleAutoAdjustAll = () => {
     // 1. Mineral salt allocations (respecting treatSpargeWater)
     let calcMashSalts = { ...mashSalts };
     let calcSpargeSalts = { ...spargeSalts };
 
     if (target) {
-      const optimized = optimizeWaterProfile(source, target, totalVolumeL, {
-        weights: STRATEGY_WEIGHTS[balanceStrategy],
-      });
+      const optimized = optimizeWaterProfile(source, target, totalVolumeL);
       const suggested = optimized.salts;
       const newMash: Record<SaltName, number> = { Gypsum: 0, 'Calcium Chloride': 0, 'Epsom Salt': 0, 'Table Salt': 0, 'Baking Soda': 0 };
       const newSparge: Record<SaltName, number> = { Gypsum: 0, 'Calcium Chloride': 0, 'Epsom Salt': 0, 'Table Salt': 0, 'Baking Soda': 0 };
 
-      const mashRatio = treatSpargeWater
-        ? (totalVolumeL > 0 ? effectiveMashL / totalVolumeL : 0.6)
-        : 1;
-      const spargeRatio = 1 - mashRatio;
+      // RA-8: the mash/sparge split denominator is effectiveMashL +
+      // effectiveSpargeL — independent of totalVolumeL/waterVolumeL, which
+      // may not equal that sum. The solver's dose basis stays totalVolumeL;
+      // this only changes how the resulting grams are distributed.
+      const splitTotal = effectiveMashL + effectiveSpargeL;
+      let mashRatio: number;
+      let spargeRatio: number;
+      if (!treatSpargeWater) {
+        mashRatio = 1;
+        spargeRatio = 0;
+      } else if (splitTotal <= 0) {
+        mashRatio = 0.6;
+        spargeRatio = 0.4;
+      } else {
+        mashRatio = effectiveMashL / splitTotal;
+        spargeRatio = effectiveSpargeL / splitTotal;
+      }
 
       suggested.forEach((s) => {
         const salt = s.saltName as SaltName;
@@ -410,7 +387,7 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
         simMiscs.push({ id: `m-salt-${name}`, name, type: 'WaterAgent', use: 'Mash', timeMinutes: 0, amount: calcMashSalts[name], unit: 'g' });
       }
       if (calcSpargeSalts[name] > 0) {
-        simMiscs.push({ id: `s-salt-${name}`, name, type: 'WaterAgent', use: 'Mash', timeMinutes: 0, amount: calcSpargeSalts[name], unit: 'g' });
+        simMiscs.push({ id: `s-salt-${name}`, name, type: 'WaterAgent', use: 'Sparge', timeMinutes: 0, amount: calcSpargeSalts[name], unit: 'g' });
       }
     });
 
@@ -455,9 +432,9 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
       if (treatSpargeWater && sGrams > 0) {
         newMiscs.push({
           id: `misc-sparge-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
-          name: `${name} (Sparge)`,
+          name,
           type: 'WaterAgent',
-          use: 'Mash',
+          use: 'Sparge',
           timeMinutes: 0,
           amount: sGrams,
           unit: 'g',
@@ -480,9 +457,9 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
     if (addSpargeAcid && spargeAcidAmount > 0) {
       newMiscs.push({
         id: `misc-sparge-acid-${Date.now()}`,
-        name: `${acidType} (Sparge)`,
+        name: acidType,
         type: 'WaterAgent',
-        use: 'Mash',
+        use: 'Sparge',
         timeMinutes: 0,
         amount: spargeAcidAmount,
         unit: 'ml',
@@ -535,7 +512,6 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
               variant="neutral"
               size="sm"
               data-testid="modal-initial-mash-ph"
-              className="rounded-md"
             >
               Initial Mash pH: <span className="font-bold text-slate-100 font-mono tabular-nums">{preAcidPredictedPh.toFixed(2)}</span>
             </Badge>
@@ -543,20 +519,18 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
               variant="warning"
               size="sm"
               data-testid="modal-predicted-mash-ph"
-              className="rounded-md"
             >
               Adjusted Mash pH: <span className="font-bold font-mono tabular-nums">{liveMashPh.toFixed(2)}</span>
             </Badge>
-            {/* M37_P2 — live Profile Fit Score badge (AC-4/AC-5, RA-2) */}
-            {target && (
+            {/* M37_P2 — live Profile Fit Score badge (AC-4/AC-5, RA-2, RA-5, RA-6) */}
+            {target && fitScoreRaw !== null && (
               <Badge
-                variant={fitScorePct >= 90 ? 'emerald' : fitScorePct >= 75 ? 'amber' : 'slate'}
+                variant={fitScoreVariant}
                 size="sm"
                 data-testid="water-calc-fit-score"
-                className="rounded-md"
               >
                 <Target className="w-3 h-3" />
-                Fit: {fitScorePct.toFixed(0)}% ({fitScoreLabel})
+                Fit: {fitScoreRaw.toFixed(1)}% ({fitScoreLabel})
               </Badge>
             )}
           </div>
@@ -633,26 +607,11 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
               </h4>
 
               <div className="flex items-center gap-2 text-xs flex-wrap">
-                <span className="text-slate-400">Balance Strategy:</span>
-                <Select
-                  size="sm"
-                  id="balanceStrategySelect"
-                  aria-label="Balance Strategy"
-                  value={balanceStrategy}
-                  onChange={(e) => setBalanceStrategy(e.target.value as BalanceStrategy)}
-                  className="min-w-[150px]"
-                >
-                  {BALANCE_STRATEGIES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </Select>
-
                 {/* M37_P2 — live SO4:Cl ratio tag (AC-6) */}
                 <Badge
                   variant={so4ClRatio.ratio !== null && so4ClRatio.ratio > 2 ? 'amber' : so4ClRatio.ratio !== null && so4ClRatio.ratio >= 0.8 ? 'neutral' : 'emerald'}
                   size="sm"
                   data-testid="water-calc-so4-cl-ratio"
-                  className="rounded-md"
                 >
                   SO₄²⁻ : Cl⁻ {so4ClRatio.ratio !== null ? `${so4ClRatio.ratio} · ${so4ClRatio.descriptor}` : '—'}
                 </Badge>
@@ -776,27 +735,35 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
                     const delta = (ionDeltas ?? {})[ion];
                     const targetVal = targetIons[ion];
                     const adjustedVal = finishedIons[ion];
+                    // RA-7: in-range classification uses the unrounded delta,
+                    // inclusive at exactly ±5 ppm.
                     const inRange = delta !== undefined && Math.abs(delta) <= 5;
+                    // RA-7: out-of-range magnitude rounds away from zero to 1
+                    // decimal, so a displayed magnitude can never be <= 5.0
+                    // when the true delta is out of range.
+                    const roundedDeltaText =
+                      delta !== undefined
+                        ? `${delta >= 0 ? '+' : '-'}${(Math.ceil(Math.abs(delta) * 10) / 10).toFixed(1)} ppm`
+                        : '0.0 ppm';
                     return (
                       <div
                         key={ion}
                         data-testid={`water-calc-ion-${ion}`}
-                        className="p-2 rounded-lg bg-slate-950/50 border border-slate-800/70 flex flex-col gap-1"
+                        className={`${ION_TILE_CLASS} flex flex-col gap-1`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-slate-400">{ION_LABELS[ion]}</span>
                           {inRange ? (
-                            <Badge variant="emerald" size="sm" className="rounded text-[9px] px-1.5 py-0">
-                              Target
+                            <Badge variant="emerald" size="xs">
+                              Target Matched
                             </Badge>
                           ) : (
                             <Badge
                               variant={delta !== undefined && delta > 0 ? 'amber' : 'slate'}
-                              size="sm"
-                              className="rounded text-[9px] px-1.5 py-0"
+                              size="xs"
                               data-testid={`water-calc-ion-delta-${ion}`}
                             >
-                              {delta !== undefined && delta > 0 ? `+${delta.toFixed(0)}` : `${(delta ?? 0).toFixed(0)}`} ppm
+                              {roundedDeltaText}
                             </Badge>
                           )}
                         </div>
@@ -858,19 +825,20 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
                     Enzymatic conversion &amp; extract efficiency (Target pH 5.20 – 5.50)
                   </p>
 
-                  {/* Live Mash pH Readout Badges */}
+                  {/* Live Mash pH Readout Badges (AC-15/AC-22/AC-30: neutral
+                      pseudo-badges migrated onto the Badge primitive) */}
                   <div className="flex flex-wrap items-center gap-1.5 my-2.5 text-[11px]">
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                    <Badge variant="neutral" size="sm">
                       Initial: <span className="font-mono font-bold text-slate-100">{preAcidPredictedPh.toFixed(2)}</span>
-                    </span>
+                    </Badge>
                     <span className="text-slate-600">→</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                    <Badge variant="neutral" size="sm">
                       Target: <span className="font-mono font-bold text-slate-100">{targetMashPh.toFixed(2)}</span>
-                    </span>
+                    </Badge>
                     <span className="text-slate-600">→</span>
-                    <span className="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-500/40 text-amber-300">
+                    <Badge variant="amber" size="xs">
                       Adjusted: <span className="font-mono font-bold text-amber-400">{liveMashPh.toFixed(2)}</span>
-                    </span>
+                    </Badge>
                   </div>
                 </div>
 
@@ -933,18 +901,19 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
                     Neutralize alkalinity to prevent grain husk tannin extraction (Target pH 5.50)
                   </p>
 
-                  {/* Live Sparge Info Badges */}
+                  {/* Live Sparge Info Badges (AC-15/AC-22/AC-30: neutral
+                      pseudo-badges migrated onto the Badge primitive) */}
                   <div className="flex flex-wrap items-center gap-1.5 my-2.5 text-[11px]">
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                    <Badge variant="neutral" size="sm">
                       Volume: <span className="font-mono font-bold text-slate-100">{effectiveSpargeL.toFixed(1)} L</span>
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                    </Badge>
+                    <Badge variant="neutral" size="sm">
                       Source HCO₃⁻: <span className="font-mono font-bold text-slate-100">{(source?.bicarbonate ?? 0).toFixed(0)} ppm</span>
-                    </span>
+                    </Badge>
                     {(source?.bicarbonate ?? 0) === 0 && (
-                      <span className="px-2 py-0.5 rounded bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-[10px]">
+                      <Badge variant="emerald" size="xs">
                         0 ppm alkalinity (No acid needed)
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 </div>
