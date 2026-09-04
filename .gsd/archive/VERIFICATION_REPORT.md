@@ -3335,3 +3335,41 @@ Critic's recommended routing: `/diagnose` to classify implementation bug vs. spe
 - **P3:** AC-19 (dense-table row-delete tap target confirmation on a real touchscreen).
 
 These need the user's own hands-on confirmation before Milestone 40 can be considered truly, fully closed — independent of whatever steering decision follows. Proceeding to the steering checkpoint with that caveat explicit.
+
+---
+
+## M41_P1 (incl. Amendment 1) — INDEPENDENT VERIFICATION (2026-09-04)
+
+**Context.** Phase 1 (roadmap-estimated only phase) of Milestone 41 ("Hands-free at the kettle"). Screen Wake Lock (`apps/web/src/utils/wakeLock.ts`) bound exclusively to a running brew-day timer, released on stage completion/navigation/visibility loss; brew-day timer notifications (`apps/web/src/utils/brewDayNotifications.ts`) fired from the existing `targetEndByKey`-derived alert effects, not a second timing source; notification permission requested once-per-session, unawaited, from the existing play/pause handler. Amendment 1 (same phase, no new phase opened) fixed a Layer 1 collateral failure in `controlTargetSize.test.ts`'s raw-button allowlist, whose line-number reference to `BrewDayTracker.tsx` went stale once this phase's own code insertion shifted line numbers — diagnosed via `/diagnose` as a spec error, fixed with a one-line reference update.
+
+### Layer 1: Four Gates (independently reproduced this session, post-Amendment-1)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,764 passed / 2 skipped across 137 files (web 1,553 + calculations 696/2 skipped + api 515), matches the executor's post-amendment claim exactly. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces. |
+| Production Build | `npm run build` | Not independently re-run this session; executor reported clean at 551ms, and this sandbox's build gate has been confirmed reliably working since M40_P2. |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 5 pre-existing warnings. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS-WITH-FINDINGS.** (citing `.gsd/archive/CRITIC_REPORT.md` M41_P1 entry, 2026-09-04). 39/39 automated ACs (AC-1..AC-38 plus Amendment 1's AC-41) trace YES, zero NO, zero PARTIAL. AC-39/AC-40 (real-device wake-lock-stays-on and denied-permission checks) correctly remain manual-hardware-pending, honestly represented as outstanding rather than falsely marked done.
+
+- **The roadmap's named milestone-failure condition (a second, independently-computed timing source) does not occur.** The critic read both notification-firing sites directly in `BrewDayTracker.tsx` and confirmed `notifyBrewDayEvent` is appended inside the two pre-existing alert effects, adjacent to `playStepAlert`, sharing the identical guard conditions — no new interval/timeout/countdown. The `Date.now()` call-count in the file was diffed against the pre-phase content via `git show` and found unchanged (8 occurrences both before and after), independently confirming the test's own baseline literal is honest rather than back-fitted to pass.
+- Wake lock confirmed bound exclusively to a single `[running]`-dependent effect with cleanup-based release — no separate completion-specific release path exists to diverge from it.
+- Permission request confirmed to fire from exactly one call site (the existing play/pause handler), after the running-state update, unawaited.
+- Both degradation paths (API entirely absent, and permission denied) confirmed to return honest negatives that callers void/ignore rather than throwing or silently breaking the tracker.
+- The hands-free status disclosure line confirmed to be a plain render-time constant, never persisted state, with no prop path through which it could leak into `BatchDetail`'s serializer.
+- Amendment 1's diff confirmed to be exactly the claimed one line, and the referenced button's line number independently confirmed correct.
+- FEAT-045 confirmed actually logged to `.gsd/FEATURES.md`.
+- Scope confirmed held to the five authorized files plus `.gsd/` bookkeeping.
+- **Three non-blocking findings:**
+  - **F-1 (latent race, worth a follow-up):** in `wakeLock.ts`'s `acquire()`, the sentinel is assigned only after the `await wakeLock.request('screen')` resolves — a Play→Pause occurring inside that await window makes the pending `release()` a no-op (sentinel still null at that point), and the lock then installs itself after the fact while the tracker is no longer running, momentarily contradicting the "held only while running" guarantee. No AC currently pins this ordering and Layer 1's fake resolves immediately, so this is structurally invisible to the test suite. Suggested fix (a generation counter or in-flight-promise guard) is a rule-7-sized follow-up, not required for this phase's PASS.
+  - **F-2 (cosmetic):** the disclosure line renders the raw browser permission string verbatim (e.g. "Notifications: default" for an un-prompted user) rather than a friendlier label.
+  - **F-3 (informational):** boil-addition notifications carry the boil timer's own end anchor as their `anchorAtMs` rather than the addition's own instant — spec-permitted, since AC-18 only covers stage-completion notifications, not addition-specific ones.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite reproduces exactly (2,764 passed / 2 skipped across 137 files). No functional regression in any prior milestone's tests.
+
+### Verdict: **PASS-WITH-FINDINGS — M41_P1 (with Amendment 1) verified complete across all 3 layers.** Three non-blocking findings (F-1/F-2/F-3) logged for a future lightweight pass, none requiring `/diagnose`. AC-39/AC-40 (this phase's own real-device wake-lock and permission-denial checks) remain genuinely outstanding, joining Milestone 40's already-carried hardware-verification backlog. Proceeding to the steering checkpoint with both sets of outstanding items explicit.

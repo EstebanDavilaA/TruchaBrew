@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import type { BatchWithReadings, BatchWriteInput, CalculatedStats } from '@truchabrew/shared-types';
 import { strikeTemperatureC, buildBrewDayTimeline, BREW_DAY_STAGE_KEYS, type BrewDayStageKey } from '@truchabrew/calculations';
 import { playStepAlert } from '../utils/audioAlerts';
+import { createWakeLockController, isWakeLockSupported, type WakeLockController } from '../utils/wakeLock';
+import {
+  isNotificationSupported,
+  getNotificationPermission,
+  requestBrewDayNotificationPermission,
+  notifyBrewDayEvent,
+} from '../utils/brewDayNotifications';
 import { BrewDayTimelineBar } from './BrewDayTimelineBar';
 import { CARD_CLASS, SECTION_HEADING_CLASS, SUBPANEL_CLASS } from './designSystem';
 import { Button, NumberInput, Badge } from './ui';
@@ -240,6 +247,14 @@ export function BrewDayTracker({
 
   const prevBatchIdRef = useRef(batch.id);
 
+  // M41_P1 §1/§2 — one Wake Lock controller per tracker mount. The factory
+  // never throws (wakeLock.ts), so no try/catch is needed at the call site.
+  const wakeLockControllerRef = useRef<WakeLockController>(createWakeLockController());
+
+  // M41_P1 RA-4 — guards the once-per-session notification permission
+  // request so a Pause→Play cycle within the same mount doesn't re-prompt.
+  const hasRequestedNotificationPermissionRef = useRef(false);
+
   // Reset the whole tracker whenever a different batch mounts.
   useEffect(() => {
     if (prevBatchIdRef.current !== batch.id) {
@@ -346,6 +361,43 @@ export function BrewDayTracker({
 
   const remainingSec = remainingForKey(timerKey);
 
+  // M41_P1 RA-1 — Screen Wake Lock is bound EXCLUSIVELY to `running`: this is
+  // the only acquire/release trigger. Mounting with running===false acquires
+  // nothing (AC-6). The cleanup also releases, covering unmount-while-running
+  // (AC-5) with no separate completion-specific release call needed (AC-3) —
+  // the completion effect below just flips `running` to false, which re-runs
+  // this same effect.
+  useEffect(() => {
+    const controller = wakeLockControllerRef.current;
+    if (running) {
+      void controller.acquire();
+    } else {
+      void controller.release();
+    }
+    return () => {
+      void controller.release();
+    };
+  }, [running]);
+
+  // M41_P1 RA-1 behaviour 3 — browsers release wake locks automatically on
+  // visibility loss, so re-acquisition on return-to-visible is mandatory,
+  // not optional, and ONLY happens if `running` is still true (AC-8/AC-9/
+  // AC-10). Listener removed on unmount/dependency change (AC-13).
+  useEffect(() => {
+    function handleVisibilityChange() {
+      const controller = wakeLockControllerRef.current;
+      if (document.visibilityState === 'hidden') {
+        void controller.release();
+      } else if (document.visibilityState === 'visible' && running) {
+        void controller.acquire();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [running]);
+
   // Ensure the actively-running key always has a target end timestamp (e.g.
   // right after Play, or after switching mash steps while already running).
   useEffect(() => {
@@ -378,6 +430,15 @@ export function BrewDayTracker({
       setRemainingByKey((prev) => ({ ...prev, [timerKey]: 0 }));
       setRunning(false);
       playStepAlert('completion', { muted });
+      // M41_P1 RA-2/RA-3 — additive to the audio cue above, never a
+      // replacement; dedupes for free via this effect's own running &&
+      // remainingSec===0 one-shot (self-disarms by setting running=false).
+      notifyBrewDayEvent({
+        tag: timerKey,
+        title: 'Timer complete',
+        body: `${STAGE_HEADER_LABELS[stageKey]} timer complete`,
+        anchorAtMs: targetEndByKey[timerKey],
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingSec, running]);
@@ -390,6 +451,15 @@ export function BrewDayTracker({
     for (const alarm of boilAlarms) {
       if (elapsedSec >= alarm.atSec && !firedBoilAlarms.has(alarm.id)) {
         playStepAlert('warning', { muted });
+        // M41_P1 RA-2/RA-3/RA-8 — additive to the audio cue above; dedupe
+        // piggybacks on the existing firedBoilAlarms guard (no parallel
+        // "fired" bookkeeping); body reuses alarm.label verbatim.
+        notifyBrewDayEvent({
+          tag: alarm.id,
+          title: 'Addition due',
+          body: alarm.label,
+          anchorAtMs: targetEndByKey[timerKey],
+        });
         addFiredBoilAlarm(alarm.id);
       }
     }
@@ -398,6 +468,14 @@ export function BrewDayTracker({
 
   const handlePlay = () => {
     setRunning(true);
+    // M41_P1 RA-4 — requested AFTER setRunning(true), and its promise is
+    // NOT awaited, so a slow/ignored permission prompt can never delay or
+    // block the timer starting. Guarded so a Pause→Play cycle within this
+    // session doesn't re-prompt.
+    if (!hasRequestedNotificationPermissionRef.current && getNotificationPermission() === 'default') {
+      hasRequestedNotificationPermissionRef.current = true;
+      void requestBrewDayNotificationPermission();
+    }
   };
   const handlePause = () => {
     // Freeze the current wall-clock-derived remaining time into the
@@ -559,6 +637,18 @@ export function BrewDayTracker({
     );
   }
 
+  // M41_P1 §2/RA-5/AC-37/AC-38 — computed fresh every render from the live
+  // support/permission predicates, NEVER written into React state, so it
+  // cannot leak into the saveBrewDayState persistence path (BatchDetail.tsx
+  // builds that payload from a fixed, explicit set of fields — this value
+  // has no prop path into it, by construction).
+  const wakeLockStatusText = isWakeLockSupported() ? 'Screen wake lock: available' : 'Screen wake lock: unavailable';
+  const notificationPermission = getNotificationPermission();
+  const notificationStatusText = isNotificationSupported()
+    ? `Notifications: ${notificationPermission === 'granted' ? 'enabled' : notificationPermission}`
+    : 'Notifications: unavailable';
+  const handsFreeStatusText = `${wakeLockStatusText} · ${notificationStatusText}`;
+
   return (
     <div className={CARD_CLASS} data-testid="brew-day-tracker">
       <div className="flex items-center justify-between mb-4">
@@ -593,6 +683,13 @@ export function BrewDayTracker({
         activeStageIndex={activeStageIndex}
         onSelectStage={(idx) => setActiveStageIndex(idx)}
       />
+
+      {/* M41_P1 RA-5 — passive hands-free capability disclosure, so a
+          brewer learns before walking away rather than by missing an
+          addition. Purely derived text, never persisted (AC-38). */}
+      <div className="text-[11px] text-slate-400 mb-3 -mt-1" data-testid="brew-day-hands-free-status">
+        {handsFreeStatusText}
+      </div>
 
 
 

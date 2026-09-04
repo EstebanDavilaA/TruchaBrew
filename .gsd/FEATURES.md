@@ -734,6 +734,17 @@ Every entry follows this status progression:
   - Verbatim user note: *"the balance strategy adds more complexity to this screen. let's add that to the water profile where it can calculate the ions required as presets and let only the user pick here a water profile."*
   - This relocates existing strategy logic and data — crosses a milestone/phase boundary (touches the M37 solver's weights, profile schema/form, and calculator), so it is not a lightweight-task change; route through `/plan` as its own phase.
 
+### FEAT-045: `RAW_BUTTON_SUB_44PX_ALLOWLIST` Should Key on Content, Not Line Number
+- **Date Logged**: 2026-09-04
+- **Status**: `LOGGED`
+- **Category**: Test Infrastructure / Design-System Guardrails
+- **Components**: `apps/web/test/controlTargetSize.test.ts` (M40_P3's `RAW_BUTTON_SUB_44PX_ALLOWLIST` / `discoverSub44RawButtons`)
+- **Summary**: The M40_P3 frozen allowlist of known sub-44px raw `<button>` sites pins each entry by exact `file:line` (e.g. `"components/BrewDayTracker.tsx:541"`). Any unrelated edit that inserts code above one of these sites in the same file — a normal, expected kind of change — shifts the line number and fails the suite even though the flagged button itself is byte-identical and nothing about its touch-target status changed. This already happened once: M41_P1's spec-mandated additions to `BrewDayTracker.tsx` (imports/refs/effects required to sit above the existing `renderChecklist` function) pushed that file's one allowlisted button from line 541 to 619, requiring a same-phase amendment (M41_P1 Amendment 1) purely to update one fixture number with zero functional content change.
+- **Details**:
+  - **Irony**: M40_P1's own RA-5 explicitly states "the executor must not trust the line numbers if the file has shifted further... locate by content, not by line" — sound advice that M40_P3's own allowlist test does not follow for itself.
+  - **Fix direction**: key each allowlist entry on something more stable than an absolute line number — e.g. the button's `data-testid`/`aria-label` if present, a short surrounding-content snippet, or a stable ordinal ("the Nth raw `<button>` in file X") — so a legitimate, unrelated edit elsewhere in the same file doesn't require a fixture update purely for a line-number drift.
+  - Not folded into M41_P1's amendment (out of proportion to that phase's actual scope); logged here so it doesn't recur silently a third time on some future phase that happens to touch one of the other 14 allowlisted files.
+
 
 
 

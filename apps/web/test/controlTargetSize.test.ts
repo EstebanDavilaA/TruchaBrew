@@ -263,7 +263,7 @@ const RAW_BUTTON_SCAN_EXCLUDED_FILES = [path.join(UI_DIR, 'Button.tsx'), STICKY_
  * scope for this phase (RA-7/RA-10) — this is documented debt, not a gap.
  */
 const RAW_BUTTON_SUB_44PX_ALLOWLIST: string[] = [
-  'components/BrewDayTracker.tsx:541',
+  'components/BrewDayTracker.tsx:619',
   'components/CellarActionFeed.tsx:183',
   'components/EquipmentForm.tsx:399',
   'components/FermentationProfileForm.tsx:174',

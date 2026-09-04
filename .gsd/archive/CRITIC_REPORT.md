@@ -6772,3 +6772,73 @@ The check is `lines.some(line => !/^\s*export\s+const\s+NAME\s*=/.test(line) && 
 
 ## Verdict
 **PASS-WITH-FINDINGS** — all 19 automated ACs trace YES against the approved spec including Amendment 1's AC-20; no NO, no PARTIAL. Layer 1 independently reproduced green (2,713/2 skipped, typecheck, build, lint). F-1 is a weakness in the spec-authored guardrail mechanism rather than a deviation from it, and is non-blocking because `controlTargetSize.test.ts`'s AC-4/AC-7 independently pin the composition; it is recommended for a rule-7 lightweight follow-up. AC-19 (375px on-device dense-table confirmation), along with M40_P1's and M40_P2's outstanding on-device items, remains **manual-pending — not failed**; it is the user's to confirm at `/steer`. No route to `/diagnose`.
+
+---
+
+# CRITIC REPORT: M41_P1 — Hands-free at the kettle (incl. Amendment 1)
+
+**Date:** 2026-09-04
+**Auditor:** critic (claude-code), independent of the executor
+**Spec audited:** `.gsd/active/M41_P1_feature_spec.md` (40 original ACs + Amendment 1's AC-41) — the only spec read.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Play (running false→true) requests wake lock once | `useEffect([running])` at `BrewDayTracker.tsx:370-380` calls `controller.acquire()` on true; `acquire()` calls `wakeLock.request('screen')` once (`wakeLock.ts:57-70`) | YES |
+| AC-2 | Pause calls sentinel `release()` once, `isHeld()` false | Same effect's else-branch → `release()`; `release()` nulls the sentinel before awaiting (`wakeLock.ts:72-81`) | YES (see F-1) |
+| AC-3 | Zero-reach releases via the same running-driven effect, no completion-specific release | Completion effect (`:428-444`) only calls `setRunning(false)`; grep confirms no `release()` call outside `wakeLock.ts` and the two `[running]`/visibility effects | YES |
+| AC-4 | Skip/Prev/Reset/Global Reset release | All set `running=false`, re-running the single effect; no bespoke paths | YES |
+| AC-5 | Unmount while running releases once | Effect cleanup `return () => void controller.release()` | YES |
+| AC-6 | Mount with running===false requests zero times | Effect's else-branch on first run calls `release()` (a no-op with a null sentinel), never `acquire()` | YES |
+| AC-7 | Two Plays without Pause ⇒ one request | `running` does not change, so the effect does not re-run; plus `acquire()` short-circuits on `sentinel !== null` | YES |
+| AC-8 | `visibilitychange` hidden while running ⇒ release | `:386-399` handler, hidden branch | YES |
+| AC-9 | Return to visible while running ⇒ re-request | visible branch guarded by `&& running` | YES |
+| AC-10 | Return to visible while not running ⇒ zero requests | Same `&& running` guard; effect keyed `[running]` so the closure is current | YES |
+| AC-11 | API absent ⇒ Play still starts, no throw, countdown identical | `getNavigatorWakeLock()` returns undefined ⇒ `acquire()` returns false without touching anything; countdown derives only from `targetEndByKey` (`:352-358`) | YES |
+| AC-12 | `request()` rejecting ⇒ swallowed, running stays true | `try/catch` in `acquire()` returns false; call sites use `void`, never `await`, and never branch on the result | YES |
+| AC-13 | visibility listener removed on unmount | `removeEventListener` in cleanup | YES |
+| AC-14 | Boil alarm ⇒ Notification once, body = `alarm.label` verbatim, `tag = alarm.id` | `:457-462` — `body: alarm.label`, `tag: alarm.id`, no re-derivation | YES |
+| AC-15 | Same event also fires `playStepAlert('warning')` | `:453` immediately precedes; same `if` block, same guard | YES |
+| AC-16 | Each timer zero ⇒ one notification `tag === timerKey` alongside `playStepAlert('completion')` | `:432-441`, stage-agnostic (mash/boil/hopstand all route through `timerKey`) | YES |
+| AC-17 | No second notification for an already-fired alarm | Gated by the pre-existing `!firedBoilAlarms.has(alarm.id)` — the same guard as the audio cue (RA-3 honoured; no parallel fired-set was added) | YES |
+| AC-18 | `anchorAtMs === targetEndByKey[timerKey]` for completion | `:440` reads that exact expression | YES |
+| AC-19 | permission 'default' ⇒ first Play requests once; Pause→Play zero more | `handlePlay` `:469-479`, guarded by `hasRequestedNotificationPermissionRef` + `getNotificationPermission()==='default'` | YES |
+| AC-20 | No mount/app-load request | `requestBrewDayNotificationPermission` appears at exactly one call site (`handlePlay`); no mount effect, no module-scope call | YES |
+| AC-21 | Timer starts even if the permission promise never settles | `setRunning(true)` is the FIRST statement and the request is `void`-ed, never awaited | YES |
+| AC-22 | 'denied' ⇒ constructor never called, audio unchanged | `notifyBrewDayEvent` returns false before construction when `permission !== 'granted'`; the audio call is upstream and unconditional | YES |
+| AC-23 | `window.Notification` deleted ⇒ audio fires, no throw, permission 'unsupported' | `getNotificationCtor()` undefined ⇒ `'unsupported'` / `false`; call sites ignore the return | YES |
+| AC-24 | Zero boil alarms ⇒ one completion notification, zero addition ones | Boil loop iterates an empty array; completion path untouched | YES |
+| AC-25 | hopstand 0 ⇒ no hopstand notification, no lock for a stage that never runs | Lock is bound to `running` only (RA-1); no stage-length special-casing exists | YES |
+| AC-26 | Throwing constructor ⇒ returns false, no propagation | `try/catch` around `new ctor(...)` | YES |
+| AC-27 | Two new utils contain zero `setInterval`/`setTimeout`/`Date.now`/`performance.now` | Independently grepped both files: zero hits, including in comments (they deliberately avoid contiguous literals) | YES |
+| AC-28 | Tracker has exactly one `setInterval`; `Date.now()` count unchanged | Independently verified: current file has 1 `setInterval` and 8 `Date.now()`; `git show :apps/web/src/components/BrewDayTracker.tsx` (pre-phase content) also has 8 — the test's `PRE_PHASE_DATE_NOW_COUNT = 8` literal is honest, not back-fitted | YES |
+| AC-29 | No other `apps/web/src/` file references `wakeLock`/`Notification` | Sweep verified by reading it; independently confirmed by grep over the tree | YES |
+| AC-30 | Manifest-based scope guardrail lists only the authorized files | `git status --porcelain` shows exactly: M `BrewDayTracker.tsx`, M `controlTargetSize.test.ts`, ?? `wakeLock.ts`, ?? `brewDayNotifications.ts`, ?? `M41_P1_HandsFree.test.tsx`, plus `.gsd/` bookkeeping (`STATE.json`, `FEATURES.md`, `active/`). mtimes corroborate the two execution windows (10:49–10:53 original; 11:33 amendment, `controlTargetSize.test.ts` alone) | YES |
+| AC-31 | Zero `apps/api/`, `packages/`, `db/`; audioAlerts/BatchDetail/designSystem untouched | Confirmed — none appear in the working-tree change set | YES |
+| AC-32 | No new dependency | `package.json`/`package-lock.json` absent from the change set | YES |
+| AC-33 | `BrewDayTracker.test.tsx` passes unmodified | Absent from the change set; re-run green (24 tests) | YES |
+| AC-34 | `BatchDetail.test.tsx` / `BrewDayTimelineBar.test.tsx` unmodified & passing | Both absent from the change set; green in the full run | YES |
+| AC-35 | Four Layer 1 gates green | Layer 1 is `/verify`/`/steer`'s gate; targeted re-run here green (100/100 across the three most-affected suites). Full-suite reproduction is the orchestrator's Layer 1/3 duty, not restated as critic evidence | YES (as scoped) |
+| AC-36 | Both modified effects keep their `exhaustive-deps` disables | Present at `:443` and `:466`; neither effect's dependency array semantics changed | YES |
+| AC-37 | `brew-day-hands-free-status` renders and states which capabilities are active | `:645-651, 687-692` — `"Screen wake lock: available|unavailable · Notifications: enabled|denied|default|unavailable"`, derived from the live predicates at render | YES (see F-2) |
+| AC-38 | Status never in React state, never in the persisted payload | Traced directly: it is a plain `const` computed during render (`:645-650`), not `useState`; `BrewDayTrackerProps` gained no prop through which it could reach `BatchDetail`'s serialiser. The test's mirrored harness is corroboration, not the proof I relied on | YES |
+| AC-39 | [MANUAL] real-device wake-lock-stays-on | Not attempted, correctly represented as outstanding in STATE.json and the spec; no artefact anywhere claims it done | MANUAL-PENDING |
+| AC-40 | [MANUAL] denied-permission on-device regression | Same | MANUAL-PENDING |
+| AC-41 | Allowlist line for the checklist button corrected; nothing else in the file changes | `git diff` on `controlTargetSize.test.ts` is exactly one line: `:541` → `:619`. Independently verified the raw `<button data-testid="checklist-item-...">` really does begin at line 619 of the current tracker, and its classes/content are byte-identical to the pre-phase version | YES |
+
+## Test Suite Result
+- Targeted re-run: `M41_P1_HandsFree.test.tsx` 51 + `controlTargetSize.test.ts` 25 + `BrewDayTracker.test.tsx` 24 = **100/100 pass**. This does NOT imply correctness — see the trace and findings above/below.
+
+## Findings
+
+**Silent-fallback / mechanism-mislabeling sweep — clean.** Every `catch` in both new modules degrades to an honest negative (`false` / `'unsupported'`) that the caller deliberately ignores; none fabricates a success. No shim, polyfill, or synthesized substitute stands in for a named API — the wake lock really is `navigator.wakeLock.request('screen')` and the notification really is `new window.Notification(...)`, both read at call time as documented. **Critically, the named milestone-failure condition does not occur**: I read both firing sites directly, and the notifications are appended inside the two pre-existing effects, sharing the exact `remainingSec === 0` and `elapsedSec >= alarm.atSec && !firedBoilAlarms.has(...)` guards that already gate the audio. No second countdown, no new interval/timeout, no new `Date.now()` (count provably unchanged at 8 against the pre-phase file).
+
+- **F-1 (non-blocking, latent race, not an AC deviation):** `acquire()` is async, and the sentinel is only assigned after `await wakeLock.request(...)` resolves. A Play→Pause within the same microtask window means `release()` runs while `sentinel` is still `null` (a no-op) and the later-resolving `acquire()` then installs a sentinel with `running === false` — a leaked wake lock, contradicting Key Behavior 1's "while `running === false`, it is not [held]". No AC pins this ordering and the fakes resolve immediately, so nothing in Layer 1 could surface it. Fix is small (a generation counter or in-flight promise the release awaits/invalidates). Recommend a rule-7 lightweight follow-up or a FEATURES entry, not a `/diagnose` route.
+- **F-2 (cosmetic):** the disclosure line surfaces the raw permission string, so an un-prompted user reads `"Notifications: default"` — internal jargon in user-facing copy. AC-37 only requires the two renders to differ, which they do.
+- **F-3 (observation, spec-permitted):** boil-addition notifications carry `anchorAtMs: targetEndByKey[timerKey]` — the boil timer's end anchor, not the addition's own instant. AC-18 constrains completion events only, and the payload doc says "the `targetEndByKey` anchor this event derives from", which this is. A late-delivered addition notification therefore states the boil end, not the addition time; worth a sentence in a future phase if the payload is ever surfaced.
+- **AC-39/AC-40 honesty check:** verified — represented as outstanding manual-hardware items in the spec and STATE.json; nothing anywhere asserts they were satisfied.
+- **FEAT-045 verified present**, not merely claimed: `.gsd/FEATURES.md:737-742`, status `LOGGED`, correctly describing the line-vs-content fragility and citing the 541→619 shift.
+
+## Verdict
+**PASS-WITH-FINDINGS** — all 39 automated ACs (AC-1..AC-38 plus Amendment 1's AC-41) trace YES against the approved spec; zero NO, zero PARTIAL. Amendment 1's fix is exactly the one-line fixture correction it claims, verified against the real file rather than assumed. F-1 is a latent async race outside every AC's stated condition and is recommended as a rule-7 follow-up rather than a `/diagnose` route; F-2/F-3 are cosmetic. **AC-39/AC-40 remain manual-hardware-pending — not failed** — and are the user's to confirm at `/steer`.
