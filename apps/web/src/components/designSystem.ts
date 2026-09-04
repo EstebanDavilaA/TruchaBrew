@@ -36,25 +36,53 @@ export const METADATA_TEXT_CLASS = 'text-xs text-slate-400';
 export const MONO_VALUE_CLASS = 'font-mono tabular-nums tracking-tight';
 
 // ---------------------------------------------------------------------------
-// Buttons (M24_P1 / M29_P1)
+// Control sizing (M40_P1 CONTROL_HEIGHT_CLASS; M40_P3 CONTROL_MIN_HEIGHT_CLASS
+// / ICON_CONTROL_SIZE_CLASS)
+//
+// Declared ahead of the Buttons section (moved up from its original spot in
+// "4. Form controls & settings rows" below) so BUTTON_*_CLASS can compose
+// CONTROL_MIN_HEIGHT_CLASS / ICON_CONTROL_SIZE_CLASS via template literal —
+// a `const` used before its module-evaluation-order declaration would throw
+// a TDZ ReferenceError, so these three control-sizing tokens now live
+// together as one block, ahead of every consumer. No value changes.
+// ---------------------------------------------------------------------------
+
+/** Fixed 44px height for controls whose content never wraps to a second
+ * line (single-line inputs/selects). */
+export const CONTROL_HEIGHT_CLASS = 'h-11';
+
+/**
+ * CONTROL_MIN_HEIGHT_CLASS is a 44px FLOOR, not a fixed height: applied to
+ * text buttons, whose label can wrap to two lines at a narrow viewport
+ * (e.g. "Advance to Fermentation" at 375px) — a fixed h-11 would clip the
+ * second line, so min-h-11 lets the box grow while still guaranteeing
+ * >=44px (M40_P3 RA-3).
+ *
+ * ICON_CONTROL_SIZE_CLASS is a fixed 44x44 square for icon-only controls:
+ * a single glyph can never wrap, and both axes must be pinned — a
+ * 44-tall/32-wide target still fails WCAG 2.5.5 (M40_P3 RA-2).
+ */
+export const CONTROL_MIN_HEIGHT_CLASS = 'min-h-11';
+export const ICON_CONTROL_SIZE_CLASS = 'h-11 w-11';
+
+// ---------------------------------------------------------------------------
+// Buttons (M24_P1 / M29_P1; 44px height floor M40_P3)
 // ---------------------------------------------------------------------------
 
 export const BUTTON_PRIMARY_CLASS =
-  'bg-amber-600 hover:bg-amber-500 text-white font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50';
+  `${CONTROL_MIN_HEIGHT_CLASS} bg-amber-600 hover:bg-amber-500 text-white font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50`;
 export const BUTTON_SECONDARY_CLASS =
-  'bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2 rounded-lg border border-slate-700 transition-colors cursor-pointer disabled:opacity-50';
+  `${CONTROL_MIN_HEIGHT_CLASS} bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2 rounded-lg border border-slate-700 transition-colors cursor-pointer disabled:opacity-50`;
 export const BUTTON_DANGER_CLASS =
-  'bg-rose-950/80 hover:bg-rose-900 text-rose-200 font-semibold px-3 py-2 rounded-lg border border-rose-800 transition-colors cursor-pointer disabled:opacity-40';
+  `${CONTROL_MIN_HEIGHT_CLASS} bg-rose-950/80 hover:bg-rose-900 text-rose-200 font-semibold px-3 py-2 rounded-lg border border-rose-800 transition-colors cursor-pointer disabled:opacity-40`;
 export const BUTTON_ICON_CLASS =
-  'p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40';
+  `${ICON_CONTROL_SIZE_CLASS} p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40`;
 
 // ---------------------------------------------------------------------------
 // 4. Form controls & settings rows
 // ---------------------------------------------------------------------------
 
 export const FORM_LABEL_CLASS = 'block text-xs font-semibold text-slate-400 mb-1';
-
-export const CONTROL_HEIGHT_CLASS = 'h-10';
 
 export const INPUT_CLASS =
   'bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500';

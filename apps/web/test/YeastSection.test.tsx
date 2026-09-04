@@ -109,12 +109,12 @@ describe('M32_P3: YeastSection rendered behavior (AC-5, AC-6, AC-9..AC-14)', () 
     expect(screen.getAllByRole('spinbutton')).toHaveLength(2);
   });
 
-  it('AC-9: renders w-16, text-right, and compact band classes, without h-10 or rounded-lg', () => {
+  it('AC-9: renders w-16, text-right, and compact band classes, without h-11 or rounded-lg', () => {
     render(<YeastSection yeasts={[baseYeast]} onUpdate={vi.fn()} />);
     const input = screen.getByLabelText('SafAle US-05 attenuation %');
     expect(input).toHaveClass('w-16', 'text-right', 'px-2.5', 'py-1', 'text-xs', 'bg-slate-800', 'rounded');
     expect(input).not.toHaveClass('w-full');
-    expect(input).not.toHaveClass('h-10');
+    expect(input).not.toHaveClass('h-11');
     expect(input).not.toHaveClass('rounded-lg');
     expect(input).not.toHaveClass('px-3');
     expect(input).not.toHaveClass('text-sm');

@@ -169,23 +169,23 @@ describe('AC-23: out-of-scope elements are untouched (RA-11, RA-12, RA-13)', () 
 });
 
 describe('M32_P2 rendered behavior', () => {
-  it('AC-8/AC-9/AC-12: M-1 (time) has min=0, NO step attribute at all, and renders w-16 not w-full', () => {
+  it('AC-8/AC-9/AC-12: M-1 (time) has min=0, NO step attribute at all, and renders w-20 not w-full', () => {
     render(<MiscSection miscs={TWO_MISCS} onUpdate={vi.fn()} />);
     const input = screen.getByLabelText('Time in minutes for Irish Moss');
     expect(input.getAttribute('type')).toBe('number');
     expect(input.getAttribute('min')).toBe('0');
     expect(input.hasAttribute('step')).toBe(false);
-    expect(input).toHaveClass('w-16');
+    expect(input).toHaveClass('w-20');
     expect(input).not.toHaveClass('w-full');
   });
 
-  it('AC-8/AC-9/AC-12: M-2 (amount) has step=0.1, min=0, and renders w-16 not w-full', () => {
+  it('AC-8/AC-9/AC-12: M-2 (amount) has step=0.1, min=0, and renders w-20 not w-full', () => {
     render(<MiscSection miscs={TWO_MISCS} onUpdate={vi.fn()} />);
     const input = screen.getByLabelText('Amount of Irish Moss');
     expect(input.getAttribute('type')).toBe('number');
     expect(input.getAttribute('step')).toBe('0.1');
     expect(input.getAttribute('min')).toBe('0');
-    expect(input).toHaveClass('w-16');
+    expect(input).toHaveClass('w-20');
     expect(input).not.toHaveClass('w-full');
   });
 

@@ -20,19 +20,24 @@ describe('AC-18: designSystem.ts exports every constant in §3.4.1 with the exac
     expect(designSystem.MONO_VALUE_CLASS).toBe('font-mono tabular-nums tracking-tight');
   });
 
-  it('button primitives (M24_P1 / M29_P1)', () => {
+  it('button primitives (M24_P1 / M29_P1; 44px height floor M40_P3)', () => {
     expect(designSystem.BUTTON_PRIMARY_CLASS).toBe(
-      'bg-amber-600 hover:bg-amber-500 text-white font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50',
+      'min-h-11 bg-amber-600 hover:bg-amber-500 text-white font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50',
     );
     expect(designSystem.BUTTON_SECONDARY_CLASS).toBe(
-      'bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2 rounded-lg border border-slate-700 transition-colors cursor-pointer disabled:opacity-50',
+      'min-h-11 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-4 py-2 rounded-lg border border-slate-700 transition-colors cursor-pointer disabled:opacity-50',
     );
     expect(designSystem.BUTTON_DANGER_CLASS).toBe(
-      'bg-rose-950/80 hover:bg-rose-900 text-rose-200 font-semibold px-3 py-2 rounded-lg border border-rose-800 transition-colors cursor-pointer disabled:opacity-40',
+      'min-h-11 bg-rose-950/80 hover:bg-rose-900 text-rose-200 font-semibold px-3 py-2 rounded-lg border border-rose-800 transition-colors cursor-pointer disabled:opacity-40',
     );
     expect(designSystem.BUTTON_ICON_CLASS).toBe(
-      'p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40',
+      'h-11 w-11 p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40',
     );
+  });
+
+  it('M40_P3 AC-1, AC-2: CONTROL_MIN_HEIGHT_CLASS and ICON_CONTROL_SIZE_CLASS are exported with the exact documented values', () => {
+    expect(designSystem.CONTROL_MIN_HEIGHT_CLASS).toBe('min-h-11');
+    expect(designSystem.ICON_CONTROL_SIZE_CLASS).toBe('h-11 w-11');
   });
 
 
@@ -73,8 +78,8 @@ describe('AC-18: designSystem.ts exports every constant in §3.4.1 with the exac
     expect(designSystem.FORM_LABEL_CLASS).toBe('block text-xs font-semibold text-slate-400 mb-1');
   });
 
-  it('M30_P1 AC-2: CONTROL_HEIGHT_CLASS is exactly h-10', () => {
-    expect(designSystem.CONTROL_HEIGHT_CLASS).toBe('h-10');
+  it('M40_P1 AC-1 (revises M30_P1 AC-2): CONTROL_HEIGHT_CLASS is exactly h-11', () => {
+    expect(designSystem.CONTROL_HEIGHT_CLASS).toBe('h-11');
   });
 
   describe('M30_P1: the four form-control tokens (AC-3, AC-4, AC-6, AC-7, AC-18)', () => {

@@ -42,7 +42,7 @@ import { Modal } from './components/Modal';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Calculators } from './pages/Calculators';
 import { CARD_CLASS, MONO_VALUE_CLASS } from './components/designSystem';
-import { Button, NumberInput, Input, Badge } from './components/ui';
+import { Button, NumberInput, Input, Select, Badge } from './components/ui';
 import { Beer, Settings, Scale, Bookmark, ArrowLeft, AlertTriangle, Trash2, Folder, Tag } from 'lucide-react';
 
 
@@ -464,12 +464,14 @@ function AppInner() {
                 {!equipmentError && equipmentProfiles.length === 0 && (
                   <div className="bg-amber-950/40 border border-amber-800 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-sm text-amber-200">
                     <span>No equipment profiles yet — create one before starting a new recipe.</span>
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={goToEquipment}
-                      className="text-xs font-semibold bg-amber-900/60 hover:bg-amber-900 border border-amber-700 rounded px-3 py-1.5 transition-colors cursor-pointer flex-shrink-0"
+                      className="flex-shrink-0"
                     >
                       Go to Equipment Profiles
-                    </button>
+                    </Button>
                   </div>
                 )}
               </>
@@ -647,38 +649,38 @@ function AppInner() {
           title="Recipe Editor"
           onOpenMobileNav={() => setMobileNavOpen(true)}
           leading={
-            <button
+            <Button
+              variant="icon"
               onClick={goToLibrary}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-700 transition-colors cursor-pointer"
               title="Back to library"
               aria-label="Back to recipe library"
             >
               <ArrowLeft className="w-4 h-4" />
-            </button>
+            </Button>
           }
         >
           {editor.storedId !== null && (
 
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="sm"
               data-testid="recipe-delete"
               disabled={recipeDeleteBusy}
               onClick={() => {
                 setRecipeDeleteError(null);
                 setRecipeDeleteOpen(true);
               }}
-              className="text-rose-400 hover:text-rose-300 text-xs font-semibold px-3 py-2 rounded-lg border border-rose-900/60 hover:border-rose-700 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-rose-400 disabled:hover:border-rose-900/60"
             >
               <Trash2 className="w-3.5 h-3.5" /> Delete
-            </button>
+            </Button>
           )}
-          <button
-            onClick={openScaleModal}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
+          <Button variant="secondary" size="sm" onClick={openScaleModal}>
             <Scale className="w-4 h-4 text-amber-400" /> Scale Batch
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleBrewThis}
             disabled={!canBrewThis || brewThisBusy}
             title={
@@ -688,10 +690,9 @@ function AppInner() {
                   ? 'Save your changes before brewing this recipe'
                   : undefined
             }
-            className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Beer className="w-4 h-4" /> {brewThisBusy ? 'Brewing…' : 'Brew This'}
-          </button>
+          </Button>
           <SaveBar
             saveState={editor.saveState}
             saveError={editor.saveError}
@@ -735,43 +736,45 @@ function AppInner() {
       )}
 
         <div className={`${CARD_CLASS} flex flex-wrap items-center justify-between gap-4`}>
-          <div className="flex-1 min-w-[280px]">
-            <input
+          <div className="flex-1 w-full sm:min-w-[280px]">
+            <Input
+              variant="underline"
               type="text"
               aria-label="Recipe name"
               value={recipe.name}
               onChange={(e) => editor.setRecipe((prev) => ({ ...prev, name: e.target.value }))}
-              className="text-2xl font-bold bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-white focus:outline-none w-full py-0.5"
+              className="text-2xl font-bold text-white py-0.5 focus:outline-none"
               placeholder="Recipe Name"
             />
             {/* Recipe metadata strip — style, brewer, folder, and tag entry
                 all horizontally aligned on one flex line (flex-wrap drops onto
-                new lines on narrow widths). The name/style/brewer inputs are
-                pre-existing raw <input>s, left untouched; the folder/tag
-                controls use the ui/ Input primitive (AC-20) with
-                variant="underline" and an inline focus treatment so they
-                match the surrounding underline metadata inputs. */}
+                new lines on narrow widths). The name/style/brewer inputs now
+                route through the ui/ Input primitive (variant="underline",
+                M40_P2), alongside the folder/tag controls (AC-20, M38_P3) —
+                all four share the same inline focus treatment so they match. */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-slate-400">
               <span className="flex items-center gap-1 text-slate-300">
                 <Bookmark className="w-3.5 h-3.5 text-amber-500" />
-                <input
+                <Input
+                  variant="underline"
                   type="text"
                   aria-label="Style name"
                   value={recipe.styleName}
                   onChange={(e) => editor.setRecipe((prev) => ({ ...prev, styleName: e.target.value }))}
-                  className="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-slate-300 focus:outline-none"
+                  className="focus:outline-none"
                   placeholder="Style Name"
                 />
               </span>
               <span>•</span>
-              <span>
+              <span className="flex items-center gap-1">
                 Brewer:{' '}
-                <input
+                <Input
+                  variant="underline"
                   type="text"
                   aria-label="Brewer"
                   value={recipe.author}
                   onChange={(e) => editor.setRecipe((prev) => ({ ...prev, author: e.target.value }))}
-                  className="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 text-slate-200 focus:outline-none"
+                  className="text-slate-200 focus:outline-none"
                   placeholder="Brewer"
                 />
               </span>
@@ -849,12 +852,11 @@ function AppInner() {
 
           <div className="flex items-center gap-3 bg-slate-800/60 p-3 rounded-lg border border-slate-800">
             <Settings className="w-4 h-4 text-slate-400" />
-            <div className="text-xs">
+            <div className="text-xs min-w-0">
               <div className="text-slate-400 font-medium mb-0.5">Equipment Profile</div>
-              <select
+              <Select
                 value={recipe.equipment.id}
                 onChange={(e) => handleEquipmentChange(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500 font-medium"
               >
                 {!equipmentProfiles.some((eq) => eq.id === recipe.equipment.id) && (
                   <option value={recipe.equipment.id}>
@@ -866,7 +868,7 @@ function AppInner() {
                     {eq.name} ({formatVolume(eq.batchSizeL, config.unitSystem)})
                   </option>
                 ))}
-              </select>
+              </Select>
               {equipmentError && <div className="text-rose-400 mt-1">{equipmentError}</div>}
             </div>
           </div>

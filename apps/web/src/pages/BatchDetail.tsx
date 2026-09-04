@@ -1070,7 +1070,7 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
                 className="w-full text-left cursor-pointer group"
               >
                 <div className="flex flex-wrap items-center gap-3">
-                  <p className="text-2xl font-bold text-white group-hover:text-amber-400 transition-colors">{batch.name}</p>
+                  <p className="text-2xl font-bold text-white group-hover:text-amber-400 transition-colors min-w-0 break-words">{batch.name}</p>
                   {statusBadge}
                 </div>
                 <p className={`${METADATA_TEXT_CLASS} mt-2`}>
@@ -1343,7 +1343,7 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
 
               {/* Live Fermentation Vitals Dashboard (AC-12) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className={METRIC_TILE_CLASS} data-testid="attenuation-figure">
+                <div className={`${METRIC_TILE_CLASS} min-w-0`} data-testid="attenuation-figure">
                   <div className={METRIC_LABEL_CLASS}>Apparent Attenuation</div>
                   <div className={`${METRIC_VALUE_CLASS} text-amber-400 font-mono tabular-nums`}>
                     {fermentationProgress.hasGravityReading ? `${fermentationProgress.apparentAttenuationPct.toFixed(1)}%` : '—'}
@@ -1355,14 +1355,14 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
                   )}
                 </div>
 
-                <div className={METRIC_TILE_CLASS} data-testid="live-abv-figure">
+                <div className={`${METRIC_TILE_CLASS} min-w-0`} data-testid="live-abv-figure">
                   <div className={METRIC_LABEL_CLASS}>Estimated Live ABV</div>
                   <div className={`${METRIC_VALUE_CLASS} text-amber-400 font-mono tabular-nums`}>
                     {liveEstimatedAbv !== null ? `${liveEstimatedAbv.toFixed(1)}%` : '—'}
                   </div>
                 </div>
 
-                <div className={METRIC_TILE_CLASS} data-testid="live-gravity-figure">
+                <div className={`${METRIC_TILE_CLASS} min-w-0`} data-testid="live-gravity-figure">
                   <div className={METRIC_LABEL_CLASS}>Current Gravity</div>
                   <div className={`${METRIC_VALUE_CLASS} text-slate-100 font-mono tabular-nums`}>
                     {latestReading?.sg !== null && latestReading?.sg !== undefined ? latestReading.sg.toFixed(3) : '—'}
@@ -1370,7 +1370,7 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
                   <div className="text-xs text-slate-400 mt-1 font-mono tabular-nums">Target FG: {stats?.fg.toFixed(3)}</div>
                 </div>
 
-                <div className={METRIC_TILE_CLASS} data-testid="live-temp-pressure-figure">
+                <div className={`${METRIC_TILE_CLASS} min-w-0`} data-testid="live-temp-pressure-figure">
                   <div className={METRIC_LABEL_CLASS}>Current Temp / Pressure</div>
                   <div className={`${METRIC_VALUE_CLASS} text-slate-100 font-mono tabular-nums`}>
                     {latestReading?.tempC !== null && latestReading?.tempC !== undefined ? `${latestReading.tempC.toFixed(1)}°C` : '—'}

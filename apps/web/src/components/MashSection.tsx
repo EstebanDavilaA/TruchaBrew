@@ -67,7 +67,7 @@ export const MashSection: React.FC<MashSectionProps> = ({
 
           {mashPlan.hasMashProfile && (
             <div data-testid="mash-plan">
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/60">
                   <div className="text-xs text-slate-400 font-medium mb-1 flex items-center gap-1">
                     <Droplets className="w-3.5 h-3.5 text-sky-400" /> Strike Water

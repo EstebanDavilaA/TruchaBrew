@@ -667,7 +667,7 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
                           <NumberInput
                             type="number"
                             size="sm"
-                            width="lg"
+                            width="full"
                             align="right"
                             id={`mash-salt-${name}`}
                             aria-label={`Mash ${name}`}
@@ -687,7 +687,7 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
                           <NumberInput
                             type="number"
                             size="sm"
-                            width="lg"
+                            width="full"
                             align="right"
                             id={`sparge-salt-${name}`}
                             aria-label={`Sparge ${name}`}
@@ -795,7 +795,7 @@ export const WaterCalculatorModal: React.FC<WaterCalculatorModalProps> = ({
                   aria-label="Acid Type"
                   value={acidType}
                   onChange={(e) => setAcidType(e.target.value as AcidType)}
-                  className="min-w-[170px]"
+                  className="sm:min-w-[170px]"
                 >
                   {ACID_TYPES.map((t) => (
                     <option key={t} value={t}>{t}</option>

@@ -92,7 +92,7 @@ export function BackupRestoreModal({ isOpen, backup, onClose, onRestored }: Back
           </h2>
         </div>
 
-        <div className={`${CARD_CLASS} !p-3 mb-4 grid grid-cols-3 gap-2`} data-testid="backup-restore-metadata">
+        <div className={`${CARD_CLASS} !p-3 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2`} data-testid="backup-restore-metadata">
           <div>
             <div className={METADATA_TEXT_CLASS}>Exported</div>
             <div className="text-xs text-slate-200 font-medium">{new Date(backup.exportedAt).toLocaleString()}</div>

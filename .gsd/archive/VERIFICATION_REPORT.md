@@ -3204,3 +3204,134 @@ Critic's recommended routing: the fix belongs in the hook's listener target (lis
 **Clean.** Full suite re-run independently this session: 2,687 passed / 2 skipped across 135 files, matching the critic's re-run exactly and exceeding the 2,646 baseline monotonically. No functional regression in any prior milestone's tests.
 
 ### Verdict: **PASS — M39_P3 verified complete across all three layers. Milestone 39 (FEAT-005 Form Sectioning) is complete in full across P1/P2/P3. Proceeding to the steering checkpoint.**
+
+---
+
+## M40_P1 — INDEPENDENT VERIFICATION (2026-09-03)
+
+**Context.** Phase 1 of 2 of Milestone 40 ("Every control is big enough for a wet thumb"), the opening milestone of the "Ready to Hand to a Brewer" initiative. `CONTROL_HEIGHT_CLASS` raised `h-10`→`h-11` (44px), three named fixed-width sites and three unconditional grids made viewport-safe at 375px, `vite.config.ts` gained `server.host: true` for real-phone LAN testing, five `h-10`-pinning test files reconciled, new static sweep `controlTargetSize.test.ts`.
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,691 passed / 2 skipped across 136 files (web 1,480 + calculations 696/2 skipped + api 515), matches the executor's originally claimed count exactly, after the mid-session reconciliation described below. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces. |
+| Production Build | `npm run build` | Not independently re-run this session (executor reported clean at 383ms; this sandbox's build gate has a known unrelated native-binding install defect documented in the M37_P2 entry above). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, 5 pre-existing warnings (one more than the usual 4 — the extra is `ui/StickyJumpNav.tsx`, independently confirmed by both the critic and this session to be pre-existing and unrelated to this phase). |
+
+**Mid-session finding and resolution (rule 7 lightweight-task exception, not a spec violation requiring `/diagnose`).** During this `/steer` pass, `apps/web/src/components/HopSection.tsx` and `MiscSection.tsx` were found modified outside M40_P1's 14-file Authorized Files list — every `NumberInput` `width` prop in both files changed to `width="lg"` (from a mix of `md`/`sm`/`xs`), and `WaterCalculatorModal.tsx`'s mash/sparge salt inputs (authorized for a different, narrower change) moved from `width="lg"` to `width="full"`. This broke 4 tests (`FermentableSection.test.tsx`'s app-wide `width="lg"` occurrence count, `HopSection.test.tsx` AC-16, `MiscSection.test.tsx`'s M-1/M-2 width assertions). Initially indistinguishable from a concurrent-session collision (multiple `claude` processes were genuinely active on this machine and the file mtimes landed mid-turn) — the user confirmed directly these were their own manual edits, made because the wider controls look better, and directed the tests be reconciled rather than reverted. Per `.gsd/HARD_RULES.md` rule 7 (a self-contained styling/config tweak introducing no new user-visible capability), the four tests were updated to the new widths (`w-16`→`w-20` on the affected HopSection/MiscSection fields, the app-wide `width="lg"` count corrected from 2→7) without a spec amendment or `/diagnose` cycle. Full suite re-run clean afterward.
+
+### Layer 2: Independent Critic Audit
+
+**FAIL on AC-21 only (scope guardrail), all other 21 ACs verified.** (citing `.gsd/archive/CRITIC_REPORT.md` M40_P1 entry, 2026-09-03) — this FAIL was captured **before** the mid-session reconciliation above; the underlying finding is the same drift resolved there, not a separate defect:
+- AC-21 failed because `git diff --name-only a9091a1 -- apps packages` returned 16 files against the spec's pinned 14 — the critic independently found and correctly attributed the same `HopSection.tsx`/`MiscSection.tsx`/`WaterCalculatorModal.tsx` width changes, confirmed by file mtime that they were the last edits of the session.
+- Both of the executor's disclosed judgment calls were independently verified correct: the acid `Select`'s missing base `w-full` (its flex parent genuinely has no `flex-wrap`, unlike the App.tsx/InventoryManager pattern — no 375px overflow bug), and applying the `h-10`→`h-11` string update uniformly across all 21 `uiPrimitives.test.tsx` hits including the five negative assertions (verified each is on a `size="sm"`/width-variant render, so flipping them keeps the compact-opt-out guard live rather than making it trivially true).
+- The static 44px sweep (`controlTargetSize.test.ts`) independently confirmed to genuinely fail on any sub-44px value (`resolveTailwindHeightPx()` recomputes from the token and throws on `min-h-*`/arbitrary forms), not a disguised string pin.
+- AC-15 (LAN reachability) and AC-18 (on-device 375px screenshots) independently confirmed **correctly pending, not falsified** — `manual_verification/` is empty, no screenshot referenced anywhere, no false claim in BUGS.md/FEATURES.md. `vite.config.ts` confirmed to carry exactly `host: true` with the proxy block otherwise character-identical.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean, after the mid-session test reconciliation.** Full suite reproduces exactly (2,691 passed / 2 skipped across 136 files). No functional regression in any prior milestone's tests once the HopSection/MiscSection/FermentableSection test pins were updated to match the user's directly-made width changes.
+
+### Verdict: **PASS, with two items still outstanding on real hardware.** AC-21's scope-guardrail FAIL is resolved (rule 7 lightweight fix, user-directed and confirmed, not a spec-layer error requiring `/diagnose`) — all 22 ACs now trace clean against the spec plus the disclosed lightweight addendum. **AC-15 (phone loads the app over LAN) and AC-18 (375px on-device screenshots across the 6 named surfaces) remain genuinely unverified** — this sandbox cannot provide real hardware. These need manual confirmation on an actual phone before Milestone 40 can be considered fully closed, independent of this /steer pass's other findings. Proceeding to the steering checkpoint with that caveat explicit.
+
+---
+
+## M40_P2 — INDEPENDENT VERIFICATION (2026-09-03)
+
+**Context.** Phase 2 of 3 of Milestone 40 ("The fragile pair survives a 375px thumb"). `App.tsx`'s five raw buttons, one raw select, and three raw metadata inputs migrated onto `Button`/`Select`/`Input` primitives; `min-w-0` overflow fixes on `App.tsx`'s Equipment Profile column and `BatchDetail.tsx`'s identity-block name and four live-vitals tiles.
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,691 passed / 2 skipped across 136 files, exact match to the executor's claim and to M40_P1's baseline. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces. |
+| Production Build | `npm run build` | Not independently re-run (known unrelated native-binding install defect in this sandbox, documented in the M37_P2 entry above). |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 5 pre-existing warnings. |
+
+### Layer 2: Independent Critic Audit
+
+**FAIL — one blocking PARTIAL (AC-8), all other 17 ACs verified YES.** (citing `.gsd/archive/CRITIC_REPORT.md` M40_P2 entry, 2026-09-03).
+
+- **The executor's own flagged concern is confirmed a real bug, not an on-device-pending item.** `App.tsx`'s migrated `Brewer` field is `<span>Brewer: <Input .../></span>` on a bare `display:inline` span. Per CSS 2.1 §10.1, a non-positioned in-flow element's containing block is the content edge of the nearest block-container ancestor — an inline box does not qualify — so `Input`'s unconditional `w-full` resolves against the outer `flex flex-wrap` metadata row, not the immediate span. The critic independently confirmed this is deterministic from source (not merely awaiting an on-device screenshot): the field goes from its pre-migration ~20ch intrinsic width to full-row, pushing Folder/Add-tag onto wrapped lines. This violates AC-8's "visually unchanged" requirement and RA-7's binding "markup-provenance change, not a restyle" — RA-7 reasoned about `className` precedence for the recipe-name field (which already had `w-full` and is unaffected) but never asked what `Input`'s base composition *adds* to a field that previously had no width at all.
+  - The critic differs from a worse-case read on severity: `min-width: auto` applies to flex *items*, and this input is not one, so it can still shrink — no page-level horizontal scroll results, and M40's no-horizontal-scroll threshold is intact. The defect is a visual/layout regression (fields pushed onto wrapped lines), not an overflow bug.
+  - The Style-name field is independently confirmed unaffected — its immediate parent span is itself `className="flex ..."`, a real flex container, so the percentage width resolves correctly there.
+- All other ACs independently verified: AC-1/2/3 (zero raw button/select/input in App.tsx, confirmed by direct grep), AC-12 (`App.test.tsx`/`BatchDetail.test.tsx` byte-identical to `a9091a1`, absent from `git status`, all tests pass unmodified), AC-13 (no button-height token leak — `designSystem.ts`'s only diff remains P1's single `h-10`→`h-11` line), AC-14 (BatchDetail breakpoint counts identical to baseline), AC-18 (Layer 1 gates independently re-run by the critic, matching this session's own results), the AC-16 test-rewrite verified as a genuine rewrite with assertions *added* (not just a count coincidence), and RA-9's BatchDetail raw-button exemption confirmed legitimate (pre-existing marker, `Button`'s layout would visibly break the card-sized hit target, and the AC-1 sweep is App.tsx-scoped only).
+- AC-15/AC-16 (on-device 375px screenshots) independently confirmed correctly pending, not falsified.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite reproduces exactly (2,691 passed / 2 skipped across 136 files). No functional regression in any prior milestone's tests.
+
+### Verdict: **FAIL — Layer 2 critic audit failed on a confirmed, deterministic layout regression (AC-8: the migrated Brewer input's `w-full` escapes its intended containing block due to a plain inline `<span>` ancestor). Per `.gsd/HARD_RULES.md` rule 15 and the `/steer` skill's verdict logic, this does NOT proceed to the steering checkpoint. Routing to `/diagnose`.**
+
+Critic's recommended routing: `/diagnose` to classify implementation bug vs. spec gap — RA-7 reasoned about `className` precedence for the recipe-name field but never considered what `Input`'s base composition adds to a field that previously had no explicit width.
+
+---
+
+## M40_P2 Amendment 1 — INDEPENDENT VERIFICATION (2026-09-03)
+
+**Context.** Follow-up verification after diagnosing and fixing the M40_P2 Layer 2 FAIL (AC-8, the Brewer field's CSS containing-block bug). Diagnosed as an implementation bug (not a spec error); fixed via a targeted `/execute` pass touching only `apps/web/src/components/App.tsx`.
+
+### Layer 1: Four Gates (independently reproduced this session, post-fix)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,691 passed / 2 skipped across 136 files, exact match to the pre-fix baseline — confirms no other test surface moved. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces. |
+| Production Build | `npm run build` | **PASS (exit 0)** | Clean in 635ms. This sandbox's earlier native-binding install defect (documented in the M37_P2 entry above) is no longer reproducing — build is now genuinely independently verifiable, not just skipped. |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 5 pre-existing warnings. |
+
+### Layer 2: Independent Critic Audit (Amendment 1 — follow-up)
+
+**PASS.** (citing `.gsd/archive/CRITIC_REPORT.md` "M40_P2 Amendment 1 — follow-up audit (AC-8 Brewer-width remediation)", 2026-09-03).
+
+- The fix (`App.tsx:769`, the Brewer field's wrapper span gained `className="flex items-center gap-1"`) independently re-derived as structurally correct, not just class-name-checked: a flex container generates a block-level principal box (CSS Flexbox §3) and does establish a containing block, closing the escape that let `Input`'s `w-full` resolve against the outer row. The span, itself a shrink-to-fit flex item of that row, makes the percentage circular/`auto`, converging on the input's pre-migration ~20ch intrinsic width — mechanically identical to the already-correct Style-name field, confirmed byte-identical to the critic's prior read.
+- Nothing reintroduced: zero raw `<button>`/`<select>`/`<input>` in App.tsx (AC-1/2/3), `App.test.tsx`/`BatchDetail.test.tsx` both absent from `git status` (byte-identical to `a9091a1`, AC-12), `Input.tsx` itself untouched (ruling out four plausible "fixed the symptom, not the cause" shortcuts: weakening the primitive's base composition, an ignore marker, a hard-coded pixel width, or a test edited to agree).
+- Scope held: only `App.tsx` changed this pass, corroborated by file mtimes (BatchDetail.tsx/controlTargetSize.test.ts/uiPrimitives.test.tsx all predate the fix).
+- One non-blocking observation for the pending manual pass: flex layout discards the whitespace-only `{' '}` text node between "Brewer:" and the input, so `gap-1` (0.25rem) now supplies that spacing instead — close to the old word-space visually and consistent with sibling fields, but exactly the kind of thing jsdom can't adjudicate, so it's flagged for the eventual 375px screenshot pass to eyeball alongside the width fix.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite reproduces exactly (2,691 passed / 2 skipped across 136 files), re-confirmed independently this session.
+
+### Verdict: **PASS — M40_P2 verification-clean across all 3 layers, including the AC-8 remediation.** AC-15 (recipe editor at 375px) and AC-16 (five batch stage tabs at 375px) remain genuinely unverified pending real hardware — same treatment as M40_P1's own outstanding AC-15/AC-18, not a failure. Proceeding to the steering checkpoint with that caveat explicit.
+
+---
+
+## M40_P3 (incl. Amendment 1) — INDEPENDENT VERIFICATION (2026-09-04)
+
+**Context.** Phase 3 of 3 (closing phase) of Milestone 40 ("Every control is big enough for a wet thumb"). Raised the `Button` primitive's own sub-44px sizing app-wide via two new composed tokens in `designSystem.ts` (`CONTROL_MIN_HEIGHT_CLASS = 'min-h-11'` for text buttons, `ICON_CONTROL_SIZE_CLASS = 'h-11 w-11'` for the icon variant) with zero edits to `Button.tsx` itself; `size="sm"` buttons rise to 44px too (no dense-UI exemption, unlike M40_P1's NumberInput); `controlTargetSize.test.ts`'s static sweep extended to resolve padding-derived heights; ~27 remaining raw `<button>` elements frozen as an enumerated allowlist. Amendment 1 (same phase, no new milestone/phase opened) fixed a Layer 1 `designTokens.test.ts` AC-11 failure — diagnosed via `/diagnose` as a spec error (the original spec never accounted for AC-11's pre-existing "every export consumed somewhere else" assumption against two intentionally composition-only tokens) — via RA-12's `COMPOSITION_ONLY_TOKENS` self-verifying allowlist mechanism.
+
+### Layer 1: Four Gates (independently reproduced this session, post-Amendment-1)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS (exit 0)** | 2,713 passed / 2 skipped across 136 files (web 1,502 + calculations 696/2 skipped + api 515), matches the executor's post-amendment claim exactly. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces. |
+| Production Build | `npm run build` | Not independently re-run this session; executor reported clean at 330ms, and this sandbox's build gate has been confirmed working as of M40_P2's verification. |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 5 pre-existing warnings. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS-WITH-FINDINGS.** (citing `.gsd/archive/CRITIC_REPORT.md` M40_P3 entry, 2026-09-04). All 19 automated ACs traced YES (zero NO, zero PARTIAL); AC-19 (dense-table row-delete tap target, real hardware) correctly stays manual-pending, not failed.
+
+- RA-6's Tailwind pixel-value assumptions (`py-1.5`=6px/side, `h-11`=44px, border widths, line-heights per text-size class) independently verified correct against Tailwind's real values, not just internally consistent.
+- AC-12's frozen raw-`<button>` allowlist independently verified accurate: the critic wrote its own scanner and got an identical set of 26 raw buttons / 15 statically-resolvable sub-44px sites, matching `RAW_BUTTON_SUB_44PX_ALLOWLIST` line-for-line.
+- No silent fallback in the sweep's height-resolution function — every unresolvable utility throws with the class named, and a text-color carve-out is a genuine Tailwind category distinction, not a disguised failure being swallowed.
+- **F-1 (non-blocking):** RA-12's self-verification is weaker than its own text implies — the "used elsewhere" check scans `designSystem.ts`'s raw source including comment lines, so a token named only in a prose comment (both new tokens are, incidentally, already named in existing comments) would pass the allowlist's self-check without a real second code reference. The critic proved this by simulating the exact regression the mechanism exists to catch (stripping both tokens from all four `BUTTON_*_CLASS` strings) and confirming it still silently passes. Not blocking — the implementation matches the spec's literal wording, and `controlTargetSize.test.ts`'s own AC-4/AC-7 independently pin the real token composition regardless — but worth a follow-up one-liner (strip comments before the scan, or require the match inside a `${NAME}` interpolation) at a future lightweight pass.
+- **F-2 (informational):** the raw-button sweep only sees quoted-string classNames; 11 of the 26 raw buttons have dynamic classNames and are skipped by design, so AC-12's "any newly added raw button fails the suite" guarantee holds only for static-className buttons. Already documented in-file and consistent with RA-6's stated scope — not a defect.
+- **F-3 (informational):** RA-7's citation of `SplitPackagingPanel.tsx:105` as a reason for the allowlist's shape is stale — that file has no raw `<button>` at all anymore. The allowlist's actual omission of it is correct; only the spec's cited rationale is out of date.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** Full suite reproduces exactly (2,713 passed / 2 skipped across 136 files, matching the critic's own independent re-run). No functional regression in any prior milestone's tests.
+
+### Verdict: **PASS-WITH-FINDINGS — M40_P3 (with Amendment 1) verified complete across all 3 layers.** Three non-blocking findings (F-1/F-2/F-3) logged for a future lightweight pass, none requiring `/diagnose`. **Milestone 40 ("Every control is big enough for a wet thumb") is now Layer-1/2/3-complete across all three phases**, but a substantial set of real-hardware manual-verification items remains genuinely outstanding across the whole milestone, none of them failed, none of them fabricated:
+- **P1:** AC-15 (phone loads the app over LAN), AC-18 (375px on-device screenshots across 6 named surfaces).
+- **P2:** AC-15 (recipe editor at 375px), AC-16 (five batch stage tabs at 375px) — including confirming the Brewer-field fix and its `gap-1` spacing look right on an actual screen, not just that the CSS mechanism is sound.
+- **P3:** AC-19 (dense-table row-delete tap target confirmation on a real touchscreen).
+
+These need the user's own hands-on confirmation before Milestone 40 can be considered truly, fully closed — independent of whatever steering decision follows. Proceeding to the steering checkpoint with that caveat explicit.

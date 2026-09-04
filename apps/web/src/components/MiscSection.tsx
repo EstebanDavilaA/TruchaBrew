@@ -85,7 +85,7 @@ export const MiscSection: React.FC<MiscSectionProps> = ({ miscs, onUpdate, secti
                     value={item.timeMinutes}
                     onChange={(e) => handleTimeChange(item.id, parseInt(e.target.value, 10) || 0)}
                     aria-label={`Time in minutes for ${item.name}`}
-                    width="md"
+                    width="lg"
                     size="sm"
                     align="right"
                   />
@@ -98,7 +98,7 @@ export const MiscSection: React.FC<MiscSectionProps> = ({ miscs, onUpdate, secti
                     value={item.amount}
                     onChange={(e) => handleAmountChange(item.id, parseFloat(e.target.value) || 0)}
                     aria-label={`Amount of ${item.name}`}
-                    width="md"
+                    width="lg"
                     size="sm"
                     align="right"
                   />

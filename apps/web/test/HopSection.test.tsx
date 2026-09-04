@@ -386,11 +386,11 @@ describe('M32_P1: source sweeps (AC-10 through AC-15, AC-28)', () => {
 
   it('AC-16: table-row widths render correctly', () => {
     renderHopSection([widthBoilHop, widthWhirlpoolHop, widthDryHop]);
-    expect(screen.getByLabelText('Boil minutes')).toHaveClass('w-16');
-    expect(screen.getByLabelText('Whirlpool minutes')).toHaveClass('w-16');
-    expect(screen.getByLabelText('Whirlpool temp')).toHaveClass('w-14');
-    expect(screen.getByLabelText('Dry hop day offset')).toHaveClass('w-12');
-    expect(screen.getByLabelText('Dry hop duration days')).toHaveClass('w-12');
+    expect(screen.getByLabelText('Boil minutes')).toHaveClass('w-20');
+    expect(screen.getByLabelText('Whirlpool minutes')).toHaveClass('w-20');
+    expect(screen.getByLabelText('Whirlpool temp')).toHaveClass('w-20');
+    expect(screen.getByLabelText('Dry hop day offset')).toHaveClass('w-20');
+    expect(screen.getByLabelText('Dry hop duration days')).toHaveClass('w-20');
     expect(screen.getByLabelText('Citra amount (g)')).toHaveClass('w-16');
     expect(screen.getByLabelText('Citra alpha acid %')).toHaveClass('w-16');
   });

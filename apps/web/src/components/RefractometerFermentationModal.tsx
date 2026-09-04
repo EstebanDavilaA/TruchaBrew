@@ -144,7 +144,7 @@ export function RefractometerFermentationModal({
             <span className="text-[11px] text-slate-400">Standard wort default is 1.04</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <div className={METRIC_TILE_CLASS}>
               <div className={METRIC_LABEL_CLASS}>Uncorrected SG (Raw)</div>
               <div className={`text-base font-bold text-slate-400 mt-1 line-through ${MONO_VALUE_CLASS}`}>

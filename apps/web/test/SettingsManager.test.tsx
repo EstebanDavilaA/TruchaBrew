@@ -335,7 +335,7 @@ describe('AC-5: every <select> in SettingsManager applies Select primitive class
       'settings-select-abvFormula',
     ]) {
       const el = screen.getByTestId(testId);
-      expect(el).toHaveClass('w-full', 'h-10', 'bg-slate-800', 'border-slate-700', 'text-slate-200');
+      expect(el).toHaveClass('w-full', 'h-11', 'bg-slate-800', 'border-slate-700', 'text-slate-200');
     }
   });
 });

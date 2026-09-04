@@ -209,7 +209,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ onOpenMobile
       </TopBar>
       <PageContainer>
         <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <div className="relative flex-1 w-full sm:min-w-[200px] max-w-sm">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
               type="text"

@@ -145,13 +145,14 @@ function walkAppSrc(dir: string, out: string[] = []): string[] {
 }
 
 describe('AC-3: width="lg" and width="xl" app-wide consumers (F-2, F-1)', () => {
-  // WaterCalculatorModal's 10 salt-dosage inputs use NumberInput width="lg" (2 source instances).
-  it('width="lg" appears exactly 2 times across apps/web/src (WaterCalculatorModal)', () => {
+  // HopSection's 5 table-row inputs and MiscSection's 2 (time/amount) inputs use
+  // NumberInput width="lg"; WaterCalculatorModal's salt-dosage inputs moved to width="full".
+  it('width="lg" appears exactly 7 times across apps/web/src (HopSection, MiscSection)', () => {
     let total = 0;
     for (const file of walkAppSrc(APP_SRC_DIR)) {
       total += (fs.readFileSync(file, 'utf-8').match(/width="lg"/g) ?? []).length;
     }
-    expect(total).toBe(2);
+    expect(total).toBe(7);
   });
 
   it('width="xl" appears exactly once across apps/web/src (F-1)', () => {
@@ -234,7 +235,7 @@ describe('AC-22: drift strings are purged from FermentableSection.tsx', () => {
     expect(rowInput).not.toHaveClass('focus:ring-1');
     expect(rowInput).not.toHaveClass('focus:outline-none');
     expect(rowInput).not.toHaveClass('transition-colors');
-    expect(rowInput).not.toHaveClass('h-10');
+    expect(rowInput).not.toHaveClass('h-11');
   });
 
   it('AC-13: editing the row amount fires onUpdate once with the clamped/parsed value, leaving siblings untouched', async () => {

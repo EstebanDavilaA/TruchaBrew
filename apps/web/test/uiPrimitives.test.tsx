@@ -138,18 +138,18 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
   });
 
   describe('AC-4, AC-5, AC-6: Input component', () => {
-    it('renders with INPUT_CLASS and CONTROL_HEIGHT_CLASS (h-10) by default', () => {
+    it('renders with INPUT_CLASS and CONTROL_HEIGHT_CLASS (h-11) by default', () => {
       render(<Input data-testid="input-default" placeholder="Enter number" />);
       const el = screen.getByTestId('input-default');
-      expect(el).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded-lg', 'h-10');
+      expect(el).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded-lg', 'h-11');
       expect(el).toHaveClass('focus:border-amber-500', 'focus-visible:outline-2', 'focus-visible:outline-amber-500');
     });
 
-    it('renders size="sm" with INPUT_COMPACT_CLASS without h-10', () => {
+    it('renders size="sm" with INPUT_COMPACT_CLASS without h-11', () => {
       render(<Input size="sm" data-testid="input-sm" />);
       const el = screen.getByTestId('input-sm');
       expect(el).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded', 'px-2.5', 'py-1', 'text-xs');
-      expect(el).not.toHaveClass('h-10');
+      expect(el).not.toHaveClass('h-11');
     });
 
     it('renders mono={true} with font-mono tabular-nums', () => {
@@ -172,7 +172,7 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       // focus:outline-none is deliberately NOT in the token (design governance,
       // M30_P2 AC-14/15); callers append it inline via className.
       expect(el).not.toHaveClass('focus:outline-none');
-      expect(el).not.toHaveClass('bg-slate-800', 'rounded-lg', 'rounded', 'px-3', 'px-2.5', 'py-2', 'py-1', 'h-10');
+      expect(el).not.toHaveClass('bg-slate-800', 'rounded-lg', 'rounded', 'px-3', 'px-2.5', 'py-2', 'py-1', 'h-11');
     });
 
     it('variant="underline" appends an inline className (e.g. focus:outline-none) after the token classes', () => {
@@ -188,10 +188,10 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       { value: 'opt2', label: 'Option 2', disabled: true },
     ];
 
-    it('renders with FORM_SELECT_CLASS and CONTROL_HEIGHT_CLASS (h-10) by default with options prop', () => {
+    it('renders with FORM_SELECT_CLASS and CONTROL_HEIGHT_CLASS (h-11) by default with options prop', () => {
       render(<Select options={OPTIONS} data-testid="select-default" defaultValue="opt1" />);
       const el = screen.getByTestId('select-default');
-      expect(el).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded-lg', 'h-10', 'cursor-pointer');
+      expect(el).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded-lg', 'h-11', 'cursor-pointer');
       expect(el).toHaveClass('focus:border-amber-500', 'focus-visible:outline-2', 'focus-visible:outline-amber-500');
       expect(screen.getByRole('option', { name: 'Option 1' })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: 'Option 2' })).toBeDisabled();
@@ -201,7 +201,7 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       render(<Select size="sm" options={OPTIONS} data-testid="select-sm" />);
       const el = screen.getByTestId('select-sm');
       expect(el).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded', 'px-2', 'py-1', 'text-xs');
-      expect(el).not.toHaveClass('h-10');
+      expect(el).not.toHaveClass('h-11');
     });
 
     it('renders options from JSX children when options prop is not passed', () => {
@@ -265,21 +265,21 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
   });
 
   describe('M30_P3 AC-8 to AC-12: NumberInput component', () => {
-    it('AC-8: renders with INPUT_CLASS, CONTROL_HEIGHT_CLASS (h-10), and MONO_VALUE_CLASS (tracking-tight)', () => {
+    it('AC-8: renders with INPUT_CLASS, CONTROL_HEIGHT_CLASS (h-11), and MONO_VALUE_CLASS (tracking-tight)', () => {
       render(<NumberInput data-testid="num-default" defaultValue="1.054" />);
       const input = screen.getByTestId('num-default');
-      expect(input).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded-lg', 'h-10');
+      expect(input).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded-lg', 'h-11');
       expect(input).toHaveClass('font-mono', 'tabular-nums', 'tracking-tight');
       expect(input).toHaveAttribute('type', 'text');
       expect(input).toHaveAttribute('inputmode', 'decimal');
     });
 
-    it('AC-9: renders size="sm" with INPUT_COMPACT_CLASS and MONO_VALUE_CLASS without h-10', () => {
+    it('AC-9: renders size="sm" with INPUT_COMPACT_CLASS and MONO_VALUE_CLASS without h-11', () => {
       render(<NumberInput size="sm" data-testid="num-sm" />);
       const input = screen.getByTestId('num-sm');
       expect(input).toHaveClass('w-full', 'bg-slate-800', 'border-slate-700', 'rounded', 'px-2.5', 'py-1', 'text-xs');
       expect(input).toHaveClass('font-mono', 'tabular-nums', 'tracking-tight');
-      expect(input).not.toHaveClass('h-10');
+      expect(input).not.toHaveClass('h-11');
     });
 
     it('AC-10: renders align="right" with text-right', () => {
@@ -324,7 +324,7 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       expect(screen.getByText('Mash Temperature (°C)')).toBeInTheDocument();
       const input = screen.getByRole('textbox');
       expect(input).toHaveValue('67');
-      expect(input).toHaveClass('rounded-lg', 'h-10', 'font-mono', 'tabular-nums', 'tracking-tight');
+      expect(input).toHaveClass('rounded-lg', 'h-11', 'font-mono', 'tabular-nums', 'tracking-tight');
 
       fireEvent.change(input, { target: { value: '68' } });
       expect(onNumChange).toHaveBeenCalledWith('68');
@@ -332,7 +332,7 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       expect(screen.getByText('Gravity Unit')).toBeInTheDocument();
       const select = screen.getByRole('combobox');
       expect(select).toHaveValue('sg');
-      expect(select).toHaveClass('rounded-lg', 'h-10');
+      expect(select).toHaveClass('rounded-lg', 'h-11');
 
       fireEvent.change(select, { target: { value: 'plato' } });
       expect(onSelectChange).toHaveBeenCalledWith('plato');
@@ -483,7 +483,7 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
     });
 
 
-    it('AC-11: Calculator inputs and selects both evaluate to universal h-10 and rounded-lg', () => {
+    it('AC-11: Calculator inputs and selects both evaluate to universal h-11 and rounded-lg', () => {
       render(
         <div>
           <NumericField label="Num" value="10" onChange={() => {}} />
@@ -492,8 +492,8 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       );
       const input = screen.getByRole('textbox');
       const select = screen.getByRole('combobox');
-      expect(input).toHaveClass('h-10', 'rounded-lg');
-      expect(select).toHaveClass('h-10', 'rounded-lg');
+      expect(input).toHaveClass('h-11', 'rounded-lg');
+      expect(select).toHaveClass('h-11', 'rounded-lg');
     });
 
     it('AC-12: Calculator inputs and result outputs both apply MONO_VALUE_CLASS', () => {
@@ -611,7 +611,7 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
         'bg-slate-800',
         'border-slate-700',
         'rounded-lg',
-        'h-10',
+        'h-11',
         'font-mono',
         'tabular-nums',
         'tracking-tight',
@@ -649,7 +649,7 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       render(<NumberInput size="sm" align="right" width="xs" addonRight="d" data-testid="w-compose" />);
       const el = screen.getByTestId('w-compose');
       expect(el).toHaveClass('w-12', 'text-right', 'pr-10', 'px-2.5', 'py-1', 'text-xs', 'font-mono', 'tabular-nums', 'tracking-tight');
-      expect(el).not.toHaveClass('h-10');
+      expect(el).not.toHaveClass('h-11');
       expect(el).not.toHaveClass('w-full');
     });
 
@@ -706,9 +706,9 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       const std = screen.getByTestId('num-std');
       const compact = screen.getByTestId('num-compact');
 
-      expect(std).toHaveClass('h-10', 'rounded-lg');
+      expect(std).toHaveClass('h-11', 'rounded-lg');
       expect(compact).toHaveClass('px-2.5', 'py-1', 'text-xs', 'rounded');
-      expect(compact).not.toHaveClass('h-10');
+      expect(compact).not.toHaveClass('h-11');
     });
   });
 
@@ -904,14 +904,29 @@ describe('UI Primitives (M30_P2 & M30_P3 & M30_P4)', () => {
       expect(content).not.toMatch(/BUTTON_SECONDARY_CLASS/);
     });
 
-    it('AC-16: App.tsx scale modal renders through Button/NumberInput (raw buttons outside the modal remain, per RA-5)', () => {
+    it('AC-16/M40_P2 AC-1/AC-2/AC-3: App.tsx scale modal renders through Button/NumberInput, and — as of M40_P2 — zero raw <button>/<select>/text-<input> remain anywhere in App.tsx', () => {
       const content = fs.readFileSync(path.join(SRC_DIR, 'App.tsx'), 'utf-8');
-      // RA-5: scope is the scale modal only — assert the modal's controls use
-      // the primitives rather than a whole-file raw-button sweep. Whitespace
-      // (incl. CRLF) between the label and </Button> is allowed.
+      // RA-5 (M34_P2): the scale modal's own controls use the primitives.
+      // Whitespace (incl. CRLF) between the label and </Button> is allowed.
       expect(content).toMatch(/<Button\s+variant="secondary"\s+size="sm"[\s\S]*?>[\s\S]*?Cancel[\s\S]*?<\/Button>/);
       expect(content).toMatch(/<Button\s+variant="primary"\s+size="sm"[\s\S]*?>[\s\S]*?Scale Recipe[\s\S]*?<\/Button>/);
       expect(content).toMatch(/addonRight="Liters"/);
+
+      // M40_P2: this test used to be titled "...(raw buttons outside the
+      // modal remain, per RA-5)" — that RA-5 exemption is now false by
+      // construction. App.tsx's five bespoke buttons (back arrow, Delete,
+      // Scale Batch, Brew This, and the "no equipment profiles" CTA) all
+      // migrated onto the Button primitive, and the Equipment Profile
+      // picker plus the three metadata inputs (recipe name/style/brewer)
+      // migrated onto Select/Input. The exemption is closed: this is now a
+      // whole-file sweep, not a modal-scoped one.
+      const { buttons, selects, inputs } = rawControls(content);
+      expect(buttons).toEqual([]);
+      expect(selects).toEqual([]);
+      expect(inputs).toEqual([]);
+      expect(content, 'App.tsx must import Select from ./components/ui').toMatch(
+        /import\s*\{[^}]*\bSelect\b[^}]*\}\s*from\s*['"]\.\/components\/ui['"]/,
+      );
     });
   });
 

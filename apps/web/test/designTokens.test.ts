@@ -70,10 +70,43 @@ describe('M35_P4 AC-12: designSystem.ts structural shape invariant', () => {
 
 describe('M35_P4 AC-11: consumers > 0 for all designSystem.ts tokens', () => {
   it('every exported token has at least 1 consumer in apps/web/src outside designSystem.ts', () => {
+    // M40_P3 RA-4/RA-12 (Amendment 1, AC-20): these two tokens are
+    // intentionally consumed only within designSystem.ts itself — composed
+    // into the BUTTON_*_CLASS strings there, never by an external component
+    // file. This is a narrow, self-verifying exemption from the "external
+    // consumer" check below, not a loosened guardrail: each name here must
+    // still prove a second in-file reference beyond its own declaration
+    // line (see the composition-only branch below), so a genuinely
+    // orphaned/dead token added to this list without real use still fails
+    // the suite. Do not add a name here without a real composition use
+    // inside designSystem.ts — that is exactly the drift this guardrail
+    // exists to catch. Must not grow beyond these two names.
+    const COMPOSITION_ONLY_TOKENS = ['CONTROL_MIN_HEIGHT_CLASS', 'ICON_CONTROL_SIZE_CLASS'];
+
     const exportNames = Object.keys(designSystem);
     const unconsumed: string[] = [];
 
     for (const name of exportNames) {
+      if (COMPOSITION_ONLY_TOKENS.includes(name)) {
+        // Self-verifying half (RA-12): a composition-only token must still
+        // be referenced a second time inside designSystem.ts's own source,
+        // at a location other than its own declaration line. If it isn't,
+        // it is genuinely dead and must still be flagged as unconsumed.
+        const designSystemEntry = readAll(ALL_SRC_FILES).find(
+          ({ file }) => file === path.resolve(SRC_DIR, 'components/designSystem.ts')
+        );
+        const declarationPattern = new RegExp(`^\\s*export\\s+const\\s+${name}\\s*=`);
+        const usagePattern = new RegExp(`\\b${name}\\b`);
+        const lines = (designSystemEntry?.content ?? '').split('\n');
+        const usedElsewhereInFile = lines.some(
+          (line) => !declarationPattern.test(line) && usagePattern.test(line)
+        );
+        if (!usedElsewhereInFile) {
+          unconsumed.push(name);
+        }
+        continue;
+      }
+
       let count = 0;
       for (const { file, content } of readAll(ALL_SRC_FILES)) {
         if (file === path.resolve(SRC_DIR, 'components/designSystem.ts')) continue;
