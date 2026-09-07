@@ -11,16 +11,20 @@
     "dev": "concurrently -k -n api,web -c yellow,cyan \"npm run dev:api\" \"npm run dev:web\"",
     "dev:web": "npm run dev --workspace=@truchabrew/web",
     "dev:api": "npm run dev --workspace=@truchabrew/api",
-    "build": "npm run build --workspace=@truchabrew/web",
-    "test": "npm test --workspaces --if-present",
+    "build": "npm run build --workspace=@truchabrew/web && npm run build --workspace=@truchabrew/api",
+    "start": "npm run start --workspace=@truchabrew/api",
+    "test": "npm test --workspaces --if-present && vitest run",
     "typecheck": "node scripts/typecheck-all.mjs",
     "lint": "oxlint",
     "db:generate": "npm run db:generate --workspace=@truchabrew/api",
-    "db:seed": "npm run db:seed --workspace=@truchabrew/api"
+    "db:seed": "npm run db:seed --workspace=@truchabrew/api",
+    "brew": "node scripts/brew.mjs",
+    "smoke": "node scripts/smoke-artifact.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
     "oxlint": "^1.75.0",
-    "typescript": "~6.0.2"
+    "typescript": "~6.0.2",
+    "vitest": "^3.2.4"
   }
 }

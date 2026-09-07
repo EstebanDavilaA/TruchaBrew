@@ -1,9 +1,21 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { UserConfig } from '@truchabrew/shared-types';
 import { createTestDb, type TestDbHandle } from './helpers/testDb';
 import { seedDatabase } from '../src/db/seed';
 import { buildServer } from '../src/server';
+import {
+  resolveConfig,
+  describeListenAddresses,
+  ENV_DB_PATH,
+  ENV_MIGRATIONS_DIR,
+  ENV_STATIC_ROOT,
+  ENV_PORT,
+  ENV_HOST,
+  DEFAULT_PORT,
+  DEFAULT_HOST,
+} from '../src/config';
 
 let handle: TestDbHandle;
 
@@ -209,5 +221,128 @@ describe('User Config API (M7_P1)', () => {
     const { app } = await setupUnseeded();
     const res = await app.inject({ method: 'PUT', url: '/api/config', payload: { unitSystem: 42 } });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M42_P1 — runtime config (apps/api/src/config.ts)
+// ---------------------------------------------------------------------------
+
+describe('M42_P1 runtime config — resolveConfig / describeListenAddresses', () => {
+  const PKG = '/x/apps/api';
+
+  it('AC-1: env-name constants export with the exact values in the spec', () => {
+    expect(ENV_DB_PATH).toBe('TRUCHABREW_DB_PATH');
+    expect(ENV_MIGRATIONS_DIR).toBe('TRUCHABREW_MIGRATIONS_DIR');
+    expect(ENV_STATIC_ROOT).toBe('TRUCHABREW_STATIC_ROOT');
+    expect(ENV_PORT).toBe('PORT');
+    expect(ENV_HOST).toBe('HOST');
+    expect(DEFAULT_PORT).toBe(5177);
+    expect(DEFAULT_HOST).toBe('0.0.0.0');
+  });
+
+  it('AC-2: resolveConfig defaults (empty env)', () => {
+    const c = resolveConfig({}, PKG);
+    expect(c.dbPath).toBe('/x/apps/api/data/truchabrew.db');
+    expect(c.migrationsDir).toBe('/x/apps/api/drizzle');
+    expect(c.staticRoot).toBe('/x/apps/web/dist');
+    expect(c.port).toBe(5177);
+    expect(c.host).toBe('0.0.0.0');
+  });
+
+  it('AC-3: each env var is honored in exactly its own field', () => {
+    const base = resolveConfig({}, PKG);
+
+    const db = resolveConfig({ [ENV_DB_PATH]: '/custom/brew.db' }, PKG);
+    expect(db.dbPath).toBe('/custom/brew.db');
+    expect(db.migrationsDir).toBe(base.migrationsDir);
+    expect(db.staticRoot).toBe(base.staticRoot);
+    expect(db.port).toBe(base.port);
+    expect(db.host).toBe(base.host);
+
+    const mig = resolveConfig({ [ENV_MIGRATIONS_DIR]: '/custom/drizzle' }, PKG);
+    expect(mig.migrationsDir).toBe('/custom/drizzle');
+    expect(mig.dbPath).toBe(base.dbPath);
+
+    const staticRoot = resolveConfig({ [ENV_STATIC_ROOT]: '/custom/web' }, PKG);
+    expect(staticRoot.staticRoot).toBe('/custom/web');
+    expect(staticRoot.dbPath).toBe(base.dbPath);
+
+    const port = resolveConfig({ [ENV_PORT]: '8080' }, PKG);
+    expect(port.port).toBe(8080);
+    expect(port.dbPath).toBe(base.dbPath);
+
+    const host = resolveConfig({ [ENV_HOST]: '127.0.0.1' }, PKG);
+    expect(host.host).toBe('127.0.0.1');
+    expect(host.dbPath).toBe(base.dbPath);
+  });
+
+  it('AC-4: empty/whitespace env vars are treated as unset', () => {
+    expect(resolveConfig({ [ENV_PORT]: '' }, PKG).port).toBe(5177);
+    expect(resolveConfig({ [ENV_PORT]: '   ' }, PKG).port).toBe(5177);
+    expect(resolveConfig({ [ENV_DB_PATH]: '  ' }, PKG).dbPath).toBe('/x/apps/api/data/truchabrew.db');
+    expect(resolveConfig({ [ENV_HOST]: '' }, PKG).host).toBe('0.0.0.0');
+    expect(resolveConfig({ [ENV_STATIC_ROOT]: ' ' }, PKG).staticRoot).toBe('/x/apps/web/dist');
+  });
+
+  it('AC-5: invalid PORT throws with the offending value named; valid PORT parses', () => {
+    for (const bad of ['abc', '0', '-1', '3.5']) {
+      expect(() => resolveConfig({ [ENV_PORT]: bad }, PKG)).toThrowError(/PORT/);
+      expect(() => resolveConfig({ [ENV_PORT]: bad }, PKG)).toThrowError(new RegExp(bad.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    }
+    expect(resolveConfig({ [ENV_PORT]: '8080' }, PKG).port).toBe(8080);
+  });
+
+  it('AC-6: relative env paths resolve to absolute; no returned field is relative', () => {
+    const c = resolveConfig({ [ENV_DB_PATH]: './brew.db' }, PKG);
+    expect(path.isAbsolute(c.dbPath)).toBe(true);
+    expect(path.isAbsolute(c.migrationsDir)).toBe(true);
+    expect(path.isAbsolute(c.staticRoot)).toBe(true);
+    expect(c.dbPath).toBe('/x/apps/api/brew.db');
+  });
+
+  it('AC-7: describeListenAddresses enumerates LAN IPv4s, localhost first, no internal/IPv6', () => {
+    const interfaces = {
+      lo: [{ address: '127.0.0.1', family: 'IPv4', internal: true }],
+      wlan0: [
+        { address: '192.168.1.10', family: 'IPv4', internal: false },
+        { address: '10.0.0.5', family: 'IPv4', internal: false },
+      ],
+    };
+    const out = describeListenAddresses('0.0.0.0', 5177, interfaces);
+    expect(out).toHaveLength(3);
+    expect(out[0]).toBe('http://localhost:5177');
+    expect(out).toContain('http://192.168.1.10:5177');
+    expect(out).toContain('http://10.0.0.5:5177');
+    expect(out.some((u) => u.includes('127.0.0.1'))).toBe(false);
+    expect(out.some((u) => u.includes('::'))).toBe(false);
+  });
+
+  it('AC-8a: bound 0.0.0.0 with no non-internal IPv4 returns only localhost (never [] / undefined)', () => {
+    expect(describeListenAddresses('0.0.0.0', 5177, {})).toEqual(['http://localhost:5177']);
+    expect(
+      describeListenAddresses('0.0.0.0', 5177, {
+        lo: [{ address: '127.0.0.1', family: 'IPv4', internal: true }],
+      }),
+    ).toEqual(['http://localhost:5177']);
+  });
+
+  it('AC-8b: a specific host returns exactly that address and ignores interfaces', () => {
+    const interfaces = {
+      lo: [{ address: '127.0.0.1', family: 'IPv4', internal: true }],
+      wlan0: [{ address: '192.168.1.10', family: 'IPv4', internal: false }],
+    };
+    expect(describeListenAddresses('127.0.0.1', 5177, interfaces)).toEqual(['http://127.0.0.1:5177']);
+  });
+
+  it('deduplicates repeated LAN IPv4s', () => {
+    const interfaces = {
+      a: [{ address: '192.168.1.10', family: 'IPv4', internal: false }],
+      b: [{ address: '192.168.1.10', family: 'IPv4', internal: false }],
+    };
+    expect(describeListenAddresses('0.0.0.0', 5177, interfaces)).toEqual([
+      'http://localhost:5177',
+      'http://192.168.1.10:5177',
+    ]);
   });
 });

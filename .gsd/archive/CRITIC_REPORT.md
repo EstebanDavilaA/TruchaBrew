@@ -6842,3 +6842,298 @@ The check is `lines.some(line => !/^\s*export\s+const\s+NAME\s*=/.test(line) && 
 
 ## Verdict
 **PASS-WITH-FINDINGS** — all 39 automated ACs (AC-1..AC-38 plus Amendment 1's AC-41) trace YES against the approved spec; zero NO, zero PARTIAL. Amendment 1's fix is exactly the one-line fixture correction it claims, verified against the real file rather than assumed. F-1 is a latent async race outside every AC's stated condition and is recommended as a rule-7 follow-up rather than a `/diagnose` route; F-2/F-3 are cosmetic. **AC-39/AC-40 remain manual-hardware-pending — not failed** — and are the user's to confirm at `/steer`.
+
+---
+
+# CRITIC REPORT: M42_P1 — "One command, one address, no dev server"
+
+**Date:** 2026-09-04
+**Agent:** claude-code (critic)
+**Spec audited:** `.gsd/active/M42_P1_feature_spec.md` (23 ACs, 13 Resolved Ambiguities, 10 Authorized Files). Milestone 42 Phase 1 of 3, API/deployment slice of "A brewer you've never met runs their own copy."
+**Scope:** full, from-scratch audit. Every AC independently derived from the spec text before reading the implementation; the built artifact was inspected directly (`apps/api/dist/index.js`) for the RA-4 externals claim; the smoke test was read to confirm it genuinely spawns the real built file; all four Layer-1 gates were re-run independently. The central investigation was the three web-suite failures observed across runs (two by the executor, a third — `App.test.tsx` M38_P3 AC-32 — found only by the orchestrator) and whether any is a regression caused by M42_P1.
+
+## Method notes (executed, not read)
+
+- **Independent gate runs:** `npm test --workspace=@truchabrew/api` → 536/536 (37 files), exit 0. `npm run typecheck` → 4/4 PASS, exit 0. `npm run build` → web + api esbuild bundle clean, exit 0. `npm run lint` → 0 errors / 5 pre-existing warnings, exit 0. Full root `npm test` → api 536, web 1551/1553 (2 failed), calculations 696 + 2 skipped; exit 1 on the web failures only.
+- **AC-14 direct artifact check:** `grep -c "from '@truchabrew" apps/api/dist/index.js` → 0 (workspace TS genuinely inlined); externals `fastify`(1)/`drizzle-orm`(10)/`better-sqlite3`(1)/`@fastify/static`(1) all retained as runtime imports.
+- **AC-10 drizzle cleanliness:** `git status --porcelain -- apps/api/drizzle` → empty (zero new migrations).
+- **Web-failure reproduction (the core investigation):** `FermentableSection.test.tsx` AC-3 and `HopSection.test.tsx` AC-16 reproduced deterministically (source-sweep count failures). `App.test.tsx` M38_P3 AC-32 **passed in isolation (2/2), passed in full-file re-run (81/81), and did not fire in my full root `npm test` run** — it is intermittent.
+- **Working-tree state:** `git status --porcelain` shows HEAD `3959a66` (M41) with uncommitted `apps/web` drift confined to `HopSection.tsx`, `MiscSection.tsx`, `FermentableSection.test.tsx`, `MiscSection.test.tsx`, `YeastSection.test.tsx` — **none of which M42_P1 is authorized to touch**. `App.tsx` and `App.test.tsx` are **byte-identical to M41 HEAD** (not in the modified set).
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Env-name constants exported with exact §1 values | `config.ts` exports `ENV_DB_PATH`/`ENV_MIGRATIONS_DIR`/`ENV_STATIC_ROOT`/`ENV_PORT`/`ENV_HOST`/`DEFAULT_PORT`(5177)/`DEFAULT_HOST`('0.0.0.0'); config.test.ts AC-1 asserts each | YES |
+| AC-2 | `resolveConfig` defaults relative to packageRoot | With `{}`/`/x/apps/api` returns `.../data/truchabrew.db`, `.../drizzle`, `.../../web/dist`, 5177, '0.0.0.0'; unit-tested | YES |
+| AC-3 | Each of the five env vars honored in exactly its own field | `resolveConfig` maps each var to its own field; config.test.ts AC-3 asserts independence | YES |
+| AC-4 | Empty/whitespace env = unset (never NaN) | `readEnv` trims and treats `''`/whitespace as undefined; AC-4 unit-tested | YES |
+| AC-5 | Invalid/non-positive PORT throws naming PORT and value | `parsePort` throws `` `Invalid PORT: "<raw>"` ``; AC-5 tests `abc`/`0`/`-1`/`3.5` throw naming both | YES |
+| AC-6 | Relative env paths resolve absolute; no relative field returned | `path.resolve(packageRoot, ...)`; AC-6 unit-tested | YES |
+| AC-7 | `describeListenAddresses` LAN enumeration (localhost first, LAN IPv4s, no internal/IPv6) | Implementation + AC-7 test (3 entries, localhost first, both LAN IPs, no 127.0.0.1/`::`) | YES |
+| AC-8 | Degenerate: 0.0.0.0+empty → `[localhost]` only; specific host → exactly that, ignores interfaces | Implementation + AC-8a/AC-8b tests + dedup test | YES |
+| AC-9 | Default DB path unmoved from the **built** artifact = `<repo>/apps/api/data/truchabrew.db` | `packageRoot = dirname(dist/index.js)/..` = `apps/api`; smoke AC-9 asserts via `/proc/<pid>/fd` the default file is open | YES |
+| AC-10 | Pre-seeded DB opens intact; `__drizzle_migrations` count+contents unchanged; zero new migrations | Smoke AC-10 snapshots migrations + equipment rows before/after; `git status --porcelain -- apps/api/drizzle` empty | YES |
+| AC-11 | `runMigrations(db)` default preserved; `(db, dir)` targets dir | `migrate.ts` optional 2nd param defaulting to today's resolved value; staticServing AC-11 exercises both | YES |
+| AC-12 | Build produces a runnable non-empty artifact | api `build` = esbuild bundle; build exit 0; smoke AC-12 asserts `dist/index.js` non-empty | YES |
+| AC-13 | No `tsx` in production start path | api `start` = `node dist/index.js`; root `start` delegates to api; smoke AC-13 asserts; `dev`/`db:seed` retaining `tsx` correctly does not fail it | YES |
+| AC-14 | Workspace TS inlined; externals retained | Direct grep of `dist/index.js`: 0 `@truchabrew` specifiers; `fastify`/`drizzle-orm`/`better-sqlite3`/`@fastify/static` external (RA-4 exact set, no `--packages=external`) | YES |
+| AC-15 | SPA fallback vs API 404 (RA-7) | server.ts not-found branches in order: `/api/` prefix → JSON 404 exact message; staticRegistered+GET/HEAD → index.html 200 text/html; else JSON 404. staticServing AC-15 tests all three incl. `POST /some/page` → JSON 404 | YES |
+| AC-16 | Absent/nonexistent static root is not an error; one-arg form keeps JSON 404 | `staticRegistered` requires `existsSync && isDirectory`; staticServing AC-16 tests both one-arg and nonexistent-root forms boot + JSON 404 | YES |
+| AC-17 | **Smoke: real built artifact starts & serves** | `productionSmoke.test.ts` `beforeAll` runs the real `npm run build`, then `spawn(process.execPath, [DIST_INDEX])` on an ephemeral port against a temp DB; polls `/api/health` (200 `{ok:true,foreignKeys:1}`), asserts `/api/nope` JSON 404 and `/recipes/123` HTML 200, and stdout `http://`; clean SIGTERM; temp DB removed | YES |
+| AC-18 | Startup print includes a LAN line (or asserts the degenerate contract) | Smoke AC-18 binds `0.0.0.0`, asserts a `localhost` URL and, iff a non-internal IPv4 exists, a non-localhost URL; else asserts the AC-8(a) degenerate `[localhost]` and says so | YES |
+| AC-19 | Existing 515 api tests green with no behavior-changing edits to pre-existing test files | 536/536 pass (+21 new). config.test.ts pre-existed (M7_P1) so M42 tests were **appended** to it — the spec lists `config.test.ts` as an authorized New file, so appending is the faithful realization of that intent (disclosed deviation #1); no pre-existing test was altered to make behavior pass | YES |
+| AC-20 | Four Layer-1 gates each exit 0; test count ≥ baseline | typecheck/build/lint all exit 0. api 536/536. `npm test` does **not** exit 0 in the current tree: the web suite carries 2 deterministic source-sweep failures (FermentableSection AC-3, HopSection AC-16) from pre-existing uncommitted `apps/web` drift + an intermittent `App.test.tsx` AC-32 flake. None is caused by M42_P1 and none is within M42_P1's authorized files (RA-12 forbids any `apps/web` change) — see Findings | YES* (M42_P1 slice) |
+| AC-21 | **MANUAL** — phone reaches the built server | Real-hardware only; correctly reported outstanding, not inferred from AC-17 | PENDING (manual) |
+| AC-22 | **MANUAL** — printed address is the one that works | Real-hardware only; outstanding with AC-21 | PENDING (manual) |
+| AC-23 | Scope guardrail: exactly Authorized Files under `apps/`, nothing under `apps/web/`/`packages/` | Executor used a SHA-256 manifest (disclosed deviation #2) because the tree was not clean (5 pre-existing uncommitted `apps/web` files contradict AC-23's "clean tree" premise). `git status` confirms this session changed only authorized files: `apps/api/package.json`, `src/index.ts`, `src/server.ts`, `src/db/migrate.ts`, `src/config.ts`(new), `test/config.test.ts`, `test/staticServing.test.ts`(new), `test/productionSmoke.test.ts`(new), root `package.json`, `package-lock.json`. The manifest method isolates this phase more precisely than a commit-diff would on a dirty tree (same precedent as M40_P2 RA-10) | YES |
+
+**Active/verifiable ACs: 21 YES, 0 NO, 0 PARTIAL attributable to the implementation.** AC-21/AC-22 manual-only and outstanding.
+
+## Test Suite Result
+
+- `apps/api`: **536/536 passed** (37 files), exit 0 — matches executor; includes the M42_P1 runtime-config, staticServing, and productionSmoke tests, and the full pre-existing suite unmodified.
+- Root `npm test`: api 536; **web 1551/1553 (2 failed)**; calculations 696 + 2 skipped. Exit 1 on the two web failures.
+- `npm run typecheck`: 4/4 PASS, exit 0. `npm run build`: clean, exit 0. `npm run lint`: 0 errors / 5 pre-existing warnings, exit 0.
+- Failing tests and root-cause for each:
+  1. **`FermentableSection.test.tsx` AC-3** (width="lg" source sweep) — pre-existing/environmental. Source-sweep count broke because `HopSection.tsx`/`MiscSection.tsx` carry uncommitted `width="lg"` edits (M40-era user "wider controls" preference) that M42_P1 neither made nor is authorized to touch. **Not an M42_P1 regression.**
+  2. **`HopSection.test.tsx` AC-16** (table-row widths) — same pre-existing uncommitted `apps/web` drift. **Not an M42_P1 regression.**
+  3. **`App.test.tsx` M38_P3 AC-32** (folder datalist) — **flake, not a regression.** See Finding 2 for full root-cause.
+
+## Findings
+
+**Finding 1 — AC-20's `npm test` non-zero exit is a pre-existing/environmental condition, not an M42_P1 defect.** The M42_P1-executable portion of `npm test` is fully green (api 536/536 including all new tests), and typecheck/build/lint all exit 0. The residual web redness is (a) two deterministic source-sweep failures from uncommitted `apps/web` width drift in files M42_P1 is explicitly forbidden from editing (RA-12: "no `apps/web/src` change of any kind"; Authorized Files exclude all `apps/web`), and (b) one intermittent flake. Remedying either within M42_P1 would itself violate AC-23's scope guardrail. This is a spec-internal tension between AC-20 and RA-12/AC-23 resolvable only outside M42_P1 (reconcile the M40-era drift via a rule-7 edit, as prior milestones did for the same class). Not routed to `/diagnose` as an M42_P1 failure.
+
+**Finding 2 — `App.test.tsx` M38_P3 AC-32 is an intermittent timing flake, root-caused, NOT a regression.** Determination: **(c) flake** (with a latent race), not (a) regression and not purely (b) working-tree drift.
+- M42_P1 cannot reach this test: it is a pure client-side React test driving a **mocked** `listRecipes` (the folder datalist is populated entirely in `apps/web/src/App.tsx` from `listRecipes().then(setFolderSuggestions(distinctFolderNames(...)))` on editor entry). M42_P1 changed no `apps/web` source and no web code path; the test never hits a real server.
+- `App.tsx` and `App.test.tsx` are **byte-identical to M41 HEAD** (`git status` shows neither modified), so no M42_P1-era or uncommitted drift touches them.
+- The failure is intermittent: it **passed** in the executor's run, **failed** in the orchestrator's full-suite run, and **passed** in my isolation run (2/2), my full-file re-run (81/81), and my full root `npm test`. That pattern rules out determinism.
+- Root cause of the intermittency is a race in the test itself: `findByTestId('folder-suggestions')` resolves as soon as the datalist element renders, but the datalist renders **unconditionally** with zero `<option>` children until the async `listRecipes()` promise resolves and React flushes `folderSuggestions` state. AC-32 (and AC-33) then read `querySelectorAll('option')` **immediately without a `waitFor`**, so under concurrent full-suite load the assertion can run before population → `options = []`. AC-34 is robust precisely because it wraps its length check in `waitFor`. This is the BUG-043-documented rare web-suite flake class (RA-13: re-run before treating as regression). **Not a M42_P1 regression.**
+
+**Finding 3 — disclosed deviations are faithful and reasonable.** (1) `config.test.ts` pre-existed (M7_P1) though the spec listed it as New; appending the M42_P1 runtime tests is the correct realization of "create config.test.ts" and is additive (no behavior-changing edit). (2) AC-23's clean-tree premise was false (5 uncommitted `apps/web` files predate the session); the SHA-256 manifest substitution isolates this phase's changes and is sound — same accepted precedent as M40_P2 RA-10. Both were disclosed by the executor, not hidden.
+
+**Finding 4 — silent-fallback / mechanism-mislabeling hunt: clean.** For a production-server slice I scrutinized the not-found/static fallback and the smoke test specifically:
+- The not-found handler genuinely branches per RA-7: `/api/` prefix (case-sensitive) always → today's JSON 404 with the exact `Route not found: GET /api/nope` message; index.html 200 text/html **only** when `staticRegistered` is true **and** the method is GET/HEAD; any other method → JSON 404. No HTML is ever returned for a mistyped/mistyped `/api` path — RA-7's "no silent success for API typos" requirement holds. The static-read failure path (`fs.readFileSync` on a directory lacking `index.html`) would throw → 500, not fabricate — honest.
+- Static registration is genuinely conditional: `@fastify/static` is registered only when `staticRoot` is provided **and** `fs.existsSync && isDirectory`, and it is registered **after** every `register*Routes` call (verified in source order), so no static file can shadow an API route.
+- The smoke test genuinely spawns the real built artifact: `beforeAll` runs the actual `npm run build` (`esbuild`), then `spawn(process.execPath, ['apps/api/dist/index.js'])` on an ephemeral port — no mock, no in-process `buildServer`. RA-10's "smoke the real artifact, not an intention" is honored.
+- RA-4 externals claim verified against the artifact itself (0 workspace imports, the four runtime deps external).
+
+## Verdict
+
+**PASS** — the M42_P1 implementation matches the approved spec's intent. All 21 active/verifiable ACs trace YES (AC-21/AC-22 are manual-hardware-only and correctly reported outstanding, not falsified). The three web-suite failures observed across runs are **none of them regressions caused by M42_P1**: two are pre-existing uncommitted `apps/web` source-sweep drift in files M42_P1 is scoped-forbidden from editing, and the third (`App.test.tsx` M38_P3 AC-32) is an intermittent timing flake in a test/file pair byte-identical to M41 HEAD, reproduced as passing in isolation, full-file, and full-suite re-runs. The residual `npm test` non-zero exit (AC-20) is therefore a pre-existing/environmental working-tree condition plus a documented flake, not a defect of this slice — the M42_P1-attributable gates (api 536/536, typecheck, build, lint) are all green, and the smoke test genuinely starts the real built artifact. The two disclosed deviations are faithful, reasonable adaptations to pre-existing reality. The `apps/web` width-sweep drift and the AC-32 race are recommended for a rule-7 reconciliation/`waitFor` hardening outside M42_P1, not a `/diagnose` route for this phase.
+
+---
+
+# CRITIC REPORT: M42_P2 — "A brewer's phone can install TruchaBrew"
+
+**Date:** 2026-09-04
+**Auditor:** `critic` subagent (claude-code), independent Layer 2
+**Spec audited:** `.gsd/active/M42_P2_feature_spec.md` (37 ACs, 10 Resolved Ambiguities, 10 Authorized Files) — the single spec in `.gsd/active/`, valid UTF-8, no BOM, 27,701 bytes.
+**Method:** Each AC re-derived from the spec text before reading the implementation, then traced by hand through the actual files. The executor's own tests were treated as one input, not as proof — every value-bearing assertion below was independently reproduced with tooling outside the test suite (direct `grep`, byte comparison against the spec's canonical JSON block, hand-decoded PNG IHDR chunks and pixel data, `git status`), plus a deliberate falsifiability probe on the load-bearing no-stale contract.
+
+**Material context — the RA-8 carve-out is obsolete.** RA-8 and AC-34 were written around "2 pre-existing web test failures" from out-of-band drift in `HopSection.tsx`/`MiscSection.tsx` and three coupled test files, and AC-34 was framed as "failing set unchanged" rather than a clean exit 0. Immediately before this audit that drift was determined to be an unintended accidental reversion of a real M40-shipped change and was restored via `git checkout`. **This audit therefore holds AC-34 to a literal "exit 0, no exceptions" standard, and it passes at that stricter bar.** The RA-8 text in the spec is now stale historical record; the implementation is unaffected either way, since P2 never touched any of the five files.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Manifest exists, `JSON.parse` succeeds | `apps/web/public/manifest.webmanifest`, 593 bytes, no BOM, parses clean | YES |
+| AC-2 | `name`/`short_name` = `"TruchaBrew"` | Both exactly `"TruchaBrew"` | YES |
+| AC-3 | `description` exact, byte-identical to `index.html` meta | Independently confirmed equal to the `<meta name="description">` content; em dash is U+2014 in both (`e2 80 94`) | YES |
+| AC-4 | `start_url` = `"/"` | `"/"` | YES |
+| AC-5 | `scope` = `"/"` | `"/"` | YES |
+| AC-6 | `display` = `"standalone"` | `"standalone"` | YES |
+| AC-7 | `background_color` = `"#020617"` | `"#020617"` | YES |
+| AC-8 | `theme_color` = `"#0f172a"` | `"#0f172a"` | YES |
+| AC-9 | Exactly one 192 `any` entry | Exactly one; src/sizes/type/purpose all exact | YES |
+| AC-10 | Exactly one 512 `any` entry | Exactly one, exact fields | YES |
+| AC-11 | Exactly one 512 `maskable` entry | Exactly one, exact fields | YES |
+| AC-12 | Every icon `src` resolves under `public/` | All three srcs (two distinct files) resolve to existing PNGs | YES |
+| AC-13 | Manifest link present exactly once | `<link rel="manifest" href="/manifest.webmanifest" />`, count 1 | YES |
+| AC-14 | `theme-color` meta equals manifest `theme_color` | Single `theme-color` meta = `#0f172a`, matches manifest | YES |
+| AC-15 | apple-touch-icon link exactly once | Present once, href `/icons/apple-touch-icon.png` | YES |
+| AC-16 | Favicon retained; no second icon `rel` | `rel` values in `index.html` are exactly `icon`, `manifest`, `apple-touch-icon`; exactly one `rel="icon"`, still pointing at `/favicon.svg`, unmodified. See Finding 6 on the spec's internal wording ambiguity | YES |
+| AC-17 | 192 icon valid PNG, exactly 192×192 | Signature `89 50 4e 47 0d 0a 1a 0a` verified by hand; IHDR = 192×192 | YES |
+| AC-18 | 512 icon valid PNG, exactly 512×512 | Signature valid; IHDR = 512×512 | YES |
+| AC-19 | apple-touch icon valid PNG, exactly 180×180 | Signature valid; IHDR = 180×180 | YES |
+| AC-20 | `sw.js` exists at public root, non-empty | `apps/web/public/sw.js`, 826 bytes | YES |
+| AC-21 | `skipWaiting` from an `install` listener | `self.addEventListener('install', () => { self.skipWaiting(); })` | YES |
+| AC-22 | `clients.claim` from an `activate` listener | `self.addEventListener('activate', () => { self.clients.claim(); })` — literal contract met. See Finding 2 on the absent `waitUntil` wrap | YES |
+| AC-23 | Fetch listener calls `event.respondWith(fetch(event.request))` | Exactly that, verbatim, single occurrence | YES |
+| AC-24 | **Zero** occurrences of any Cache Storage construct | Independent case-insensitive `grep -E 'caches\|CacheStorage\|cache\.\|cache\.add\|cache\.put\|cache\.match\|addAll\|waitUntil'` over `sw.js` returns **zero hits** (exit 1). Falsifiability proven — see Finding 5 | YES |
+| AC-25 | No precache `waitUntil`; no `respondWith` arg other than `fetch(...)` | Zero `waitUntil` anywhere; exactly one `respondWith`, argument is `fetch(event.request)` | YES |
+| AC-26 | `dist/sw.js` exists after build | Present after a real `npm run build`; `cmp` confirms byte-identical to `public/sw.js` | YES |
+| AC-27 | Pure decision true case | `shouldRegisterServiceWorker` returns `input.isProd && input.serviceWorkerAvailable` — pure, no globals, no DOM | YES |
+| AC-28 | Pure decision dev case | Same expression; `false` when `isProd` false | YES |
+| AC-29 | Pure decision no-SW cases | Same expression; `false` in both no-SW cases | YES |
+| AC-30 | Registers exactly `'/sw.js'`, once, no `scope` option, resolves `true` | `await deps.serviceWorker!.register(SERVICE_WORKER_URL)` — single argument, so no scope option is possible; `SERVICE_WORKER_URL === '/sw.js'`; returns `true` | YES |
+| AC-31 | Guards non-prod and absent container; no `register` call; no throw | Guard runs before any `register` access and returns `false` immediately; `serviceWorker: undefined` fails the `!= null` check | YES |
+| AC-32 | Swallows `register()` rejection, resolves `false` | `try { ... } catch { return false; }` | YES |
+| AC-33 | `main.tsx` imports and fire-and-forget calls | `import { registerServiceWorker } from './pwa/registerSW'` + `void registerServiceWorker();` after render; diff is purely additive | YES |
+| AC-34 | **Layer 1 test gate** | Held to the strict literal bar (RA-8 obsolete): root `npm test` **exit 0**, **zero failures** — api 536/536 (37 files), web 1592/1592 (73 files), calculations 696 passed + 2 skipped (31 files). Both P2 files green in isolation (39 tests). See Finding 1 | YES |
+| AC-35 | typecheck / build / lint exit 0 + dist artifacts | `typecheck` exit 0 (4/4 packages PASS), `build` exit 0, `lint` exit 0 (5 pre-existing `only-export-components` warnings, **0 new**, none on any P2 file — RA-9's disable-comment contingency was never needed). `dist/manifest.webmanifest`, `dist/sw.js`, `dist/icons/{icon-192,icon-512,apple-touch-icon}.png` all present and `cmp`-identical to `public/`; `dist/index.html` references `/manifest.webmanifest` | YES |
+| AC-36 | **MANUAL / real browser** — install over localhost + LAN-origin observation | Not run — requires real hardware this sandbox cannot provide. Correctly and honestly reported as UNVERIFIED in the `/execute` state entry; `.gsd/active/manual_verification/` is empty (no fabricated evidence). See Finding 2 for what this test must specifically watch for | PENDING (manual) |
+| AC-37 | Scope guardrail — only Authorized Files changed | Verified by an independent method (Finding 7): `git status --porcelain -- apps/web` returns **exactly** the 10 authorized files and nothing else. All five RA-8 files clean. No rasterizer dependency at any workspace level | YES |
+
+**36 automated ACs: 36 YES, 0 NO, 0 PARTIAL. AC-36 manual-only and outstanding.**
+
+## Test Suite Result
+
+- Root `npm test`: **exit 0, 2,824 passed / 2 skipped, 0 failed** across 141 files (api 536, web 1,592, calculations 696+2 skipped).
+- `npm run typecheck` exit 0 · `npm run build` exit 0 · `npm run lint` exit 0 (5 pre-existing warnings, 0 new).
+- P2 test files in isolation: 39 passed (`pwaManifest.test.ts` 23, `registerSW.test.ts` 16).
+- *(A passing suite does not imply correctness — see the trace above and Findings 4/5, where the substantive checks were made independently of it.)*
+
+## Findings
+
+**Finding 1 — the suite is genuinely green; AC-34 passes at the strict bar, not the RA-8 carve-out.** With the accidental reversion restored, there are **zero** pre-existing failures. AC-34 was independently satisfied as a literal `exit 0` with no failing set to compare against. Note this is a *stronger* result than the spec asked for; the earlier `/execute` report ("1590 passed / 2 failed") is consistent with the corrupted baseline it ran against. **Recommendation (documentation only, not a defect):** annotate RA-8/AC-34 as superseded when the spec is archived, so a future reader does not mistake the carve-out for a standing allowance.
+
+**Finding 2 — `sw.js`'s bare `self.clients.claim()` is spec-compliant, but its real-world consequence should be explicitly watched in AC-36.** Independent judgment on the executor's flagged judgment call #1: it is **not an AC gap**. The spec's §1 contract says literally "`activate` → `self.clients.claim()`", AC-22 asks only that `clients.claim` be invoked from an `activate` listener, and AC-25 bans `waitUntil` only *for precaching* — so an `event.waitUntil(self.clients.claim())` wrap was permitted but never required. The implementation matches the written contract exactly.
+
+However, the common idiom exists for a reason, and the gap is user-visible rather than cosmetic: without `waitUntil`, the `activate` event can settle before `clients.claim()` resolves, so the already-open page may not become controlled on first load. Chromium gates `beforeinstallprompt` on a *controlling* service worker that has a fetch handler — so the practical symptom would be **the install prompt not appearing until the brewer reloads the page**. The same reasoning applies to the un-wrapped `skipWaiting()`. This is precisely the class of thing the static contract in RA-5 explicitly cannot prove and AC-36 exists to catch. **Recommendation:** AC-36's manual run should record specifically whether the app is installable on *first* load or only after a refresh, and if the latter, the `waitUntil` wrap is a one-line follow-up that no AC currently forbids.
+
+**Finding 3 — RA-3 supports the maskable judgment call, and the icon is in fact safe anyway.** Executor's judgment call #2 confirmed on both counts. RA-3's literal text: "a purpose-built safe-zone maskable asset is explicitly **not** required this phase — acceptable minimal, and not a blocker for installability. Deferred." So the ~62% centered scale cannot be an AC violation. Independently, I decoded the 512 PNG's pixels: the mark's extremities all sit inside the maskable safe circle (radius ~205px from centre; furthest bolt tip ≈187px), so the `purpose: "maskable"` declaration will not crop the brand mark in practice. Non-issue, confirmed twice over.
+
+**Finding 4 — silent-fallback hunt: clean.** Every "returns false", "catch", and "default" path was checked for fabricated success:
+- `registerServiceWorker`'s `false` returns are **honest no-ops, not disguised successes** — the return value genuinely distinguishes "did not register" from "registered", AC-31/AC-32 assert both, and `main.tsx`'s `void` discards it without pretending either way. Nothing fabricates a registration.
+- `sw.js` has **no fallback branch at all** — there is no cache to miss, so there is no path on which a stale response could be substituted for a live one. The no-stale guarantee is structural, not policy.
+- The dist assertions in `pwaManifest.test.ts` run a **real `execSync('npm run build')`** in `beforeAll` and compare actual bytes — no mock, no stub, no fixture standing in for a build. If the build fails, the tests fail.
+- The icons are **real rasterizations, not placeholders**. I decoded the PNG pixel data by hand: 24-bit RGB, background exactly `rgb(2,6,23)` = `#020617` at the corners and edges, with the actual `favicon.svg` purple-to-blue gradient bolt (anti-aliased) at the centre of all three. This is genuinely the existing brand mark rendered onto the app background, per RA-3 — not a synthesized solid square dressed up as an icon.
+
+**Finding 5 — mechanism-mislabeling hunt: clean, and proven by mutation.** The highest-risk claim in this phase is that a file *named* and *documented* as a network-passthrough service worker is actually that, and not a cache wearing the label. Three independent confirmations:
+1. Direct case-insensitive `grep` for the full forbidden token family over `sw.js` returns zero hits — the file's comments and code both match its name.
+2. `registerSW.ts` genuinely implements the pure-guard + injectable-stateful split the spec *names*, with the exact symbol names, types, and values from §1's contract table — not a simpler shape re-labelled to match.
+3. **Falsifiability probe.** To confirm the no-stale contract test actually bites rather than passing vacuously, I appended a cache-backed listener (`caches.open` + `cache.match` + `respondWith`) to `sw.js` and re-ran: **AC-24 and AC-25 both went red**, then I restored the file and confirmed byte-identity by SHA-256 (`sha256sum -c` → OK) with tests green again. The guarantee is enforced, not asserted.
+4. The "no new dependency" claim is real: `grep` for `resvg|sharp|svg2png|imagemagick|rsvg` across every `package.json` in the repo returns nothing, and `apps/web/package.json` has an empty diff. The rasterizer genuinely ran once at authoring time and left no trace in the shipped app.
+
+**Finding 6 — a spec-internal wording ambiguity in AC-16, resolved correctly.** AC-16 requires "`index.html` contains no second icon `rel`", while AC-15 *requires* adding `rel="apple-touch-icon"` — read literally, the two ACs contradict each other. The only self-consistent reading is "no second `rel=\"icon\"`", which is what the implementation and its test do (exactly one `rel="icon"`, still `/favicon.svg`). Flagged for the record as a spec drafting imprecision, not an implementation defect.
+
+**Finding 7 — AC-37's stated method was not reproducible by me; I substituted a stronger one.** The executor's pre-edit SHA-256 manifest is not on disk, so I could not re-execute the pre/post diff AC-37 specifies. I verified scope by a different and, for this phase, conclusive route: `git status --porcelain -- apps/web` returns exactly `M index.html`, `M src/main.tsx`, `?? public/icons/`, `?? public/manifest.webmanifest`, `?? public/sw.js`, `?? src/pwa/`, `?? test/pwaManifest.test.ts`, `?? test/registerSW.test.ts` — **the 10 authorized files and nothing else** under `apps/web`. All five RA-8 files are clean. The root `package.json` diff contains only M42_P1's `build`/`start` script change (no dependency), and `package-lock.json`'s modification is likewise M42_P1's. P2 added nothing outside `apps/web`.
+
+**Finding 8 — minor accuracy note in the `/execute` self-report (not an AC).** The executor reported "40 total new tests (pwaManifest 24 + registerSW 16)". The actual count is **39** (pwaManifest 23 + registerSW 16). A miscount in the narrative only — AC coverage is complete and nothing is missing.
+
+## Verdict
+
+**PASS** — the implementation matches the approved spec's intent. All 36 automated acceptance criteria trace **YES**, with **0 NO and 0 PARTIAL**. AC-36 (real-browser PWA install over both the localhost secure context and the plain-HTTP LAN origin) remains **manual-hardware-pending, not failed** — it was honestly reported as UNVERIFIED, no evidence was fabricated for it, and `.gsd/active/manual_verification/` is correctly empty; same class and handling as M42_P1's AC-21/AC-22.
+
+The two patterns this audit hunts for are both **absent**: there is no silent fallback masquerading as success (the registration module's `false` returns are honest no-ops and the service worker has no fallback path by construction), and there is no mechanism mislabeling (the network-passthrough service worker genuinely is one — confirmed by independent grep and proven enforceable by a mutation probe that turned AC-24/AC-25 red before a byte-verified restore; the icons are genuine rasterizations of the existing brand mark on the exact `#020617` app background, not placeholders; and no rasterizer leaked into any `package.json`).
+
+The full test suite is now **genuinely green — exit 0, 0 failures** — so AC-34 was held to and cleared the strict literal bar, with the now-obsolete RA-8 carve-out neither needed nor used. Two follow-ups are recommended but neither blocks this phase: annotate RA-8/AC-34 as superseded when the spec is archived (Finding 1), and have AC-36's manual run specifically record whether install is offered on first load or only after a reload, since the spec-compliant bare `clients.claim()` could defer control by one navigation (Finding 2).
+
+
+---
+
+# CRITIC REPORT: M42_P3 — "One command, one page of instructions, one green pipeline"
+
+**Date:** 2026-09-07 · **Auditor:** critic subagent (claude-code), independent of the executor
+**Spec audited:** `.gsd/active/M42_P3_feature_spec.md` (36 ACs, 18 RAs, 12 Authorized Files)
+**Method:** ACs re-derived from the spec before reading code; every implementation file read in full;
+all four Layer 1 gates plus `npm run smoke` re-run by this auditor; smoke preflight-failure path and
+assertion-failure teardown path each forced and observed directly. The executor's own tests were
+treated as evidence, never as proof.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | `MINIMUM_NODE_MAJOR === 24`, `NODE_DOWNLOAD_URL === 'https://nodejs.org/'` | Both exported verbatim in `scripts/nodeVersion.mjs` | PASS |
+| AC-2 | Normal parse cases | `VERSION_PATTERN = /^v?(\d+)(?:\.\d+(?:\.\d+)?)?(?:[-+].*)?$/` handles `v24.0.0`, `24.0.0`, `v024.0.0`, `v24`, `v25.0.0-nightly…`, `v26.8.1` — hand-traced, not test-trusted | PASS |
+| AC-3 | Degenerate inputs return exactly `null` | `typeof !== 'string'` → null; trim-empty → null; no regex match → null; `major <= 0` → null. `'v0.10.0'` → null (not 0), `'v'` → null. Never NaN/0/undefined | PASS |
+| AC-4 | Inclusive `>=` boundary | `major !== null && major >= 24`; `v24.0.0` true, `v23.11.1` false, `v24.0.0-rc.1` true | PASS |
+| AC-5 | Fail-closed | Every AC-3 input yields `false`; no unparseable string can produce truthy | PASS |
+| AC-6 | Pure module, zero imports/side effects | Zero `import`/`require`; zero `console.`/`process.exit`/`spawn`/`execSync`/`readFile`/`writeFile` in source (verified by reading the file, not only by the sweep) | PASS |
+| AC-7 | brew.mjs imports only `node:` + `./nodeVersion.mjs` | Imports `node:path`, `node:url`, `node:child_process`, `./nodeVersion.mjs`. Zero bare specifiers | PASS |
+| AC-8 | Version gate precedes every child process | Gate + `process.exit(1)` are at module top level, before `SPAWN_OPTIONS` and before the first `spawnSync(`. Message names `process.version`, `MINIMUM_NODE_MAJOR`, `NODE_DOWNLOAD_URL` | PASS |
+| AC-9 | 3 npm calls, install → run build → start; status propagation | Exactly 3 `spawnSync('npm', …, SPAWN_OPTIONS)`; shared options object carries `stdio:'inherit'` and `shell: process.platform === 'win32'`; each failure exits with `status ?? 1`; final `process.exit(start.status ?? 1)`. No retries, no `\|\| true`, no `exit(0)` | PASS |
+| AC-10 | No `tsx` in the one-command path | Zero `tsx` in `brew.mjs`; root `brew`/`build`/`start` free of it; `dev`/`db:seed` retain it as authorized | PASS |
+| AC-11 | Root script contract incl. byte-identical untouched scripts | `brew`, `smoke`, `test` exactly as specified; the nine untouched scripts match §1 byte-for-byte (read from `package.json` directly) | PASS |
+| AC-12 | Root vitest collects only the packaging suite | `npx vitest run` at root: **1 test file, `test/packaging.test.mjs`, 67 tests**, zero `apps/**` collected. `include` is explicit in `vitest.config.mjs` | PASS |
+| AC-13 | Packaging suite is inside the Layer 1 test gate | `npm test` emits four vitest summaries: api 536, web 1598, calculations 696/2-skipped, root packaging 67 | PASS |
+| AC-14 | Smoke script dependency-free | All six imports `node:`-prefixed; `fetch` used as a global | PASS |
+| AC-15 | Preflight on missing build, spawn nothing | Forced by moving `apps/api/dist/index.js` aside: exit 1, message names `npm run build`, `existsSync` guard runs before any `spawn` reference is reached — no server started. File restored | PASS |
+| AC-16 | Real artifact serves real UI, all five assertions | `npm run smoke` exit 0 with real build; server logs show `GET /` 200, `GET /recipes/smoke-check` 200, `GET /api/nope` 404. Markers asserted are `<div id="root">` **and** `/manifest.webmanifest` — genuine Vite+P2 output, not a placeholder (the exact RA-11 gap) | PASS |
+| AC-17 | Isolation + teardown incl. failing path | `apps/api/data/truchabrew.db` mtime unchanged (2026-09-02 10:46:46.603494200) across runs; no `truchabrew-smoke-*` dir left in `/tmp`; no surviving child. Failing path forced by breaking the `#root` marker in the built `index.html`: exit 1, named first failing assertion printed, temp dir still removed and child still reaped via `try/finally`. Artifact restored | PASS |
+| AC-18 | Workflow exists, tab-free, correct triggers/one job | `.github/workflows/ci.yml`: 0 tab characters (`grep -Pc '\t'` → 0), `push` on `master`, `pull_request`, `workflow_dispatch`, single job `build-and-test`, one `runs-on: ubuntu-latest` | PASS |
+| AC-19 | Eight ordered steps, each its own step | checkout@v4 → setup-node@v4 (`node-version: '24'`, `cache: 'npm'`) → `npm ci` → `npm test` → `npm run typecheck` → `npm run build` → `npm run lint` → `npm run smoke`, each under its own `- name:` (verified by reading the YAML, not only the substring sweep) | PASS |
+| AC-20 | No release/Docker shape anywhere | Workflow contains none of the twelve forbidden substrings; repo-wide walk finds no `Dockerfile`/`docker-compose*`/`compose.y*ml`/`.dockerignore` | PASS |
+| AC-21 | Node floor 24 in all three sites | `MINIMUM_NODE_MAJOR = 24`; `node-version: '24'`; README "**Node.js 24 or newer**" | PASS |
+| AC-22 | Vite template deleted, not appended | README read end-to-end: no `This template provides a minimal setup`, `@vitejs/plugin-react-swc`, `React Compiler`, or `Expanding the Oxlint configuration`. It is a genuine ground-up rewrite | PASS |
+| AC-23 | Eleven required sections | All eleven present as `##` headings in the specified reading order | PASS |
+| AC-24 | Names the one command and fast restart; no brewer-facing install/build steps | `npm run brew` and `npm start` present; everything before "For Developers" contains no `npm install` or `npm run build` instruction (verified by reading the prose, not just the slice assertion) | PASS |
+| AC-25 | Honest security posture, three statements | "no login, no password, and no encryption"; "Anyone on the same wifi network can open it"; "Never port-forward it or expose it to the internet" | PASS |
+| AC-26 | Data file + backup path | `apps/api/data/truchabrew.db` and **Settings → Database Backup & Export** both named | PASS |
+| AC-27 | Troubleshooting: firewall + PORT | Windows Defender **Private networks** tick named; `PORT=5178 npm run brew` / `set PORT=5178 && npm run brew` given per-platform | PASS |
+| AC-28 | In-app notice renders required copy | `ServerSecurityNotice.tsx` renders `data-testid="settings-security-notice"` with all four statements (no login/password, same-wifi visibility, never expose to internet, data in a file on this machine) | PASS |
+| AC-29 | Token-clean, non-interactive | Zero local `*_CLASS` constants; imports exactly `CARD_CLASS`, `SECTION_HEADING_CLASS`, `BODY_TEXT_CLASS`; zero `<button>/<input>/<select>/<textarea>/<a href>`; icon sized via lucide `size={20}` not an `h-N` class; no `text-slate-500/600` | PASS |
+| AC-30 | SettingsManager `+2/-0`, notice is last card | `git diff --stat` → `2 ++`, `1 file changed, 2 insertions(+)`, zero deletions. `<ServerSecurityNotice />` appears once, as the final child of the `status === 'ready'` `flex flex-col gap-6 w-full` stack (line 373 opening, notice immediately before its close) | PASS |
+| AC-31 | Governance sweeps pass unedited | No pre-existing `apps/web/test/` file is modified in `git status`; the five named sweeps pass untouched; full api + web suites green | PASS |
+| AC-32 | Four gates green locally + smoke | Independently re-run by this auditor: `npm test` exit 0 (**2,897 passed / 2 skipped across 143 files**, vs the 2,824/2/141 baseline — no counts dropped), `npm run typecheck` exit 0, `npm run build` exit 0, `npm run lint` exit 0, `npm run smoke` exit 0 | PASS |
+| AC-33 | MANUAL — real green GitHub Actions run | Not performed. `.gsd/active/manual_verification/` is **empty**. Correctly and repeatedly declared UNVERIFIED in `STATE.json`; not claimed green anywhere in code, tests, README or state | OUTSTANDING (honestly reported) |
+| AC-34 | MANUAL — non-author, clean-machine hand-off rehearsal | Not performed; no evidence on disk; declared outstanding. This is the milestone's verification threshold | OUTSTANDING (honestly reported) |
+| AC-35 | MANUAL — bundled P1/P2 real-hardware evidence | Not performed; declared outstanding | OUTSTANDING (honestly reported) |
+| AC-36 | SHA-256 manifest differs on exactly the twelve authorized files | Path-level scope holds for the twelve: 4 modified (`README.md`, `package.json`, `package-lock.json`, `SettingsManager.tsx`) + 8 created, 0 deleted, and no unauthorized `apps/api/**`, `packages/**`, `apps/web/public/**`, `apps/web/src/pwa/**`, `vite.config.ts`, `.oxlintrc.json`, `.gitignore` or `tsconfig*` change. **Two deviations, both disclosed by the executor:** a thirteenth path (`.claude/settings.json`) outside the authorized list, and a full `package-lock.json` regeneration far larger than §1's stated expectation | PASS-WITH-FINDINGS |
+
+## Test Suite Result
+- Root packaging suite: 67/67 pass, and `vitest run` at root collects exactly 1 file (AC-12 confirmed by direct run).
+- Full `npm test`: **2,897 passed / 2 skipped across 143 files, exit 0**.
+- `npm run typecheck` exit 0 · `npm run build` exit 0 · `npm run lint` exit 0 (18 pre-existing warnings, 0 errors) · `npm run smoke` exit 0.
+- *This does NOT imply correctness — see the trace above, which was derived by hand from the spec and by forcing both smoke failure paths myself.*
+
+## Findings
+
+**No AC is NO or PARTIAL in the "implementation does something adjacent" sense.** The two patterns
+this audit specifically hunts for were sought and **not found**:
+
+- **No silent fallback masquerading as success.** Every failure path surfaces honestly:
+  `brew.mjs` propagates each child's exact non-zero status and never remaps to 0; the smoke script
+  prints the *name* of the first failing assertion and exits 1 (observed live); the preflight refuses
+  to spawn and exits 1 (observed live); `parseNodeMajor` returns `null` rather than a placeholder and
+  the gate fails closed. No catch-and-continue, no fabricated default, anywhere in the three scripts.
+- **No mechanism mislabeling.** The smoke script really does start `apps/api/dist/index.js` as a
+  child process against the real `apps/web/dist`, and its markers (`<div id="root">` +
+  `/manifest.webmanifest`) can only come from the genuine Vite+P2 build — this is precisely the gap
+  RA-11 says P1's `SPA SHELL` fixture left open, and it is genuinely closed, not simulated. The
+  packaging suite explicitly documents in its own header what it does *not* prove, and the workflow
+  assertion is honestly described as a substring sweep rather than a YAML validation (RA-13).
+
+Findings that do not change any AC verdict but belong on the record:
+
+1. **`.claude/settings.json` is still the unexplained file, not a wizard-generated one.** As of this
+   audit it is 231 bytes containing only a `permissions.allow` array with six Bash entries — four
+   npm gates plus `Bash(journalctl *)` and `Bash(coredumpctl info *)`. It has **no** `environment`
+   key, **no** `soft_deny`/`deny` block and no permission removals, so it does **not** look like the
+   output of an `/auto-mode-setup` wizard run; it looks like the original file the executor's session
+   flagged. The two system-log commands remain unexplained by anything in this phase. Not a code
+   defect and not in M42_P3's scope — flagged for the user's own decision at `/steer`.
+2. **`package-lock.json` was fully regenerated, not minimally extended.** §1 predicted the `vitest`
+   addition would resolve to an already-present version with "no new package downloaded"; the actual
+   diff is 2,392 changed lines and bumped `oxlint` 1.75.x → **1.81.0**, which is what moved the lint
+   warning baseline from ~5 to 18 across ~15 files this phase never touched. The file is authorized
+   and the executor disclosed this, and lint still exits 0 — but the *content* churn exceeds what the
+   spec authorized in intent, and future sessions must compare against 18 warnings, not 5.
+3. **AC-36's guardrail is not independently reproducible after the fact.** The "before first edit"
+   manifest no longer exists for me to re-take, so my confirmation is a path-level audit of the dirty
+   tree against the authorization list, not a re-run of the executor's own comparison. It is
+   consistent, but it is corroboration rather than independent replication.
+4. **RA-8's Windows branch remains unexercised by any automated gate** (CI is `ubuntu-latest` only) —
+   correctly stated in the spec and not implied green anywhere. It rides on AC-34.
+5. **RA-15 (repository public vs. hand the tester a ZIP) is unresolved**, and AC-34 is blocked at step
+   one until it is decided. Not the critic's call — raised for `/steer`, as the spec directs.
+6. Minor prose imprecision, non-blocking: README's "Stopping and Restarting" says `npm run brew`
+   "only reinstalls or rebuilds what actually changed". `brew.mjs` runs `npm install` and
+   `npm run build` unconditionally by design (RA-7); npm/Vite make them cheap no-ops, so the
+   brewer-facing effect is right, but the sentence describes a short-circuit the script deliberately
+   does not have.
+
+## Verdict
+
+**PASS-WITH-FINDINGS** — all 33 Layer-1-verifiable acceptance criteria (AC-1 … AC-32, AC-36) trace
+cleanly through the implementation, verified by hand against the spec and by re-running every gate
+plus both smoke failure paths independently. No fabricated success path and no mislabeled mechanism
+were found. AC-36 carries the two disclosed deviations above.
+
+**The phase is NOT closable and the milestone's verification threshold is NOT met.** AC-33, AC-34 and
+AC-35 are manual by construction, were not performed, have no evidence in
+`.gsd/active/manual_verification/` (empty), and are — correctly — claimed nowhere as passing. Per
+RA-12 they cannot be inferred from AC-16 or from a green local Layer 1. `/steer` must decide RA-15
+before AC-34 can even begin.

@@ -1,4 +1,7 @@
 import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
+import fastifyStatic from '@fastify/static';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { Db } from './db/client';
 import { registerHealthRoutes } from './routes/health';
 import { registerCatalogRoutes } from './routes/catalog';
@@ -29,6 +32,10 @@ import { sendApiError } from './errors';
 export interface ServerDeps {
   db: Db;
   logger?: boolean;
+  /** Absolute path to the built web UI root. When present and an existing
+   *  directory, `@fastify/static` serves it and unmatched non-API GET/HEAD
+   *  requests fall back to `index.html`. Optional. */
+  staticRoot?: string;
 }
 
 /** Builds a fully-configured Fastify instance. Does not call listen() — test-injectable. */
@@ -46,6 +53,22 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   registerInventoryRoutes(app, deps.db);
   registerBackupRoutes(app, deps.db);
 
+  // M42_P1 — serve the built web UI when a static root exists. Registered AFTER
+  // every route so no static file can ever shadow an API route. Absent (or
+  // non-existent) static root ⇒ not registered at all ⇒ API-only behavior
+  // identical to today's.
+  const staticRoot = deps.staticRoot;
+  const staticRegistered =
+    staticRoot !== undefined &&
+    fs.existsSync(staticRoot) &&
+    fs.statSync(staticRoot).isDirectory();
+  if (staticRegistered) {
+    app.register(fastifyStatic, {
+      root: staticRoot,
+      wildcard: false,
+    });
+  }
+
   // Every non-2xx response is exactly ApiErrorBody — no HTML error page, no
   // bare string, ever.
   app.setErrorHandler((error: FastifyError, request, reply) => {
@@ -58,6 +81,19 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   });
 
   app.setNotFoundHandler((request, reply) => {
+    // RA-7 branch, in order: an /api/ path always keeps today's JSON 404; an
+    // unmatched GET/HEAD falls back to index.html only when static is actually
+    // registered; anything else keeps today's JSON 404.
+    if (request.url.startsWith('/api/')) {
+      sendApiError(reply, 404, 'NOT_FOUND', `Route not found: ${request.method} ${request.url}`);
+      return;
+    }
+    if (staticRegistered && (request.method === 'GET' || request.method === 'HEAD')) {
+      reply
+        .type('text/html')
+        .send(fs.readFileSync(path.join(staticRoot as string, 'index.html'), 'utf8'));
+      return;
+    }
     sendApiError(reply, 404, 'NOT_FOUND', `Route not found: ${request.method} ${request.url}`);
   });
 

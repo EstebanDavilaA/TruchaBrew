@@ -3373,3 +3373,96 @@ These need the user's own hands-on confirmation before Milestone 40 can be consi
 **Clean.** Full suite reproduces exactly (2,764 passed / 2 skipped across 137 files). No functional regression in any prior milestone's tests.
 
 ### Verdict: **PASS-WITH-FINDINGS — M41_P1 (with Amendment 1) verified complete across all 3 layers.** Three non-blocking findings (F-1/F-2/F-3) logged for a future lightweight pass, none requiring `/diagnose`. AC-39/AC-40 (this phase's own real-device wake-lock and permission-denial checks) remain genuinely outstanding, joining Milestone 40's already-carried hardware-verification backlog. Proceeding to the steering checkpoint with both sets of outstanding items explicit.
+
+---
+
+## M42_P1 — INDEPENDENT VERIFICATION (2026-09-04)
+
+**Context.** Milestone 42 Phase 1 of 3 — "One command, one address, no dev server" (Milestone 42 "A brewer you've never met runs their own copy"; Desktop & Mobile Deployment initiative). API/deployment slice: a production esbuild bundle + single `npm start` that serves both the SPA and API from one process/address, configurable via env. 23 ACs (AC-21/22 manual real-hardware only).
+
+### Layer 1: Four Gates (independently reproduced this session)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` | **PASS for this phase's scope** | api 536/536 (37 files, +21 vs 515 baseline, exit 0). Full root `npm test` exits 1 ONLY due to 2 PRE-EXISTING web failures (see note below), unrelated to M42_P1. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | 4/4 packages clean. |
+| Production Build | `npm run build` | **PASS (exit 0)** | Clean — web + api esbuild bundle (`dist/index.js`); only pre-existing chunk-size advisory. |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, 5 pre-existing fast-refresh warnings, 0 new. |
+
+### Layer 2: Independent Critic Audit
+
+**PASS — 21/21 ACTIVE/verifiable ACs.** Citing `.gsd/archive/CRITIC_REPORT.md` entry "M42_P1 — 'One command, one address, no dev server'", dated 2026-09-04. (AC-21/AC-22 are manual real-hardware only, correctly reported outstanding, not falsified.)
+
+- RA-7 not-found handler verified: JSON 404 for `/api/*` and non-GET/HEAD; index.html 200 text/html only when static is registered and method is GET/HEAD — no HTML ever masks an API typo.
+- Static registration genuinely conditional on staticRoot existing as a dir, registered after all routes.
+- productionSmoke.test.ts genuinely spawns the real built `dist/index.js` (npm run build + node, no mock).
+- AC-14 verified: zero `@truchabrew` specifiers in `dist/index.js`; fastify/drizzle-orm/better-sqlite3/@fastify/static external.
+- Silent-fallback / mechanism-mislabeling hunts clean. Executor's two disclosed deviations (config.test.ts appended not created; SHA-256 manifest since tree not clean) are faithful adaptations.
+
+### Note on the repo-wide web suite (NOT an M42_P1 regression)
+
+The full root `npm test` currently exits 1 due to **2 PRE-EXISTING web test failures** caused by uncommitted working-tree drift in `apps/web/src/components/HopSection.tsx` and `MiscSection.tsx` (M40-era user width edits predating M42_P1): `FermentableSection.test.tsx` AC-3 (width="lg" sweep) and `HopSection.test.tsx` AC-16. M42_P1 changed zero apps/web files and is scope-forbidden from touching them, so these are not regressions from this phase. A third transient failure (`App.test.tsx` M38_P3 AC-32 folder datalist) was root-caused as a **documented flake** (BUG-043 class — a latent race: the test reads datalist `<option>`s without a `waitFor`); it passed on isolation/full-file/full-root re-runs. These residual web items are recommended for a rule-7 reconciliation outside M42_P1.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean for this phase's scope.** No regression from M42_P1: all prior-milestone api tests pass (536), and the 3 observed web failures were each root-caused as pre-existing working-tree drift (2) or a re-run-passing flake (1), none caused by M42_P1 (which touched only apps/api + package.json build/start).
+
+### Verdict: **PASS — M42_P1 verified complete across all three layers for its scope (api + build/start deployment slice). Proceeding to the steering checkpoint.** (Residual repo-wide web suite redness is pre-existing drift, tracked for a separate rule-7 fix, not a blocker on this phase.)
+
+---
+
+## M42_P2 — INDEPENDENT VERIFICATION (2026-09-04)
+
+**Context.** Phase 2 of 3 of Milestone 42 ("A brewer's phone can install TruchaBrew" — the PWA slice, `apps/web/**` only). Delivered `manifest.webmanifest`, three raster icons derived from the existing favicon, a genuine network-passthrough service worker (`sw.js`, no Cache Storage), and `registerSW.ts`.
+
+**Pre-verification finding and fix (this session, before Layer 2/3 ran):** the working-tree drift M42_P1's own verification had already flagged as "pre-existing, not a regression, tracked for a separate rule-7 fix" (`HopSection.tsx`/`MiscSection.tsx` reverted to pre-M40 narrow widths, causing 2 web test failures) turned out, on inspection, to be an **unintended reversion** of a real change the user made and this session committed in Milestone 40 (`ec26c72`) — not benign background noise. The reverted set also included an assertion unrelated to the width fix (an `h-11`→`h-10` check in two test files' unrelated ACs), confirming a genuine revert event rather than narrow drift. Confirmed with the user directly; restored all 5 affected files via `git checkout HEAD --`. Full suite is now genuinely green with zero pre-existing failures, superseding both M42_P1's and M42_P2's own spec text (RA-8) describing this as an acceptable carve-out.
+
+### Layer 1: Four Gates (independently reproduced this session, post-reversion-fix)
+
+| Gate | Command | Result | Details |
+|---|---|---|---|
+| Unit & Integration Tests | `npm test` (run without a `\| tail` pipe, which would mask the real exit code) | **PASS (exit 0)** | 2,824 passed / 2 skipped across 141 files (web 1,592 + calculations 696/2 skipped + api 536) — genuinely zero failures, not "failing set unchanged" as M42_P2's own RA-8 anticipated. |
+| Typecheck | `npm run typecheck` | **PASS (exit 0)** | Clean across all 4 workspaces. |
+| Production Build | `npm run build` | Not independently re-run this session; executor and critic both independently confirmed clean. |
+| Lint | `npm run lint` | **PASS (exit 0)** | 0 errors, same 5 pre-existing warnings, 0 new (RA-9's `sw.js` disable-comment contingency was never needed). |
+
+### Layer 2: Independent Critic Audit
+
+**PASS.** (citing `.gsd/archive/CRITIC_REPORT.md` M42_P2 entry, 2026-09-04). All 36 automated ACs traced YES, zero NO, zero PARTIAL. AC-36 (real-browser install test, localhost + LAN) correctly remains manual-hardware-pending, honestly represented as outstanding.
+
+- **The "no cache" guarantee was proven, not just asserted:** the critic appended a `caches.open`/`cache.match` block to `sw.js` and confirmed AC-24/AC-25 both went red, then restored the file with SHA-256 byte verification — the network-passthrough contract is actually enforced by the test suite, not merely claimed.
+- Icons independently confirmed genuine rasterizations of the existing favicon (hand-decoded pixel colors match the source gradient exactly), not synthesized placeholders; no new rasterization dependency in any `package.json`.
+- **Judgment call 1 (bare `self.clients.claim()`, no `waitUntil` wrap):** confirmed spec-compliant per the literal contract (AC-22/AC-25's wording permits this), but the critic flagged a real, user-visible consequence worth watching at the AC-36 manual pass: without the wrap, `activate` can settle before `claim()` resolves, meaning the currently-open page might not become controlled until a reload — and Chromium's install-prompt eligibility depends on a controlling SW with a fetch handler, so the symptom would be "no install prompt on first load, works after refresh." Not an AC violation; flagged so the manual verification pass knows to check first-load specifically, not just eventual state.
+- **Judgment call 2 (icon safe-zone scale):** confirmed a non-issue by two independent methods — RA-3's own text explicitly defers this, and the critic separately decoded the actual PNG pixels to confirm the icon mark sits entirely inside the maskable safe circle regardless.
+- **AC-37's exact stated verification method (a specific SHA-256 manifest file) wasn't reproducible** — the executor's pre-edit manifest isn't on disk — but the critic substituted an equally conclusive check (`git status --porcelain` showing exactly the 10 authorized files, all 5 RA-8 files clean, root `package.json` diff limited to M42_P1's own change) and confirmed scope held.
+- **Minor:** AC-16's literal wording is internally contradictory with AC-15 (banning "a second icon `rel`" while AC-15 requires adding one) — resolved by the only self-consistent reading, which matches what was actually implemented; a drafting imprecision, not a defect. Executor's test-count narrative (40 new tests) was off by one against the actual 39 — coverage is complete, just a miscount in the report.
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean, and now genuinely so.** Full suite reproduces exactly (2,824 passed / 2 skipped across 141 files) with zero failures anywhere — no functional regression in any prior milestone's tests, and no residual "pre-existing" redness left unaddressed.
+
+### Verdict: **PASS — M42_P2 verified complete across all 3 layers.** Recommend annotating M42_P1's and M42_P2's RA-8 text as superseded when these specs are next touched, so a future reader doesn't mistake the now-resolved carve-out for a standing allowance. AC-36 (real-browser PWA install, localhost + LAN) remains genuinely outstanding — watch specifically for first-load vs. after-refresh install-prompt timing per the critic's finding above — joining the growing real-hardware verification backlog from Milestones 40-41. Proceeding to the steering checkpoint with that caveat explicit.
+
+## 2026-09-07 — M42_P3 ("One command, one page of instructions, one green pipeline", Milestone 42 closing phase)
+
+### Layer 1: Executor's own gates (independently reproduced by the orchestrating session at halt, 2026-09-05)
+
+test 2,897 passed / 2 skipped across 143 files (up from 2,824/2/141), typecheck 4/4 PASS, build clean, lint 0 errors (18 pre-existing warnings — baseline shifted from ~5 after an incidental `oxlint` 1.75→1.81 bump inside a fully-regenerated `package-lock.json`; disclosed and confirmed pre-existing, not a new regression). `npm run smoke` independently re-run: exit 0, all 5 assertions, clean isolation (no leftover temp dir, no leftover server process, `apps/api/data/truchabrew.db` mtime unchanged).
+
+### Layer 2: Independent critic audit (CRITIC_REPORT.md M42_P3 entry, 2026-09-07)
+
+**PASS-WITH-FINDINGS.** All 33 Layer-1-verifiable ACs (AC-1…AC-32, AC-36) traced cleanly against the spec, re-derived independently and re-run against source rather than trusted from the executor's own report — including forcing both `smoke-artifact.mjs` failure paths directly (moved-aside build artifact; broken `#root` marker) and confirming both fail loudly, name the real cause, and clean up after themselves. No fabricated success path, no mechanism mislabeling.
+
+Findings, none AC-breaking:
+1. **Repo's `.claude/settings.json` is unchanged from the file the executor's session originally flagged** — still only `journalctl *` / `coredumpctl info *` auto-approvals, no `environment`/`soft_deny` keys. Confirms the orchestrating session's own subsequent `/auto-mode-setup` run wrote to the **global** `/home/eda/.claude/settings.json`, not this repo's project-scoped file — the two unexplained system-log permissions are still live in this repo and still unaccounted for. Not in M42_P3's scope; flagged again here for the user's decision at this checkpoint.
+2. `package-lock.json` regenerated in full (2,392 changed lines) rather than minimally extended as the spec's own text predicted — authorized file, disclosed by the executor, lint still exits 0, but future sessions must compare lint warnings against 18, not the old ~5.
+3. AC-36's pre-edit SHA-256 manifest no longer exists to replay, so the critic's scope confirmation is path-level corroboration (dirty-tree diff against the authorization list) rather than a byte-for-byte re-run of the executor's own comparison.
+4. RA-8's Windows path rides entirely on the still-outstanding AC-34 — CI is `ubuntu-latest` only, correctly disclosed nowhere as covering it.
+5. RA-15 (public repo vs. handing a tester a ZIP) remains unresolved, blocking AC-34's first step — the spec directs this decision to `/steer`, not to the critic or executor.
+6. Minor prose imprecision in README's "Stopping and Restarting" section (non-blocking, does not change brewer-facing behavior).
+
+### Layer 3: Cross-Milestone Regression
+
+**Clean.** The same full-suite run the critic independently reproduced (2,897 passed / 2 skipped, 0 failures) spans every prior milestone's tests, not just M42's own — no functional regression anywhere in the tree.
+
+### Verdict: **PASS-WITH-FINDINGS — M42_P3's 33 automated ACs verified complete across Layers 1-3, but the phase is NOT closable and Milestone 42's own completion threshold is NOT met.** AC-33 (real CI run), AC-34 (actual non-author hand-off rehearsal), and AC-35 (bundled M42_P1/P2 real-hardware evidence) are manual by construction, have zero evidence in `.gsd/active/manual_verification/` (empty), and are correctly claimed nowhere as passing. RA-15 must be decided before AC-34 can even begin. Proceeding to the steering checkpoint with both the automated PASS and the manual-verification gap stated explicitly, plus the unresolved `.claude/settings.json` provenance question surfaced separately.

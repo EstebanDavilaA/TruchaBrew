@@ -29,6 +29,7 @@ import { parseBrewfatherRecipe, parseBeerXml } from '@truchabrew/calculations';
 import { listEquipmentProfiles, listRecipes, downloadDatabaseBackup } from '../api/client';
 import { RecipeImportModal } from './RecipeImportModal';
 import { BackupRestoreModal } from './BackupRestoreModal';
+import { ServerSecurityNotice } from './ServerSecurityNotice';
 
 // GET/PUT /api/config helpers MOVED into ConfigContext.tsx (not duplicated)
 // per the M7_P1 amendment §1.4 — imported above rather than redefined here.
@@ -527,6 +528,7 @@ export function SettingsManager({ onOpenMobileNav }: SettingsManagerProps = {}) 
                 </div>
               </div>
             </div>
+            <ServerSecurityNotice />
           </div>
         )}
       </PageContainer>

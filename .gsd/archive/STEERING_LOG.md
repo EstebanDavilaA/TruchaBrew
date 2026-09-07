@@ -2210,3 +2210,77 @@ Delivered M41_P1, completing Milestone 41 in full (a single-phase milestone). Sc
 - **M41 P1:** AC-39 (wake lock actually stays on through a real mash rest), AC-40 (denied-permission behavior on a real device).
 
 None of these are failures or fabricated evidence — honestly-tracked gaps only real hardware can close, not blocking milestone completion at the user's explicit direction, but worth a single hands-on pass through all of them together before either milestone is considered operationally, not just procedurally, done.
+
+## 2026-09-04 — Milestone 42 Phase 1: "One command, one address, no dev server" (M42_P1)
+
+### Summary
+Delivered the M42_P1 deployment slice (Milestone 42 "A brewer you've never met runs their own copy"). A production esbuild bundle + single `npm start` now serves both the SPA and the API from one process/address, configurable via env (`apps/api/src/config.ts` resolveConfig + describeListenAddresses), with the RA-7 not-found handler (JSON 404 for /api, index.html only for GET/HEAD when static registered) and conditional @fastify/static registered after all routes. `npm run build` builds both web + api; `npm start` runs the bundle. New staticServing + productionSmoke tests spawn the real built artifact.
+
+### Verification Reference
+- **Executor tests (Layer 1):** api 536/536 (+21 vs 515 baseline, exit 0); `npm run typecheck` 4/4 clean; `npm run build` clean (web + api bundle); `npm run lint` clean (0 errors, 5 pre-existing warnings, no new).
+- **Critic verdict (Layer 2):** PASS — 21/21 ACTIVE/verifiable ACs YES (citing `.gsd/archive/CRITIC_REPORT.md` entry "M42_P1 — 'One command, one address, no dev server'", dated 2026-09-04; AC-21/22 manual-only). Not-found/static/RA-7 logic verified; smoke test spawns the real artifact.
+- **Regression (Layer 3):** Clean for this phase's scope — no regression from M42_P1. NOTE: the full root `npm test` currently exits 1 due to 2 PRE-EXISTING web failures from uncommitted working-tree drift in HopSection.tsx/MiscSection.tsx (unrelated to M42_P1, which is apps/api-only), plus one re-run-passing flake (App.test.tsx M38_P3 AC-32). Recommended for a rule-7 reconciliation outside M42_P1.
+
+### Checkpoint Status
+- **Milestone progress:** M42_P1 of an estimated 3 phases (Milestone 42 — "A brewer you've never met runs their own copy"). P1 verified complete pending steering decision.
+- **Pending:** Steering decision.
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-09-04
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Advance Milestone 42 from Phase 1 to Phase 2. Archive `M42_P1_feature_spec.md` to `.gsd/archive/specs/`. (No manual_verification evidence to archive.) Increment `active_phase` 1 → 2 in `.gsd/STATE.json`. Trigger `/plan` for Milestone 42 Phase 2 ("PWA manifest, icons, network-passthrough service worker" — `apps/web/**`).
+
+---
+
+## 2026-09-04 — Milestone 42 Phase 2: "A brewer's phone can install TruchaBrew" (M42_P2)
+
+### Summary
+Delivered M42_P2, the PWA installability slice (Milestone 42 Phase 2 of 3). Built a `manifest.webmanifest` with exact-pinned fields (`name`/`short_name` TruchaBrew, `background_color` #020617, `theme_color` #0f172a, `display` standalone, `start_url`/`scope` /), three raster icons (192x192/512x512/180x180 apple-touch-icon) derived once at authoring time from the existing favicon.svg, committed as static PNGs under public/icons (no rasterization dependency added to any package.json). A network-passthrough-only service worker (`public/sw.js`) with zero Cache Storage API usage — staticness enforced by the test suite itself (critic injected a `caches.open`/`cache.match` block and confirmed AC-24/AC-25 both failed). Service-worker registration split into a pure guard (shouldRegisterServiceWorker, production + secure-context only) and injectable stateful handler (registerServiceWorker), fire-and-forget from main.tsx, never throwing. All 36 automated ACs passed; AC-36 (real-browser install test, localhost + LAN-origin behavior) is genuinely manual-pending.
+
+**Critical pre-verification discovery:** Before Layer 2/3 ran, this session discovered that the M42_P2 spec's RA-8 "pre-existing drift" framing was masking an actual unintended reversion. HopSection.tsx and MiscSection.tsx had been reverted from their M40-shipped wide-button widths back to pre-M40 narrow dimensions, plus the coupled test files had a real assertion unrelated to the width fix also reverted, confirming a genuine revert event, not benign background noise. User confirmed this was unintended and requested restoration; all 5 affected files were restored via git checkout HEAD. The two prior milestone specs' RA-8 text is now superseded by fact.
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full suite 2,824 passed / 2 skipped across 141 test files (web 1,592 + api 536 + calculations 696 passed/2 skipped), genuinely zero failures after the reversion fix, exit 0. `npm run typecheck` 4/4 clean, `npm run build` clean, `npm run lint` clean (0 errors, 5 pre-existing warnings, no new).
+- **Critic verdict (Layer 2):** PASS (citing `.gsd/archive/CRITIC_REPORT.md` entry "M42_P2 — A brewer's phone can install TruchaBrew", dated 2026-09-04). All 36 automated ACs trace YES, zero NO, zero PARTIAL. The "no Cache Storage" guarantee was proven empirically, not just asserted: critic injected caching code into sw.js and confirmed AC-24/AC-25 both went red, then restored with SHA-256 verification. Icons confirmed as genuine favicon rasterizations via hand-decoded PNG pixel data. The bare `self.clients.claim()` judgment call (no `event.waitUntil()` wrap) confirmed spec-compliant but flagged a real consequence for AC-36 manual verification timing.
+- **Regression (Layer 3):** Clean — 2,824 passed / 2 skipped, genuinely zero failures across all prior milestone tests.
+
+### Key Finding — Service Worker Activation Timing
+The service worker's `activate` listener uses a bare `self.clients.claim()` call without an `event.waitUntil()` wrap. Per the spec's literal AC wording, this is compliant (AC-22/AC-25 do not mandate the wrap). However, the critic flagged a real user-visible consequence: without the wrap, `activate` can settle before `claim()` resolves, meaning the currently-open page might not become controlled by the service worker until after a page reload. Chromium's PWA install-prompt eligibility depends on a controlling service worker with a fetch handler — so on first load, there may be no install prompt, but after a refresh, one appears. AC-36's manual verification pass should specifically watch for this first-load vs. after-refresh timing difference rather than just confirming eventual state.
+
+### Checkpoint Status
+- **Milestone progress:** M42_P2 of an estimated 3 phases (Milestone 42 — "A brewer you've never met runs their own copy"). P2 verified complete pending steering decision.
+- **Pending:** Steering decision.
+
+### Steering Decision
+- **Status:** Checkpoint presented. Awaiting user steering choice on Options A/B/C/D.
+- **Pre-steering summary for the user:** M42_P2 verification-clean across all three layers (Layer 1 genuinely zero failures after the pre-verified reversion fix, Layer 2 critic PASS, Layer 3 regression clean). All 36 automated ACs verified YES. AC-36 (real-browser install + LAN behavior) is this phase's own manual-hardware-pending item, with a specific first-load-vs-refresh install-prompt timing observation flagged for the manual pass. Milestone 42 Phase 2 is PWA-ready, and AC-36 should be combined with the accumulated real-hardware backlog from Milestones 40 and 41 in a single hands-on verification session.
+- **Agent:** claude-code
+
+---
+
+## 2026-09-04 — Milestone 42 Phase 2 Steering Decision
+
+### Steering Decision (Option B: Proceed Phase)
+- **Date:** 2026-09-04
+- **Selection:** Option B (Proceed Phase)
+- **Action:** Accept Milestone 42 Phase 2 delivery. Archive `M42_P2_feature_spec.md` to `.gsd/archive/specs/`, with RA-8 annotated **SUPERSEDED** in the archived copy per the critic's recommendation (the "pre-existing drift" it describes was an unintended reversion, since confirmed and fixed — see above). `manual_verification/` was empty — nothing to move. No BUGS.md/FEATURES.md items referenced by this phase, so none to close. Advance to Milestone 42 Phase 3 (the one-command self-host setup + README + CI).
+- **Agent:** claude-code
+
+**Outstanding notes carried forward:** AC-36 (this phase's real-browser PWA install test, with a specific first-load-vs-refresh timing check flagged) joins the growing Milestone 40-41 real-hardware verification backlog. None of this blocks proceeding to Phase 3.
+
+---
+
+## 2026-09-07 — Milestone 42 Phase 3: "One command, one page of instructions, one green pipeline" (M42_P3)
+
+### Summary
+Delivered M42_P3, the documentation & CI setup slice closing Milestone 42. Generated comprehensive README with one-command deployment instructions, automated CI pipeline (GitHub Actions), and validated all deployment targets. All 33 Layer-1-verifiable ACs (AC-1..AC-32, AC-36) confirmed passing. AC-33 (real CI run), AC-34 (non-author hand-off), and AC-35 (M42_P1/P2 hardware evidence) remain manual-only and outstanding. RA-15 (public repo decision) unresolved, blocks AC-34.
+
+### Verification Reference
+- **Executor tests (Layer 1):** 33 automated ACs passing (AC-1..AC-32, AC-36); AC-33/34/35 correctly claimed nowhere as passing (manual-only).
+- **Critic verdict (Layer 2):** PASS-WITH-FINDINGS (citing `.gsd/archive/CRITIC_REPORT.md` dated 2026-09-07). All 33 automated ACs verified YES. Secondary finding: repo-level `.claude/settings.json` contains two unexplained Bash auto-approvals (journalctl *, coredumpctl info *) from before this phase; provenance unconfirmed, out-of-scope.
+- **Regression (Layer 3):** Clean — no regression from M42_P3. Note: package-lock.json regenerated this phase (oxlint 1.75→1.81); lint baseline shifted from ~5 to 18 pre-existing warnings (not new regression, baseline shift for future tracking).
+
+### Checkpoint Status
+- **Milestone progress:** M42_P3 of 3 phases complete (Milestone 42 — "A brewer you've never met runs their own copy").
+- **Manual backlog (M40–M42 combined):** AC-15, AC-16, AC-18, AC-19, AC-21, AC-22, AC-33, AC-34, AC-35, AC-36. RA-15 unresolved.
+- **Pending:** Steering decision (Milestone closure).
