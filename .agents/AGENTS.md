@@ -31,8 +31,8 @@ Start with `/onboard`. It routes to:
 /onboard → /discover → /roadmap ──────────────────────┼─→ /plan →
                                                               [SPEC_APPROVED] →
                                           /execute (checks, halts) → /steer ────┐
-                                          (review passes) → checkpoint          │
-                                          (fails) → /diagnose → back to /execute, /plan, or /discover
+                                          (no material blockers) → checkpoint │
+                                          (blockers) → /diagnose → fix at the right layer
 ```
 
 | Command | What it does |
@@ -40,12 +40,13 @@ Start with `/onboard`. It routes to:
 | `/prototype` | One clarifying question, then a minimal working slice. |
 | `/discover` | Questions about intent → `.codestream/DISCOVERY.md`. No code. |
 | `/roadmap` | Audits what exists → `.codestream/ROADMAP.md`, as vertical slices. |
-| `/plan` | Drafts the one-page spec. Halts for `SPEC_APPROVED`. |
-| `/execute` | Builds the slice, runs the checks, halts. |
-| `/steer` | Independent review, then the checkpoint. Never auto-advances. |
+| `/plan` | Resolves material decisions interactively, drafts an outcome-focused spec, then halts for `SPEC_APPROVED`. |
+| `/execute` | Builds the approved slice, runs relevant checks, and halts for review. |
+| `/steer` | Independently checks outcomes, reports blockers and limitations, then checkpoints when no material blockers remain. |
 | `/diagnose` | Finds the cause of a failure before anything is patched. |
 | `/log` | Bugs and feature requests → `.codestream/BUGS.md` / `FEATURES.md`. |
 | `/research` | Read-only questions. No code, no specs. |
+| `/wave` | Several phases at once: plan all, one approval, parallel builds in worktrees, one `/steer`. |
 
 `/verify` is `/execute`'s check list run again on demand. `/reset` is `git` — revert
 to a known-good commit and say so. Neither needs its own skill.
@@ -56,6 +57,8 @@ At any halt gate — a spec waiting on `SPEC_APPROVED`, a checkpoint, a spec in
 review — present the artifact, say plainly what you're waiting for, and yield.
 Don't start editing after presenting a plan. That's the one thing rule 2 exists to
 prevent.
+In a wave, the halts are the same, just held once for the whole wave: every spec
+waits on `SPEC_APPROVED`, and the build waits on the one `/steer` checkpoint.
 
 ## Protected paths
 

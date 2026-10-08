@@ -14,10 +14,11 @@ Build what the spec says. Nothing else.
 
 2. **Build the slice.** Follow the patterns the spec names.
 
-3. **Run every check in `.codestream/PROJECT.md`** — tests, typecheck, build,
-   lint. Report each one's real exit code. Where a check doesn't apply, write
-   "N/A — no build step in this project". Silence isn't the same as not
-   applicable.
+3. **Run the relevant checks in `.codestream/PROJECT.md`** for the changed
+   behavior and its current integration surface. Report each command and its
+   actual exit code; say why a project check is not applicable. Do not claim
+   skipped checks passed. Run the full historical suite at a milestone boundary
+   or when the breadth or risk of the change warrants it, as rule 4 describes.
 
 4. **Confirm what changed** with `git diff --stat`. Anything outside the spec:
    say so. Don't quietly leave it in and don't quietly take it out if the spec
@@ -38,3 +39,21 @@ Build what the spec says. Nothing else.
   forgetting.
 - Don't touch anything the spec puts out of bounds.
 - Don't report a check as passing without its exit code.
+
+## As a lane in a wave
+
+When `/wave` runs you, you're in your own git worktree, on your own branch. The
+process above still applies, with these differences:
+
+- Read your spec **and** the manifest from your checkout. Edit only the files the
+  manifest gives your phase. A shared file you may only add to: add, never rewrite
+  or reorder. If the slice needs a file outside your ownership, stop and report it;
+  don't edit it.
+- Don't write `STATE.json`, `ROADMAP.md`, `BUGS.md` or `FEATURES.md`. Put what you
+  would have logged in your report instead, worded so the runner can paste it.
+- Run targeted checks in your worktree for your changed behavior and its
+  integration surface, and commit your work on your branch with the phase in the
+  message. Report broader checks you did not run; never imply they passed.
+- Return to the runner, instead of halting: what you built, every check's exit
+  code, `git diff --stat` against the wave base, anything outside the spec, and the
+  `/log` items.
