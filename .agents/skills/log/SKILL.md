@@ -43,7 +43,7 @@ description: Log, track, and structure bug reports into .gsd/BUGS.md and feature
 ### FEAT-xxx: <Title>
 - **Date Logged**: YYYY-MM-DD
 - **Status**: `LOGGED`
-- **Category:** <Subsystem / UX / Logic>
+- **Category**: <Subsystem / UX / Logic>
 - **Summary**: <One-sentence summary of the requested capability or polish>
 - **Details**:
   - <Bulleted scope details, constraints, design choices>
