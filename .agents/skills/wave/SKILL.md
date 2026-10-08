@@ -37,13 +37,13 @@ merged.
 ## Before anything runs in parallel
 
 - **Every checkout runs the same dependency versions.** A worktree resolves its own
-  environment; if the lockfile isn't committed it resolves *different* versions,
-  and every render and test in it describes a program the user doesn't run.
-  Commit the lockfile first, or stop and ask.
+  environment; if the lockfile isn't committed it resolves *different* versions, and
+  every render and test in it describes a program the user doesn't run. Commit the
+  lockfile first, or stop and ask.
 - **Every agent gets its own scratch subfolder**, named for its lane or review.
   Agents share the scratch root, and one agent's cleanup must never reach another's.
-- **Usage limits stop whole stages at once.** If the tool has one, start fewer
-  agents at a time rather than resuming many.
+- **Usage limits stop whole stages at once.** If the tool has one, start fewer agents
+  at a time rather than resuming many.
 
 ## 1. Plan — every lane at once
 
@@ -81,29 +81,28 @@ Only after material decisions are resolved and written into the specs, wait for
 
 1. Commit the approved specs, manifest, wave's `STATE.json` update, and any
    roadmap corrections produced during planning on a new branch
-   `wave/<milestone>-<name>` off the current branch — the **wave base**.
-   The dirty-tree preflight must have passed; do not commit other working-tree
-   changes as part of this step. Lanes branch from the wave base, so they read the
-   approved specs and current framework state from their own checkout.
+   `wave/<milestone>-<name>` off the current branch — the **wave base**. The
+   dirty-tree preflight must have passed; do not commit other working-tree
+   changes as part of this step. Lanes branch from the wave base, so they read
+   the approved specs and current framework state from their own checkout.
 2. For each lane in the current stage, spawn an executor in its own worktree on
-   `wave/<milestone>-<name>-<phase>` — a sibling, not a child: git can't hold both
-   `wave/M12-B` and `wave/M12-B/P3` (Claude Code: the agent tool's `worktree`
+   `wave/<milestone>-<name>-<phase>` — a sibling, not a child: git can't hold both `wave/M12-B` and `wave/M12-B/P3` (Claude Code: the agent tool's `worktree`
    isolation; elsewhere: `git worktree add`). Tell it to follow `/execute` *as a
    lane*, and to commit its work on its own branch.
 3. As each lane returns: read its report, check its diff stays inside the files the
-   manifest gives it, and merge it into the wave branch. Additive conflicts in
-   shared files (both sides add a list entry, an import, an export) are resolved by
-   keeping both sides. Any other conflict: stop — the cut was wrong (see `RULES.md`).
+   manifest gives it, and merge it into the wave branch. Additive conflicts in shared
+   files (both sides add a list entry, an import, an export) are resolved by keeping
+   both sides. Any other conflict: stop — the cut was wrong (see `RULES.md`).
 4. After every merge, run checks for the changed behavior and integration with
    the already-merged application on the wave branch; record commands and actual
    exit codes. A lane that was green alone and is red merged hasn't passed.
    Worktrees separate files, not the machine: tests that scan processes or bind
-   fixed ports collide when two checkouts run them at once. A red result while any
-   lane is running checks isn't evidence either way; run those checks again when
-   no lane is running them, and only that run counts. Broader regression checks
-   are selected when combined changes cross components or carry significant risk;
-   run the full historical suite at the milestone boundary, not automatically
-   after each merge.
+   fixed ports collide when two checkouts run them at once. A red result while
+   any lane is running checks isn't evidence either way; run those checks again
+   when no lane is running them, and only that run counts. Broader regression
+   checks are selected when combined changes cross components or carry
+   significant risk; run the full historical suite at the milestone boundary,
+   not automatically after each merge.
 5. When a stage is merged and green, start the next stage from the wave branch.
    A lane that stops without a report (a crash, a usage limit, a closed session)
    hasn't finished: look at its worktree, then resume it with its context if the
@@ -148,9 +147,8 @@ again for only the phases that changed, plus the integration reviewer.
 ## 5. Close
 
 At the checkpoint, the human merges the wave branch into the main branch, or asks
-you to. Then the specs move to `.codestream/archive/specs/`, the manifest with
-them, `artifacts.active_wave` is cleared, and the worktrees and lane branches are
-removed.
+you to. Then the specs move to `.codestream/archive/specs/`, the manifest with them,
+`artifacts.active_wave` is cleared, and the worktrees and lane branches are removed.
 
 ## Do not
 

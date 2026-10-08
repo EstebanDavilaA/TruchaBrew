@@ -1,9 +1,9 @@
 {
   "framework": "CODESTREAM-lite",
   "version": "0.1.0",
-  "current_state": 4,
-  "active_milestone": null,
-  "active_phase": null,
+  "current_state": 2,
+  "active_milestone": 44,
+  "active_phase": 1,
   "state_history": [
     {
       "date": "2026-09-07",
@@ -76,13 +76,43 @@
       "state": 4,
       "agent": "github-copilot",
       "event": "Framework migration to CODESTREAM-lite, replacing the Architect/GSD framework. `.codestream/` replaces `.gsd/`: DISCOVERY.md, ROADMAP.md, BUGS.md, FEATURES.md, PROJECT.md and STATE.json carried over and reshaped to the codestream templates. All predecessor history moved verbatim into `.codestream/archive/` — specs (93), manual_verification, CRITIC_REPORT.md, VERIFICATION_REPORT.md, STEERING_LOG.md, STATE_HISTORY.md, documents/, and the unmodified `.gsd/` originals under `pre-codestream/`. RULES.md added; CLAUDE.md replaced; `.agents/` replaced with codestream's ten skills; `.github/copilot-instructions.md` added. `.claude/` and `.gsd/` removed — both remain recoverable from git history. Milestone 42's state_history entries moved to `.codestream/archive/STATE_HISTORY.md` per RULES.md; Milestone 43's 11 entries remain inline. Milestone 43 stays complete; nothing is active and no spec is pending. `current_state: 4` is carried over verbatim from the predecessor's numbering, which codestream-lite does not use. `.gsd/` paths inside carried-over state_history entries were correct when written and are left as-is."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "Updated `.codestream/ROADMAP.md` with proposed Milestones 44–46: first protect unsaved edits and reconcile stale open bugs, then add local stdio MCP chat updates for recipes/equipment profiles and batches/inventory using Claude Code and Gemini CLI. Documented API-key ownership and external-model data disclosure. No spec is active; awaiting roadmap approval before `/plan`."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "User approved the proposed roadmap. Corrected Milestone 44's navigation diagnosis against the current local-view-state app and split modal dirty-state protection into a later phase. Drafted `.codestream/active/M44_P1_unsaved_editor_guard.md` for core editor navigation and dirty-state safety. Awaiting the literal `SPEC_APPROVED`; no implementation started."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "User requested roadmap only and deferred planning to a fresh context. Roadmap is approved. Marked the incidental M44_P1 draft PARKED, cleared active milestone/phase/spec, and made no implementation changes."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 4,
+      "agent": "github-copilot",
+      "event": "Implemented the approved CODESTREAM-lite refresh from template revision 36aa63a: synchronized RULES.md, eight updated skills, GitHub Copilot instructions, and the spec template; added the wave template. Verified all 12 framework files are byte-identical to the template. git diff --check passed. Product tests, typecheck, build, lint, and smoke checks are not applicable to this framework-documentation-only change. Existing project roadmap/state edits and project records were preserved. Awaiting /steer."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "Reopened M44_P1 planning at the user’s request. Replaced the parked draft with a one-page P1 spec limited to recipe and batch page exit protection; inventory/profile data-entry modals remain P2. Clarified the existing two-phase roadmap breakdown and retained the required BUG-026–BUG-039 triage. Awaiting SPEC_APPROVED; no implementation started."
     }
   ],
   "artifacts": {
     "project": ".codestream/PROJECT.md",
     "discovery": ".codestream/DISCOVERY.md",
     "roadmap": ".codestream/ROADMAP.md",
-    "active_spec": null,
+    "active_spec": ".codestream/active/M44_P1_unsaved_editor_guard.md",
     "bugs": ".codestream/BUGS.md",
     "features": ".codestream/FEATURES.md"
   }

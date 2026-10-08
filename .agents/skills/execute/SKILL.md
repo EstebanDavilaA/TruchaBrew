@@ -11,6 +11,10 @@ Build what the spec says. Nothing else.
 
 1. **Read the spec from disk, in full, at the moment you start.** Not from
    context — a file that was right when written can be wrong when read.
+   Build only from its settled outcomes and exclusions. If implementation reveals
+   a material unanswered decision or conflict with the user's intent, stop and
+   return to `/plan` to resolve it interactively and update the spec; do not
+   assume the recommended approach answers for the user.
 
 2. **Build the slice.** Follow the patterns the spec names.
 

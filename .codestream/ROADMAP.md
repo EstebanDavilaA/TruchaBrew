@@ -738,6 +738,45 @@ The audit's headline finding is what makes a four-milestone version of this goal
 **The initiative is complete when Milestone 43 closes** — at which point the app can be handed to a brewer who self-hosts it, uses it at the kettle from their phone, and can tell you what happened.
 **The initiative is complete when Milestone 43 closes** — **INITIATIVE COMPLETE (2026-09-07).** All 4 milestones (40–43) delivered and verified in full. The application is ready to hand to a brewer who self-hosts it, uses it at the kettle from their phone, and can provide instant in-app feedback.
 
+## Proposed Next Milestones
+
+**Open-defect triage before new capability:** `BUG-026`–`BUG-039` are still marked
+`OPEN`, but most were logged before the responsive and design-system work in
+Milestones 30–40. Recheck them against the current app and close entries already
+resolved; do not assume every old proposed redesign is still needed. `BUG-033`
+remains a concrete data-loss risk: the app uses local view state, and the current
+discard guard covers the recipe editor but not other editable forms such as
+batches, inventory, and profiles. (The issue's suggested React Router blocker
+does not match the current app.) Address it before enabling external assistant
+write tools. `BUG-043` remains explicitly non-blocking.
+
+### Milestone 44 — Leave an editor without silently losing work
+- **User-visible outcome:** When a brewer tries to leave a recipe, batch, inventory, or profile editor with unsaved changes, TruchaBrew asks whether to stay or discard; choosing to stay preserves the edits.
+- **Builds on:** Existing dirty-state tracking in the recipe editor, batch and profile forms, and the shared modal/dialog primitives.
+- **Phases:** P1 protects recipe and batch page edits across sidebar/mobile navigation, back/cancel actions, and browser unload; P2 protects dirty data-entry modals, including inventory and profile forms.
+- **Scope:** Reconcile `BUG-026`–`BUG-039` against the current app; resolved entries are closed and reproducible issues remain tracked with current evidence. P1 does not expand into unrelated visual redesigns.
+- **Explicitly out of scope:** Autosave, draft recovery after a crash, nested calculator/import/logging modal edits (Phase 2), and unrelated visual redesigns.
+
+### Milestone 45 — Update recipes and equipment profiles through chat
+- **User-visible outcome:** From Claude Code or Gemini CLI, a brewer can find a recipe or equipment profile, inspect it, and ask in natural language to update it; the saved change appears in TruchaBrew and remains after refresh.
+- **Approach:** Provide a local, stdio Model Context Protocol (MCP) server that calls TruchaBrew's existing API. Support both clients through MCP configuration rather than separate provider integrations. The provider API key stays in the assistant client's own configuration; TruchaBrew does not receive or store it.
+- **Data/privacy boundary:** The assistant provider receives the selected recipe/profile data returned by MCP and any related chat context. This intentionally changes Discovery's current "no cloud / nothing uploaded" promise. Before implementation, explicitly approve and update that promise and the setup/privacy documentation; do not send the full database or add a remote MCP listener.
+- **Explicitly out of scope:** Creating or deleting records, direct database access, a TruchaBrew-hosted chat UI, and support for remote MCP connections.
+
+### Milestone 46 — Update batches and inventory through chat
+- **User-visible outcome:** From the same connected chat clients, a brewer can inspect and update a batch and make a validated inventory adjustment; changes are reflected in the app and persisted.
+- **Builds on:** Milestone 45's local MCP connection, client setup, and data/privacy disclosure.
+- **Scope:** Use the existing API's validation and inventory transaction flow; require explicit user approval for write operations and return clear success or failure results.
+- **Explicitly out of scope:** Deleting records, arbitrary SQL, bulk database export/import, and bypassing the API with direct database writes.
+
+**Roadmap approved (2026-10-08).** Planning Milestone 44 is deferred to a fresh
+context at the user's request; no phase spec is active.
+
+**Planning resumed (2026-10-08).** Clarified the existing two-phase estimate:
+P1 covers recipe and batch page navigation; P2 covers dirty data-entry modals.
+The M44_P1 draft includes the milestone's existing responsive-issue triage
+scope and is awaiting `SPEC_APPROVED`.
+
 ---
 
 ## Deferred / not scheduled
@@ -756,7 +795,3 @@ The four entries that follow were **scoped in full on 2026-09-02, then deferred 
 - **Multi-device sync and an access gate.** Was Milestone 46. Snapshot push/pull built on the existing `GET /api/backup/export` / `POST /api/backup/restore` endpoints with a monotonic version guard, plus a single-account access gate, sessions, CORS and rate limiting. **Deferred because** interview answers 1 and 2 together dissolve it: one instance per tester on their own machine means there is no second device holding a divergent copy, and same-wifi operation means the phone is a client of the PC's server rather than a peer with its own database. `db/schema.ts`'s 22 tables with **no user-identity table and no `user_id`/`tenant_id` column anywhere** are, under this goal, a design that already fits rather than a gap. Milestone 42 carries the small honest remainder: say plainly that the server is unauthenticated and meant for a trusted home network. **Revive if** the product moves to central hosting, or if one brewer wants two machines each holding their own copy of the data — either of which reopens the full 22-table, 8-repository multi-tenancy question this deferral avoids.
 - **`Recipe`/`RecipeSummary`/`RecipeWriteInput` `folder`/`tags` required-typing sweep.** Added 2026-09-01 by M38_P1 Amendment 1 (RA-8). The fields ship **optional** (`folder?`/`tags?`); tightening them to required is a ~30-file sweep of Recipe-literal fixtures across all three workspaces, plus a route-body boundary type for the two `app.post`/`app.put` handlers whose wire schema deliberately does not require the fields. Ratified as a documented tradeoff, not an open gap — a future audit finding these optional should read RA-8 before filing it. Slot at a future `/steer` only if the coalescing (`?? null` / `?? []`) discipline starts leaking again.
 - ~~**Full-app design-token coverage.**~~ — **NOW SCHEDULED (2026-08-24) as the *Living Design System* initiative, Milestones 30–35 above.** Original entry, preserved verbatim: Milestone 24 deliberately sweeps only the ~13–20 files carrying *duplicated* button/input class-strings. Separately, 41 of ~64 `.tsx` files in `apps/web` don't import `designSystem` at all (~36% coverage today). Raising that to full coverage is a real, defensible piece of work — it is simply much larger and much lower-value than removing actual drift, and folding it into Milestone 24 would triple that milestone's size for a fraction of the user-visible benefit. Slot it at a future `/steer` if the drift keeps recurring.
-
-
-
-
