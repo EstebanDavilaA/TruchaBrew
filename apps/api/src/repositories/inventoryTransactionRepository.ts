@@ -1,5 +1,5 @@
 // M9_P2 — the append-only ledger's DB access. New file; see
-// .gsd/active/M9_P2_feature_spec.md §1.5. Insert-and-select only — no
+// .codestream/archive/specs/M9_P2_feature_spec.md §1.5. Insert-and-select only — no
 // `update` and no `delete` function exists in this file (AC-31 companion
 // source scan).
 import { eq } from 'drizzle-orm';

@@ -1,59 +1,33 @@
 ---
 name: log
-description: Log, track, and structure bug reports into .gsd/BUGS.md and feature requests into .gsd/FEATURES.md via /log. Auto-classifies inputs, tracks lifecycle status, and routes items to /diagnose, /plan, or roadmap sequencing. Ported from Antigravity/Gemini's identical skill so either tool triages logs the same way (.gsd/HARD_RULES.md rule 16).
+description: Record a bug in .codestream/BUGS.md or a feature idea in .codestream/FEATURES.md, with enough context that the next reader re-derives nothing.
 ---
 
-# Unified Logger: Log and Categorize Bugs & Features
+# Log
 
-**Rule:** Every reported issue, broken behavior, feature request, or UX polish idea must be formally logged with structured metadata via `/log`. Defects are written to `.gsd/BUGS.md`, while feature requests/ideas are written to `.gsd/FEATURES.md`.
-
----
+Write it down now, so nobody has to choose between scope creep and forgetting.
 
 ## Process
 
-0. **First action of a session, always**: if `.gsd/STATE.json` already exists, run the pre-flight integrity check (`.gsd/HARD_RULES.md` rule 10) before anything else.
+1. **Bug or feature?** Broken behaviour → `BUGS.md`. A capability that doesn't
+   exist yet → `FEATURES.md`.
 
-1. **Classification**:
-   - **Bug (Implementation Defect / Active Spec Gap)**: Code in a completed/active milestone is broken, miscalculating, or regressing.
-     → Log to `.gsd/BUGS.md` as `BUG-xxx`. Initial status: `OPEN`.
-   - **Feature (Unbuilt Scope, UX Polish, or Architectural Idea)**: New capability, navigation redesign, layout polish, or future enhancement.
-     → Log to `.gsd/FEATURES.md` as `FEAT-xxx`. Initial status: `LOGGED`.
+2. **Read the file, then append.** Never rewrite an existing entry. Next id:
+   `BUG-0nn` or `FEAT-0nn`.
 
-2. **Log Entry Creation (Append-Only)**: Read current target file, generate next sequential ID (`BUG-xxx` or `FEAT-xxx`), and append entry as UTF-8 (`.gsd/HARD_RULES.md` rule 14).
+3. **Fill the template properly.** "It doesn't work" isn't an entry. What you did,
+   what happened, what you expected — with the real numbers. A future session
+   should be able to act on this without asking you anything.
 
-### Entry Templates
+4. **Say how you found it.** "Using the app" is the most valuable answer there is.
+   If the log is only ever fed by document-reading, that's worth saying out loud —
+   a bug log about paperwork isn't a bug log about the product.
 
-**For `.gsd/BUGS.md`**:
-```markdown
-### [BUG-xxx] <Title>
+5. **Say where the fix belongs** if you know — the code, a spec correction, or the
+   goal (rule 6).
 
-- **Date Logged:** YYYY-MM-DD
-- **Status:** `OPEN`
-- **Category:** <Category / Subsystem>
-- **Component:** <apps/web | apps/api | packages/*> (<Component/File>)
-- **Reported Issue:** <Concise problem description>
-- **Observed Behavior:** <What actually happens>
-- **Expected Behavior:** <What should happen>
-- **Triage & Diagnosis:** <Initial root cause or context pointer>
-- **Resolution Path:** <Scheduled for Milestone X / Routed to /diagnose / /plan>
-```
+## When it doesn't deserve an entry
 
-**For `.gsd/FEATURES.md`**:
-```markdown
-### FEAT-xxx: <Title>
-- **Date Logged**: YYYY-MM-DD
-- **Status**: `LOGGED`
-- **Category**: <Subsystem / UX / Logic>
-- **Summary**: <One-sentence summary of the requested capability or polish>
-- **Details**:
-  - <Bulleted scope details, constraints, design choices>
-```
-
-3. **Status Lifecycle Tracking**:
-   - `OPEN` / `LOGGED`: Initial state.
-   - `SCHEDULED_MILESTONE (Milestone X)`: Added to `.gsd/ROADMAP.md` during `/roadmap_slices` or `/discover`.
-   - `IN_PLANNING`: Included in an active feature spec in `/plan`.
-   - `IN_EXECUTION`: Underway in `/execute`.
-   - `CLOSED`: Verified complete by `/verify` and archived during `/steer`.
-
-4. **User Communication**: Present structured summary and routing diagnosis to the user.
+A typo, a stale comment, a one-word fix: just fix it and say what you did (rule
+2's exception). The log is for things a future session needs to know about, not
+for everything you touched.

@@ -161,7 +161,7 @@ export type ApiErrorCode =
   // InventoryDuplicateDetails for this code's `details` payload.
   | 'INVENTORY_DUPLICATE'
   // NEW in M9_P2 — checkoff ledger errors, all 409. See
-  // .gsd/active/M9_P2_feature_spec.md §1.1 / §4 Deviation 10.
+  // .codestream/archive/specs/M9_P2_feature_spec.md §1.1 / §4 Deviation 10.
   | 'CHECKOFF_ALREADY_OPEN'
   | 'CHECKOFF_NOT_OPEN'
   | 'CHECKOFF_NOT_COMPARABLE'

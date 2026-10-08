@@ -174,15 +174,15 @@ describe('AC-27: fixture total water', () => {
   }
 });
 
-// Pinned at the time the fixture was copied from the protected .gsd/documents/
+// Pinned at the time the fixture was copied from the .codestream/archive/documents/
 // original (SHA-256, verified by hand: `Get-FileHash ... -Algorithm SHA256`).
-// A live cross-tree read of .gsd/ was rejected — .gsd/documents/ is untracked,
-// so it isn't present in a genuine `git clone` and would break AC-30's cold-clone
-// guarantee. Pinning keeps this package's only dependency the committed copy.
+// A live cross-tree read of .codestream/ was rejected — the archive is not part of
+// this package and reading it would break AC-30's cold-clone guarantee. Pinning
+// keeps this package's only dependency the committed copy.
 const MONTANO_FIXTURE_SHA256 = 'a44239fb7d8499a4968ed09bcebab8aeab92201d24e5531842ed4077fcd80bc1';
 
 describe('AC-29: fixture copy is byte-identical', () => {
-  it('matches the pinned SHA-256 of the protected .gsd fixture', () => {
+  it('matches the pinned SHA-256 of the archived fixture', () => {
     const here = path.dirname(fileURLToPath(import.meta.url));
     const copyPath = path.join(here, 'fixtures', 'montano_brewing_recipes.json');
 

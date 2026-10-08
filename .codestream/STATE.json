@@ -1,0 +1,89 @@
+{
+  "framework": "CODESTREAM-lite",
+  "version": "0.1.0",
+  "current_state": 4,
+  "active_milestone": null,
+  "active_phase": null,
+  "state_history": [
+    {
+      "date": "2026-09-07",
+      "state": 2,
+      "agent": "antigravity-gemini",
+      "event": "State 2 /plan: drafted .gsd/active/M43_P1_feature_spec.md for Milestone 43 Phase 1 ('Tell me what went wrong while your hands were wet'; single-phase milestone closing the Ready to Hand to a Brewer initiative). Pre-flight per rule 10 clean: .gsd/active/ cleared of prior specs, STATE.json parsed as valid JSON/UTF-8 no BOM. Scope: in-app feedback box with reachable 44px wet-thumb button in the shell, feedback modal with non-destructive error preservation, automatic technical context attachment (appVersion, route, viewport, active batch metadata with zero private brewer data), backend POST /api/feedback with JSON schema validation, environment-driven destination TRUCHABREW_FEEDBACK_WEBHOOK_URL in apps/api/src/config.ts, dual payload format for Discord/Slack/generic webhooks, and honest privacy disclosure. Authorized files: 14 files across apps/api, apps/web, packages/shared-types, and README.md. Scope guardrail viable via git diff against 7515036. AWAITING SPEC_APPROVED."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 3,
+      "agent": "antigravity-gemini",
+      "event": "SPEC_APPROVED received for M43_P1 (\"Tell me what went wrong while your hands were wet\", Milestone 43 Phase 1 of 1, 22 ACs, 14 authorized files). Pre-flight re-verified: STATE.json valid JSON/UTF-8 no BOM, M43_P1_feature_spec.md valid UTF-8 no BOM, .gsd/active/ holds exactly one spec matching artifacts.active_spec, last entry antigravity-gemini state 2 AWAITING SPEC_APPROVED. Scope: in-app feedback box with reachable 44px wet-thumb button in the shell, feedback modal with non-destructive error preservation, automatic technical context attachment, backend POST /api/feedback with JSON schema validation, environment-driven destination TRUCHABREW_FEEDBACK_WEBHOOK_URL in apps/api/src/config.ts, dual payload format for Discord/Slack/generic webhooks, and honest privacy disclosure. Handed off to executor."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 4,
+      "agent": "antigravity-gemini",
+      "event": "Layer 1 execution complete for M43_P1 (\"Tell me what went wrong while your hands were wet\", Milestone 43 Phase 1 of 1, 22 ACs). Delivered exactly 14 authorized files across apps/api, apps/web, packages/shared-types, and README.md with zero unauthorized files modified. Delivered: packages/shared-types/src/feedback.ts & index.ts (FeedbackViewport, FeedbackContext, FeedbackInput, FeedbackResponse, OutboundWebhookPayload, FeedbackErrorCode); apps/api/src/config.ts (TRUCHABREW_FEEDBACK_WEBHOOK_URL, RuntimeConfig.feedbackWebhookUrl, resolveConfig parsing); apps/api/src/routes/feedback.ts (buildOutboundPayload, registerFeedbackRoutes: length 1..5000 validation, whitespace rejection, 503 on unconfigured webhook, outbound POST with 10s AbortSignal.timeout, dual payload format for Discord/Slack/generic HTTP consumers, 502 on network/status error, 200 on success); apps/api/src/server.ts & apps/api/src/index.ts (feedbackWebhookUrl wiring, route registration); apps/api/test/feedback.test.ts (9 tests) & apps/api/test/config.test.ts (AC-1/AC-2 tests; all 547 API tests pass); apps/web/src/api/client.ts (sendFeedback with ApiClientError handling); apps/web/src/components/FeedbackButton.tsx (touch-friendly 44px+ WCAG 2.5.5 floating action button at bottom-4 right-4 z-40); apps/web/src/components/FeedbackModal.tsx (accessible dialog with auto-focus, non-destructive error preservation, privacy disclosure, diagnostic context gathering); apps/web/src/App.tsx (FeedbackButton and FeedbackModal integration with active view and batch metadata tracking); apps/web/test/feedback.test.tsx (10 tests; all 1608 web tests pass); README.md (TRUCHABREW_FEEDBACK_WEBHOOK_URL documented). Layer 1 Four Gates independently verified: test (2,918 passed / 5 skipped across 145 files, exit 0), typecheck (4/4 packages PASS, exit 0), build (clean in 1.08s web + 44ms api, exit 0), lint (0 errors, 18 baseline warnings, 0 new, exit 0). Scope guardrail verified against commit 7515036 (exactly 14 authorized files). Per Hard Rule 15, halted for /steer without auto-chaining into critic or verify."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 4,
+      "agent": "antigravity-gemini",
+      "event": "/steer for M43_P1 (\"Tell me what went wrong while your hands were wet\"): Layer 1 quality gates verified green (test 2,916 passed / 2 skipped across 144 files, typecheck 4/4 clean, build clean, lint 0 errors, smoke clean). Layer 2 independent critic audit completed and verified PASS across all 22 ACs (CRITIC_REPORT.md appended and verified). Layer 3 cross-milestone regression clean. VERIFICATION_REPORT.md appended. Proceeding to State 4 Steering Checkpoint."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 2,
+      "agent": "antigravity-gemini",
+      "event": "State 2 /plan (refinement): amended .gsd/active/M43_P1_feature_spec.md with Amendment 1 per steering Option A. Scope refined to ship the TruchaBrew Bot Slack webhook URL by default via a committed .env.production file. Server loads .env.production (and local .env if present) at boot. Users cloning/downloading the repo have feedback to Slack working out of the box. Authorized files list updated (15 files). HALT: awaiting SPEC_APPROVED."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 3,
+      "agent": "antigravity-gemini",
+      "event": "SPEC_APPROVED received for M43_P1 Amendment 1 (\"Tell me what went wrong while your hands were wet\", Milestone 43 Phase 1 of 1, 22 ACs, 15 authorized files). Pre-flight re-verified: STATE.json valid JSON/UTF-8 no BOM, M43_P1_feature_spec.md valid UTF-8 no BOM, .gsd/active/ holds exactly one spec matching artifacts.active_spec, last entry antigravity-gemini state 2 AWAITING SPEC_APPROVED. Scope: add committed .env.production containing TruchaBrew Bot Slack webhook URL, update apps/api/src/index.ts to load .env.production alongside .env via process.loadEnvFile(), and verify all Layer 1 gates. Handed off to executor."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 4,
+      "agent": "antigravity-gemini",
+      "event": "Layer 1 execution complete for M43_P1 Amendment 1 (\"Tell me what went wrong while your hands were wet\", Milestone 43 Phase 1 of 1, 22 ACs). Delivered exactly 15 authorized files across apps/api, apps/web, packages/shared-types, README.md, and .env.production with zero unauthorized files modified. Delivered: packages/shared-types/src/feedback.ts & index.ts (FeedbackViewport, FeedbackContext, FeedbackInput, FeedbackResponse, OutboundWebhookPayload, FeedbackErrorCode); apps/api/src/config.ts (TRUCHABREW_FEEDBACK_WEBHOOK_URL, RuntimeConfig.feedbackWebhookUrl, resolveConfig parsing); apps/api/src/routes/feedback.ts (buildOutboundPayload, registerFeedbackRoutes: length 1..5000 validation, whitespace rejection, 503 on unconfigured webhook, outbound POST with 10s AbortSignal.timeout, dual payload format for Discord/Slack/generic HTTP consumers, 502 on network/status error, 200 on success); apps/api/src/server.ts & apps/api/src/index.ts (feedbackWebhookUrl wiring, route registration, .env.production and .env loading via process.loadEnvFile); apps/api/test/feedback.test.ts (9 tests) & apps/api/test/config.test.ts (AC-1/AC-2 tests; all 547 API tests pass); apps/web/src/api/client.ts (sendFeedback with ApiClientError handling); apps/web/src/components/FeedbackButton.tsx (touch-friendly 44px+ WCAG 2.5.5 floating action button at bottom-4 right-4 z-40); apps/web/src/components/FeedbackModal.tsx (accessible dialog with auto-focus, non-destructive error preservation, privacy disclosure, diagnostic context gathering); apps/web/src/App.tsx (FeedbackButton and FeedbackModal integration with active view and batch metadata tracking); apps/web/test/feedback.test.tsx (10 tests; all 1608 web tests pass); README.md (TRUCHABREW_FEEDBACK_WEBHOOK_URL documented); .env.production (shipped default Slack webhook URL). Layer 1 Four Gates independently verified: test (2,918 passed / 5 skipped across 145 files, exit 0), typecheck (4/4 packages PASS, exit 0), build (clean in 327ms web + 14ms api, exit 0), lint (0 errors, 18 baseline warnings, 0 new, exit 0), smoke (exit 0). Scope guardrail verified against commit 7515036 (exactly 15 authorized files). Per Hard Rule 15, halted for /steer without auto-chaining into critic or verify."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 3,
+      "agent": "antigravity-gemini",
+      "event": "SPEC_APPROVED received for M43_P1 Amendment 1 (\"Tell me what went wrong while your hands were wet\"). Scope: ship TruchaBrew Bot Slack webhook URL by default in committed .env.production, load in apps/api/src/index.ts, support local .env and environment overrides, 15 authorized files. Handing off to execution."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 3,
+      "agent": "antigravity-gemini",
+      "event": "/execute Layer 1 gates complete for M43_P1 Amendment 1 (\"Tell me what went wrong while your hands were wet\"): test 2,916 passed / 2 skipped across 144 files (exit 0), typecheck 4/4 clean (exit 0), build clean in 646ms web / 10ms api (exit 0), lint 0 errors (exit 0), smoke clean (exit 0). Scope guardrail verified against all 15 authorized files. Halted for /steer."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 4,
+      "agent": "antigravity-gemini",
+      "event": "/steer for M43_P1 Amendment 1: Layer 1 gates green (test 2,916/2 passed across 144 files, typecheck 4/4 clean, build clean, lint 0 errors, smoke clean). Layer 2 independent critic audit PASS across all 22 ACs (CRITIC_REPORT.md appended and verified). Layer 3 cross-milestone regression clean. VERIFICATION_REPORT.md and STEERING_LOG.md appended. Presenting State 4 Steering Checkpoint."
+    },
+    {
+      "date": "2026-09-07",
+      "state": 4,
+      "agent": "antigravity-gemini",
+      "event": "/steer checkpoint: user selected Option D (Complete Milestone). Milestone 43 (\"Tell me what went wrong while your hands were wet\") marked COMPLETE in full (single phase, M43_P1 incl. Amendment 1). In-app feedback button + modal, backend Fastify route, dual-format webhook delivery, and default Slack channel connection via committed .env.production delivered and verified across Layer 1 (2,916 tests, 4/4 typecheck, clean build, 0 lint errors, clean smoke), Layer 2 (critic PASS across all 22 ACs), and Layer 3 (clean regression). M43_P1_feature_spec.md archived to .gsd/archive/specs/ and removed from .gsd/active/. This closes Milestone 43 and completes the entire \"Ready to Hand to a Brewer\" initiative (Milestones 40–43). ROADMAP.md and STEERING_LOG.md updated. Rule 21 state_history archival performed: 8 Milestone 41 entries archived to .gsd/archive/STATE_HISTORY.md; STATE.json retains Milestone 42 and Milestone 43 entries inline."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 4,
+      "agent": "github-copilot",
+      "event": "Framework migration to CODESTREAM-lite, replacing the Architect/GSD framework. `.codestream/` replaces `.gsd/`: DISCOVERY.md, ROADMAP.md, BUGS.md, FEATURES.md, PROJECT.md and STATE.json carried over and reshaped to the codestream templates. All predecessor history moved verbatim into `.codestream/archive/` — specs (93), manual_verification, CRITIC_REPORT.md, VERIFICATION_REPORT.md, STEERING_LOG.md, STATE_HISTORY.md, documents/, and the unmodified `.gsd/` originals under `pre-codestream/`. RULES.md added; CLAUDE.md replaced; `.agents/` replaced with codestream's ten skills; `.github/copilot-instructions.md` added. `.claude/` and `.gsd/` removed — both remain recoverable from git history. Milestone 42's state_history entries moved to `.codestream/archive/STATE_HISTORY.md` per RULES.md; Milestone 43's 11 entries remain inline. Milestone 43 stays complete; nothing is active and no spec is pending. `current_state: 4` is carried over verbatim from the predecessor's numbering, which codestream-lite does not use. `.gsd/` paths inside carried-over state_history entries were correct when written and are left as-is."
+    }
+  ],
+  "artifacts": {
+    "project": ".codestream/PROJECT.md",
+    "discovery": ".codestream/DISCOVERY.md",
+    "roadmap": ".codestream/ROADMAP.md",
+    "active_spec": null,
+    "bugs": ".codestream/BUGS.md",
+    "features": ".codestream/FEATURES.md"
+  }
+}

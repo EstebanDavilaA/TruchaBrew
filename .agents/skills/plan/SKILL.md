@@ -1,18 +1,46 @@
 ---
 name: plan
-description: Use to draft a feature spec for the active milestone/phase before any code is written. Runs State 2 — code generation is strictly forbidden until the user replies SPEC_APPROVED. Triggered by /plan, or automatically when a milestone from .gsd/ROADMAP.md is about to start.
+description: Draft the one-page spec for the next slice, using .codestream/templates/spec.md, then halt for SPEC_APPROVED. No code is written until the user says the literal word.
 ---
 
-# State 2: Feature Planning
+# Plan
 
-**Rule:** No implementation code until the user has explicitly approved the spec with the exact phrase `SPEC_APPROVED`.
+Write one page. Get it approved. Nothing gets built before the word.
 
-## What to do
-0. **First action of a session, always**: if `.gsd/STATE.json` already exists, run the pre-flight integrity check (`.gsd/HARD_RULES.md` rule 10) before anything else — this is a hard block, not a formality.
-1. Run `plan_spec` skill for the active milestone/phase, pulling raw requirements and candidate items from `.gsd/FEATURES.md` and `.gsd/BUGS.md` and setting their status to `IN_PLANNING`.
-2. It drafts `.gsd/active/<milestone>_<phase>_feature_spec.md` (e.g. `M4_P3_feature_spec.md` — prior phase files should have been archived at `/steer`) containing: data schema/contracts, pure logic function signatures, and an acceptance-criteria test matrix (each AC must be specific and testable — "works well" is not an acceptance criterion).
-3. Present the spec and stop with: "Review this feature specification. Reply with SPEC_APPROVED to begin execution."
+## Process
 
-## Halt gate
-- Present the spec and stop with: "Review this feature specification. Reply with SPEC_APPROVED to begin execution."
-- **MANDATORY TOOL RESTRICTION**: Do NOT invoke any file modification tools (`replace_file_content`, `write_to_file`, `multi_replace_file_content`) on workspace code files. Stop execution immediately and yield the turn to wait for explicit user approval (`SPEC_APPROVED`). Do not proceed to `/execute` under any circumstance until the literal string `SPEC_APPROVED` is received. If the user proposes changes, revise and re-present — do not treat a revision request as approval.
+1. **Read** `RULES.md` rule 3, `.codestream/templates/spec.md`,
+   `.codestream/DISCOVERY.md`, `.codestream/ROADMAP.md` and
+   `.codestream/PROJECT.md`.
+
+2. **Read the code the slice touches.** A spec written without reading the code
+   produces clauses that can't be satisfied — this is the single most common
+   source of wasted build cycles.
+
+3. **Draft from the template.** If it doesn't fit on a page, the phase is doing
+   too much. Split it; don't shrink the font.
+
+4. **Check it against rule 3.** No hash, no byte count, no schema version, no file
+   count, no line number, no measured duration. Name the rules and patterns that
+   apply; never restate them.
+
+5. **Ask the open questions in the spec itself** — question, context, why it
+   matters, options, recommendation. A decision left implicit becomes a build
+   cycle lost.
+
+6. **Stop.** Present the spec and wait for the literal `SPEC_APPROVED`.
+
+## If the spec turns out to be wrong later
+
+Correct it at the top of the same file with a dated note: what was wrong, what it
+says now, and what forced the change. Don't rewrite the original text — the record
+of what was approved is the point of keeping it. Then get it re-approved before
+anyone builds against the correction.
+
+## Do not
+
+- No code. Not a line, not a stub, not "just the types".
+- No acceptance-criteria ids, no coverage table, no clause labels. The spec's
+  *How we will know it works* list is the entire matrix.
+- Don't ask a question without context (see the question format in `RULES.md`).
+- Don't start `/execute` after presenting. Present, then stop.

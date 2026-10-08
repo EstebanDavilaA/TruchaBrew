@@ -1,9 +1,9 @@
-# CODESTREAM-lite — Claude Code Directives
+# CODESTREAM-lite — GitHub Copilot (VS Code) Directives
 
-> **Your agent id is `claude-code`.** Write it to the `agent` field of every
+> **Your agent id is `github-copilot`.** Write it to the `agent` field of every
 > `state_history` entry you append. The framework never enumerates agents — an id
-> is just a name a tool uses for itself, so adding a tool changes no rule. Use one
-> id consistently, and never write an id that isn't yours.
+> is just a name a tool uses for itself, so adding a tool changes no rule. Use
+> one id consistently, and never write an id that isn't yours.
 
 **Read `RULES.md` at the project root. It is the whole framework — seven rules, one
 page, and the only normative copy.** This file deliberately duplicates none of it.

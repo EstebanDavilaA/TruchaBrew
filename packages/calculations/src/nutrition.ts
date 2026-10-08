@@ -1,6 +1,6 @@
 // M9_P2 — nutrition (calories, carbs, alcohol) from a batch's closing
 // snapshot OG/FG, via the standard real-extract model. New module; see
-// .gsd/active/M9_P2_feature_spec.md §2.1 / Resolved Ambiguity 4. No I/O, no
+// .codestream/archive/specs/M9_P2_feature_spec.md §2.1 / Resolved Ambiguity 4. No I/O, no
 // randomness. `sgToPlato` is IMPORTED from ./config, never re-derived.
 import type { ClosingSnapshot, BeerNutrition } from '@truchabrew/shared-types';
 import { sgToPlato } from './config';

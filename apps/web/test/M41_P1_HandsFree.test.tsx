@@ -971,7 +971,8 @@ describe('Unsupported-capability disclosure', () => {
 
 // ===========================================================================
 // AC-39/AC-40 — [MANUAL] real-hardware verification. Not applicable to this
-// automated test file; see .gsd/active/manual_verification/M41_P1/ (not yet
-// populated — this is this phase's own outstanding manual backlog, per the
-// spec's closing note under §3).
+// automated test file; the real-device checks are recorded as manual-hardware-
+// pending in .codestream/archive/VERIFICATION_REPORT.md's M41_P1 entry and were
+// never populated with evidence — this is this phase's own outstanding backlog,
+// per the spec's closing note under §3.
 // ===========================================================================

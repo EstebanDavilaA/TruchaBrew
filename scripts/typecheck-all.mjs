@@ -5,7 +5,7 @@
 // dead at the first failing workspace, so a failure in packages/calculations
 // silently hid every error in apps/web and apps/api behind it — this is how
 // 62+29 real type errors across those two workspaces went undetected across
-// three separate "PASS" claims (see .gsd/archive/CRITIC_REPORT_M4_P1.md,
+// three separate "PASS" claims (see .codestream/archive/CRITIC_REPORT.md,
 // finding F-11 / M4_P1 spec AC-11(a)).
 import { spawnSync } from 'node:child_process';
 

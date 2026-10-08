@@ -319,7 +319,7 @@ export function getBatchStockCheck(batchId: string): Promise<StockEvaluation> {
 }
 
 // NEW in M9_P2 — checkoff/reverse/cost. See
-// .gsd/active/M9_P2_feature_spec.md §1.3.
+// .codestream/archive/specs/M9_P2_feature_spec.md §1.3.
 export function getBatchCheckoff(batchId: string): Promise<BatchCheckoffState> {
   return request<BatchCheckoffState>(`/api/batches/${batchId}/checkoff`);
 }

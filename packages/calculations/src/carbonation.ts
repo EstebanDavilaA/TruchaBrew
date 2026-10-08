@@ -1,7 +1,7 @@
 import type { CarbonationType } from '@truchabrew/shared-types';
 
 // M5_P2 spec §2.2. Transcribed from
-// .gsd/documents/brewfather_clone_build_spec.md:245-259. No function in this
+// .codestream/archive/documents/brewfather_clone_build_spec.md:245-259. No function in this
 // module performs I/O, reads the current wall-clock time, generates an id,
 // or touches a random source. The coefficients below are module-local named
 // constants, not exported (M5_P2 spec, Resolved Ambiguities / §4 deviation

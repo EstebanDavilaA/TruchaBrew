@@ -1,5 +1,5 @@
 // M9_P1 — Inventory: what's in stock, and what am I short of. New module;
-// see .gsd/active/M9_P1_feature_spec.md §1.1.
+// see .codestream/archive/specs/M9_P1_feature_spec.md §1.1.
 
 export type InventoryCategory = 'Fermentable' | 'Hop' | 'Yeast' | 'Misc';
 export type InventoryUnit = 'kg' | 'g' | 'pkg' | 'ml' | 'tsp' | 'tbsp' | 'each';
@@ -37,7 +37,7 @@ export interface InventoryWriteInput {
 
 // ---------------------------------------------------------------------------
 // M12_P1 Amendment 1 — category-specific inventory item details. See
-// .gsd/active/M12_P1_feature_spec.md §7.2.
+// .codestream/archive/specs/M12_P1_feature_spec.md §7.2.
 // ---------------------------------------------------------------------------
 
 export interface HopInventoryDetails {
@@ -127,7 +127,7 @@ export interface StockEvaluation {
 
 // ---------------------------------------------------------------------------
 // M9_P2 — the append-only deduction ledger, the checkoff view, cost and
-// nutrition. See .gsd/active/M9_P2_feature_spec.md §1.1. Appended to this
+// nutrition. See .codestream/archive/specs/M9_P2_feature_spec.md §1.1. Appended to this
 // module; not one M9_P1 declaration above is edited.
 // ---------------------------------------------------------------------------
 

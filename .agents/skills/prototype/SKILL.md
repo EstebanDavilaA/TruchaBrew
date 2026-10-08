@@ -1,32 +1,35 @@
 ---
 name: prototype
-description: Use when the user has a raw, unstructured idea and wants something running fast to validate it — before any formal spec exists. Triggered by /prototype or automatically when the user describes a new idea without asking for a full spec. Skips discovery/roadmap ceremony in favor of one clarifying question and a minimal working slice.
+description: Build a minimal working slice from a raw, unvalidated idea, fast, to find out whether the idea is worth building properly. Use when the user describes something new without asking for a formal spec.
 ---
 
-# Prototype Mode: Idea → Walking Skeleton
+# Prototype
 
-**Rule:** Speed over completeness. The only goal is a runnable end-to-end slice that proves (or disproves) the core mechanic. No architecture discussion, no file-tree planning, no multi-question discovery.
+The point is to find out cheaply whether the idea is worth building. Optimise for
+speed and for something runnable. Not code quality, not completeness, not tests.
 
-## What to do
+## Process
 
-1. Ask **at most one** question, and only if the idea is genuinely ambiguous about what "working" means:
-   > "What's the one thing this needs to do for you to know the idea works?"
+1. **Ask one question** — the one whose answer most changes what you'd build. Use
+   the question format in `RULES.md`: question, context, why it matters, options
+   with a recommendation.
 
-   If the user's message already answers this, skip the question entirely and proceed.
+2. **Build the smallest thing that proves the idea.** One screen, one flow, one
+   end-to-end path. Fake whatever is expensive, and say what you faked.
 
-2. Run the `prototype_fast` skill with:
-   - The user's raw idea, verbatim
-   - The single validation target (what "it works" means)
+3. **Make it run.** Give the user the exact command to start it.
 
-3. Build a **walking skeleton**: the thinnest possible real path through the system, end to end. Ugly UI, minimal error handling, hardcoded values where reasonable — all fine. The one thing that is NOT fine: any part of the flow being faked or mocked in a way that hides whether the core mechanic actually works.
+4. **Say plainly what's real and what isn't.** "The ledger part works against a
+   real database; the categories are hardcoded" is the kind of sentence that makes
+   a prototype useful.
 
-4. Report back with what was built, how to run it, and one line naming what was deliberately skipped/hardcoded (so it's not forgotten later).
+5. **Stop and ask whether it's worth building properly.** If yes, `/roadmap` turns
+   it into real slices.
 
-## Explicitly out of scope in this mode
-- No `.gsd/` files
-- No milestone roadmap
-- No test suite beyond "does it run"
-- No discussion of what this becomes later — that's what `/promote` is for
+## Rules
 
-## Exit condition
-Once the user has looked at the running prototype and says something like "yes, this is the idea" or "let's build this properly," suggest running `/promote` to formalize it into the full Architect framework. Do not suggest this before the user has actually validated the prototype — premature promotion defeats the point of this mode.
+- No spec, no roadmap, no tests, no state file ceremony. That's the point.
+- Don't gold-plate. A prototype that took a week has failed.
+- Delete-worthy code is fine. Say that it is.
+- If the prototype shows the idea is wrong, that's a success — say so clearly
+  rather than rescuing it.

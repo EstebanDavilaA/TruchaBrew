@@ -1,5 +1,5 @@
 // M9_P2 — the append-only deduction ledger, checkoff and cost pure logic.
-// New module; see .gsd/active/M9_P2_feature_spec.md §2.1. No I/O, no
+// New module; see .codestream/archive/specs/M9_P2_feature_spec.md §2.1. No I/O, no
 // randomness, no wall-clock reads. Every function is total and never throws.
 import type {
   InventoryItem,

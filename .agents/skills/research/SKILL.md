@@ -1,58 +1,46 @@
 ---
 name: research
-description: Use to check technical feasibility of features, query codebase abstractions, explore architectural trade-offs, or refine prompts/ideas — without modifying code or creating formal specs. Triggered by /research.
+description: Answer a question — feasibility, trade-offs, what the codebase actually does, or whether a document or another repo is worth adopting — without changing code or writing specs.
 ---
 
-# Technical Feasibility & Idea Research
+# Research
 
-**Rule:** Read-only inspection. Zero code mutation. Zero spec creation unless requested. This state exists to evaluate feasibility, explore technical options, and refine prompt ideas before entering `/discover`, `/prototype`, or `/plan`.
-
-## Constraints
-- **Zero code edits**: Never modify implementation files or write test code (`replace_file_content`, `write_to_file`, `multi_replace_file_content` are strictly forbidden on project source files).
-- **No state clutter**: Do not touch `.gsd/active/` or draft specs unless explicitly asked by the user to prepare input for `/plan`.
-- **Ground truth focus**: Always search and view actual codebase files before delivering opinions on feasibility or complexity.
+Read-only. The output is an answer, not an artifact.
 
 ## Process
-1. **Analyze the Query**:
-   - Is the user asking if a feature is possible?
-   - Exploring architectural trade-offs (e.g. Canvas vs SVG, Web Audio vs HTML5 audio)?
-   - Asking for help crafting/refining a prompt or subagent instruction?
-   - Asking about **market viability, monetization, pricing, competitive positioning, launch-readiness, ICP/TAM/SAM, or unit economics**? If so, this is a commercial audit, not a technical one — run the `product_strategist` skill (step 1b) and skip the technical-report steps below.
 
-1b. **Commercial & Market Audit** (when the query is about business, not code):
-   - Run the `product_strategist` skill with the query and any intake data the user provided (problem, current state, monetization thesis, competitors).
-   - It audits the app for market viability, launch-readiness, profitability, and positioning, and returns its six-section report (Strategic Verdict, Launch-Critical Scope, Target Market & Positioning, Monetization Engine, Vulnerabilities & Pivot Alternatives, Immediate Action Protocol).
-   - This path is still read-only: the strategist may inspect code/docs to ground its audit, but never edits code or writes `.gsd/` artifacts.
+1. **Work out what the question actually is.** "Can we do X" and "should we do X"
+   need different answers, and the user may not have separated them. Say which one
+   you're answering.
 
-2. **Empirical Codebase Inspection**:
-   - Use search and view tools (`grep_search`, `view_file`, `list_dir`) to inspect existing types, functions, schemas, and dependencies.
-   - Audit existing utilities: Check if similar features or helper functions already exist in the codebase.
+2. **Gather evidence, not opinions.** Read the code, run the thing, measure it.
+   Say which parts are measured and which are judgement.
 
-3. **Synthesize Technical Report**:
-   Structure your findings clearly:
+3. **Answer plainly:** what's true, what's uncertain, and what you'd need to find
+   out to be sure.
 
-   ```markdown
-   # Technical Feasibility & Research Summary: <Topic>
+4. **If the question is "should we", say what it costs** — roughly how many
+   slices, what it would break, and what it displaces. A feature that costs three
+   phases and breaks nothing is a different proposal from one that costs three and
+   rewrites the ledger.
 
-   ## 1. Feasibility & Complexity
-   - **Status**: [Feasible / Feasible with Caveats / High Risk / Infeasible]
-   - **Estimated Complexity**: [Low / Medium / High]
-   - **Key Finding**: <1-2 sentences summarizing ground reality in the code>
+## Evaluating something from outside
 
-   ## 2. Codebase Impact & Existing Assets
-   - **Reusable Components/Utilities**: [List files/functions found]
-   - **Impacted Areas**: [List modules/components that would change]
-   - **Potential Bottlenecks or Risks**: [Performance, state mutations, breaking changes]
+If the user hands you a document or another repo to compare against this project:
 
-   ## 3. Recommended Technical Approach & Trade-offs
-   - **Option A**: ... (Pros / Cons)
-   - **Option B**: ... (Pros / Cons)
+- Say what it **actually does** — not what it claims, and not what its README
+  says it will do one day.
+- Say what's worth taking, and as what: a rule, a skill, a template, a test, a
+  pattern.
+- Say what this project **already does**, so you don't propose it twice.
+- Say what to avoid, and why.
 
-   ## 4. Next Step Recommendation
-   - [ ] `/discover` — if product domain mechanics or user expectations need clarification.
-   - [ ] `/prototype` — if a fast walking skeleton is needed to validate rendering/perf.
-   - [ ] `/plan` — if requirements are clear and ready to be formalized into concrete acceptance criteria.
-   ```
+Then stop. Deciding to adopt something is the user's call, and it's a different
+conversation from evaluating it.
 
-4. **Prompt Refinement (When requested)**:
-   - When asked to refine a prompt or subagent instruction, provide a clean markdown block with the optimized prompt, specific context variables, and tool invocation tips.
+## Do not
+
+- Don't write code, specs, or state. If the answer implies a change, say what and
+  hand off to `/plan` or `/log`.
+- Don't pad the answer. A short correct answer beats a thorough vague one, and
+  it's the difference between a research note someone reads and one they don't.

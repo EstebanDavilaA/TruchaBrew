@@ -1,5 +1,5 @@
 // M9_P1 — Inventory: what's in stock, and what am I short of. New pure-logic
-// module; see .gsd/active/M9_P1_feature_spec.md §2. No I/O, no randomness, no
+// module; see .codestream/archive/specs/M9_P1_feature_spec.md §2. No I/O, no randomness, no
 // wall-clock reads. `Recipe` and `InventoryItem` are imported type-only from
 // @truchabrew/shared-types (which imports nothing from @truchabrew/calculations,
 // so no cycle is introduced).

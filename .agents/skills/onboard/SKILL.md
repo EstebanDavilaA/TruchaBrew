@@ -1,20 +1,42 @@
 ---
 name: onboard
-description: Use when starting work in a new or unfamiliar workspace. Routes to the correct entry point — prototype mode for a raw unvalidated idea, discovery for a cold-start spec, or codebase audit for an existing project. Triggered by /onboard.
+description: Entry point for a session. Reads the project state, routes to the right command, and stops. Use at the start of work in a project using this framework, or when the user asks where to start or what's next.
 ---
 
-# Onboarding: Route to the Correct Entry Point
+# Onboard
 
-Ask (once, single message):
-> "How should we start this workspace?
-> 1. **Raw idea, want something running fast** → `/prototype`
-> 2. **Idea is clear enough to spec directly, no prototype needed** → `/discover`
-> 3. **Existing codebase, formalize what's already here** → codebase audit"
+Read the state, pick the track, hand off. Build nothing here.
 
-## Routing
-- **Option 1** → hand off to `/prototype` skill immediately.
-- **Option 2** → hand off to `/discover` skill immediately.
-- **Option 3** → run `map_codebase` skill to audit the existing repo, then hand off to `roadmap_slices` and present via `/steer`.
+## Process
 
-## Note
-Default to Option 1 whenever the user's framing sounds like an idea rather than a spec ("I want an app that...", "wouldn't it be cool if..."). Only skip straight to `/discover` if the user has already clearly validated the concept elsewhere or explicitly says they don't want a prototype.
+1. **Check this isn't the framework's own source.** If `.codestream-template`
+   exists at the repo root, stop and say so — this directory is the framework,
+   not a project built with it, and running a feature through it would bake
+   project content into every future project that copies it. If `RULES.md` itself
+   is missing, stop and say that too.
+
+2. **Read `.codestream/STATE.json`.** If it doesn't parse as JSON, stop — that's
+   corruption, not something to work around. If the newest `state_history` entry
+   belongs to a *different* agent and its step isn't finished, stop and say so
+   rather than guessing whether that session is done.
+
+3. **Work out where the project is:**
+
+   | State | Route to |
+   |---|---|
+   | No state file, or an empty history | Ask what we're building → `/prototype` or `/discover` |
+   | A raw idea, nothing validated | `/prototype` |
+   | A clear idea, no roadmap | `/discover`, then `/roadmap` |
+   | A roadmap, no active spec | `/plan` for the next slice |
+   | An approved spec, nothing built | `/execute` |
+   | A build finished, awaiting review | `/steer` |
+   | A spec or roadmap waiting on the user | Present it, say what you're waiting for, stop |
+
+4. **Say the state in one short paragraph** — milestone, phase, what's next — then
+   stop. If the next step needs the user's word, ask for it.
+
+## Do not
+
+- Don't start building. Not one line.
+- Don't "tidy up" state that looks stale. Say what you see and ask.
+- Don't read the whole archive. `STATE.json` and the current spec are enough.
