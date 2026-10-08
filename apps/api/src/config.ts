@@ -6,6 +6,7 @@ export const ENV_MIGRATIONS_DIR = 'TRUCHABREW_MIGRATIONS_DIR';
 export const ENV_STATIC_ROOT = 'TRUCHABREW_STATIC_ROOT';
 export const ENV_PORT = 'PORT';
 export const ENV_HOST = 'HOST';
+export const ENV_FEEDBACK_WEBHOOK_URL = 'TRUCHABREW_FEEDBACK_WEBHOOK_URL';
 
 export const DEFAULT_PORT = 5177;
 export const DEFAULT_HOST = '0.0.0.0';
@@ -19,6 +20,7 @@ export interface RuntimeConfig {
   staticRoot: string;
   port: number;
   host: string;
+  feedbackWebhookUrl?: string;
 }
 
 /**
@@ -45,7 +47,8 @@ export function resolveConfig(env: NodeJS.ProcessEnv, packageRoot: string): Runt
   );
   const port = parsePort(readEnv(env, ENV_PORT));
   const host = readEnv(env, ENV_HOST) ?? DEFAULT_HOST;
-  return { dbPath, migrationsDir, staticRoot, port, host };
+  const feedbackWebhookUrl = readEnv(env, ENV_FEEDBACK_WEBHOOK_URL);
+  return { dbPath, migrationsDir, staticRoot, port, host, feedbackWebhookUrl };
 }
 
 function parsePort(raw: string | undefined): number {

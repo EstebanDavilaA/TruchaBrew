@@ -2284,3 +2284,63 @@ Delivered M42_P3, the documentation & CI setup slice closing Milestone 42. Gener
 - **Milestone progress:** M42_P3 of 3 phases complete (Milestone 42 — "A brewer you've never met runs their own copy").
 - **Manual backlog (M40–M42 combined):** AC-15, AC-16, AC-18, AC-19, AC-21, AC-22, AC-33, AC-34, AC-35, AC-36. RA-15 unresolved.
 - **Pending:** Steering decision (Milestone closure).
+
+---
+
+## 2026-09-07 — Milestone 42 Complete — Steering Decision
+
+### Steering Decision (Option D: Complete Milestone)
+- **Date:** 2026-09-07
+- **Selection:** Option D (Complete Milestone)
+- **Action:** Mark Milestone 42 ("A brewer you've never met runs their own copy") COMPLETE in full across all three phases (M42_P1, M42_P2, M42_P3). RA-15 resolved (repository set to public), AC-33 satisfied via verified green CI run on GitHub Actions (commit 7515036). Archive `M42_P3_feature_spec.md` to `.gsd/archive/specs/` (manual_verification/ was empty — nothing to move). No BUGS.md/FEATURES.md items closed by this phase. Milestone 40-42 real-hardware manual verification items remain tracked in the historical log. Advance to Milestone 43 Phase 1 ("Tell me what went wrong while your hands were wet").
+- **Agent:** antigravity-gemini
+
+
+---
+
+## 2026-09-07 — Milestone 43 Phase 1: "Tell me what went wrong while your hands were wet" (M43_P1)
+
+### Summary
+Delivered M43_P1, the in-app feedback box completing Milestone 43 and closing the "Ready to Hand to a Brewer" initiative. Added a persistent, thumb-friendly floating action button (`FeedbackButton`) with 44px+ target size, a `FeedbackModal` with auto-focus and explicit privacy disclosures, automatic attachment of technical context (route, viewport, active batch name/stage) without private recipe or IP leaks, and a non-destructive error handling mechanism that preserves brewer-typed text in the textarea across failures. On the backend, exposed `POST /api/feedback` with Fastify AJV validation, `TRUCHABREW_FEEDBACK_WEBHOOK_URL` configuration in `config.ts`, dual-format outbound webhook delivery (Discord-ready Markdown `content`, Slack `text`, and structured `feedback` JSON), and 10s request timeout.
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,916 passed / 2 skipped across 144 files (`npm test` exit 0), `npm run typecheck` 4/4 clean (exit 0), `npm run build` clean (exit 0), `npm run lint` 0 errors (exit 0), `npm run smoke` clean (exit 0).
+- **Critic verdict (Layer 2):** PASS (citing `.gsd/archive/CRITIC_REPORT.md` M43_P1 entry, 2026-09-07). All 22 ACs verified YES. No silent fallbacks, no mechanism mislabeling, non-destructive failure and privacy guarantees confirmed.
+- **Regression (Layer 3):** Clean — zero regressions across prior milestones.
+
+### Checkpoint Status
+- **Milestone progress:** Milestone 43, Phase 1 of an estimated 1 — this is the closing phase of Milestone 43 and the final milestone of the "Ready to Hand to a Brewer" initiative.
+- **Pending:** Steering decision.
+
+### Steering Decision (Option A: Refine)
+- **Date:** 2026-09-07
+- **Selection:** Option A (Refine)
+- **Action:** Refine Milestone 43 Phase 1 specification (`M43_P1_feature_spec.md`) to ship the TruchaBrew Bot Slack webhook URL by default via a committed `.env.production` file. The server will load `.env.production` as the base configuration (with optional local `.env` or process environment overriding it), ensuring cloned/downloaded copies connect feedback to the Slack channel out-of-the-box.
+- **Agent:** antigravity-gemini
+
+
+---
+
+## 2026-09-07 — Milestone 43 Phase 1 Amendment 1: "Tell me what went wrong while your hands were wet" (M43_P1)
+
+### Summary
+Delivered M43_P1 Amendment 1, shipping the TruchaBrew Bot Slack webhook URL as the built-in default via a committed `.env.production` file. The backend loads `.env.production` at startup, ensuring any brewer downloading or cloning the repo has an immediately functional feedback channel without manual configuration, while preserving local `.env` and environment-variable override support.
+
+### Verification Reference
+- **Executor tests (Layer 1):** Full test suite 2,916 passed / 2 skipped across 144 files (`npm test` exit 0), `npm run typecheck` 4/4 clean (exit 0), `npm run build` clean (exit 0), `npm run lint` 0 errors (exit 0), `npm run smoke` clean (exit 0).
+- **Critic verdict (Layer 2):** PASS (citing `.gsd/archive/CRITIC_REPORT.md` M43_P1 Amendment 1 entry, 2026-09-07). All 22 ACs verified YES.
+- **Regression (Layer 3):** Clean — zero regressions across prior milestones.
+
+### Checkpoint Status
+- **Milestone progress:** Milestone 43, Phase 1 of an estimated 1 — this closes Milestone 43 and the entire "Ready to Hand to a Brewer" initiative.
+- **Pending:** Steering decision.
+
+### Steering Decision (Option D: Complete Milestone & Initiative)
+- **Date:** 2026-09-07
+- **Selection:** Option D (Complete Milestone)
+- **Action:**
+  1. Marked Milestone 43 Phase 1 ("Tell me what went wrong while your hands were wet", M43_P1 incl. Amendment 1) COMPLETE in full, with all Layer 1/2/3 gates passed (2,916 tests, 4/4 typecheck, clean build, 0 lint errors, clean smoke, independent Layer 2 critic PASS across all 22 ACs, clean regression).
+  2. Archived active feature spec `.gsd/active/M43_P1_feature_spec.md` to `.gsd/archive/specs/M43_P1_feature_spec.md` and deleted from `.gsd/active/`. Verified `.gsd/active/` holds zero stale spec files.
+  3. Closed out Milestone 43 and the entire "Ready to Hand to a Brewer" initiative (Milestones 40–43).
+  4. Updated `.gsd/ROADMAP.md` and `.gsd/STATE.json` to mark Milestone 43 complete and record milestone-boundary archival per Hard Rule 21.
+- **Agent:** antigravity-gemini

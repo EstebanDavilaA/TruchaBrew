@@ -3466,3 +3466,48 @@ Findings, none AC-breaking:
 **Clean.** The same full-suite run the critic independently reproduced (2,897 passed / 2 skipped, 0 failures) spans every prior milestone's tests, not just M42's own — no functional regression anywhere in the tree.
 
 ### Verdict: **PASS-WITH-FINDINGS — M42_P3's 33 automated ACs verified complete across Layers 1-3, but the phase is NOT closable and Milestone 42's own completion threshold is NOT met.** AC-33 (real CI run), AC-34 (actual non-author hand-off rehearsal), and AC-35 (bundled M42_P1/P2 real-hardware evidence) are manual by construction, have zero evidence in `.gsd/active/manual_verification/` (empty), and are correctly claimed nowhere as passing. RA-15 must be decided before AC-34 can even begin. Proceeding to the steering checkpoint with both the automated PASS and the manual-verification gap stated explicitly, plus the unresolved `.claude/settings.json` provenance question surfaced separately.
+
+
+## 2026-09-07 — M43_P1 ("Tell me what went wrong while your hands were wet", Milestone 43 closing phase)
+
+### Layer 1: Executor Quality Gates
+- **Unit & Integration Tests:** `npm test` exit 0 (2,916 passed / 2 skipped across 144 files; API feedback suite 9/9, Web feedback suite 10/10).
+- **Typecheck:** `npm run typecheck` exit 0 (clean across all 4 workspaces).
+- **Production Build:** `npm run build` exit 0 (web built in 414ms, api bundle in 12ms).
+- **Lint:** `npm run lint` exit 0 (0 errors, 18 pre-existing warnings, 0 new warnings).
+- **Smoke:** `npm run smoke` exit 0 (built artifact started, served SPA fallback and `/api/health`, shut down cleanly).
+
+### Layer 2: Independent Critic Audit
+**PASS.** (citing `.gsd/archive/CRITIC_REPORT.md` M43_P1 entry, 2026-09-07). All 22 ACs traced YES.
+- Re-derived contracts directly from `M43_P1_feature_spec.md`.
+- Touch target sizing confirmed >= 44px (`h-12 w-12 min-h-11 min-w-11` on `FeedbackButton`, `min-h-[120px]` textarea, standard button tokens).
+- Privacy guarantee upheld: zero telemetry, zero IP logging, zero recipe data leaked.
+- Non-destructive failure verified: typed feedback text stays in textarea state across failed network/webhook requests.
+- Scope guardrail verified: exactly the 14 authorized files modified/created against commit `7515036`.
+
+### Layer 3: Cross-Milestone Regression
+**Clean.** Full test suite (2,916 passed / 2 skipped) executes cleanly with zero regressions across prior milestones.
+
+### Verdict: PASS — Milestone 43 Phase 1 verified complete across all 3 layers.
+
+
+## 2026-09-07 — M43_P1 Amendment 1 ("Tell me what went wrong while your hands were wet", Milestone 43 closing phase)
+
+### Layer 1: Executor Quality Gates
+- **Unit & Integration Tests:** `npm test` exit 0 (2,916 passed / 2 skipped across 144 files; API feedback suite 9/9, Web feedback suite 10/10).
+- **Typecheck:** `npm run typecheck` exit 0 (clean across all 4 workspaces).
+- **Production Build:** `npm run build` exit 0 (web built in 646ms, api bundle in 10ms).
+- **Lint:** `npm run lint` exit 0 (0 errors, 18 pre-existing warnings, 0 new warnings).
+- **Smoke:** `npm run smoke` exit 0 (production artifact starts, serves SPA fallback and `/api/health`, shuts down cleanly).
+
+### Layer 2: Independent Critic Audit
+**PASS.** (citing `.gsd/archive/CRITIC_REPORT.md` M43_P1 Amendment 1 entry, 2026-09-07). All 22 ACs traced YES.
+- Committed `.env.production` contains the TruchaBrew Bot Slack webhook URL.
+- Node native `process.loadEnvFile()` in `apps/api/src/index.ts` loads `.env.production` at boot.
+- Overrides from local `.env` and shell process environment verified taking precedence over `.env.production`.
+- Scope guardrail verified: exactly the 15 authorized files modified/created against commit `7515036`.
+
+### Layer 3: Cross-Milestone Regression
+**Clean.** Full test suite (2,916 passed / 2 skipped) executes cleanly with zero regressions across prior milestones.
+
+### Verdict: PASS — Milestone 43 Phase 1 Amendment 1 verified complete across all 3 layers.

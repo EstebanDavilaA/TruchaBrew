@@ -33,6 +33,8 @@ import type {
   DatabaseBackup,
   RestoreRequest,
   RestoreSummary,
+  FeedbackInput,
+  FeedbackResponse,
 } from '@truchabrew/shared-types';
 
 export class ApiClientError extends Error {
@@ -391,3 +393,10 @@ export function restoreDatabaseBackup(req: RestoreRequest): Promise<RestoreSumma
   });
 }
 
+// NEW in M43_P1 — in-app feedback submission.
+export function sendFeedback(input: FeedbackInput): Promise<FeedbackResponse> {
+  return request<FeedbackResponse>('/api/feedback', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}

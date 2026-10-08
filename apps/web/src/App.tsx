@@ -11,6 +11,7 @@ import {
   listWaterProfiles,
   listRecipes,
   createBatch,
+  getBatch,
   deleteRecipe,
   ApiClientError,
 } from './api/client';
@@ -40,6 +41,8 @@ import { TopBar } from './components/TopBar';
 import { PageContainer } from './components/PageContainer';
 import { Modal } from './components/Modal';
 import { ConfirmDialog } from './components/ConfirmDialog';
+import { FeedbackButton } from './components/FeedbackButton';
+import { FeedbackModal } from './components/FeedbackModal';
 import { Calculators } from './pages/Calculators';
 import { CARD_CLASS, MONO_VALUE_CLASS } from './components/designSystem';
 import { Button, NumberInput, Input, Select, Badge } from './components/ui';
@@ -91,6 +94,9 @@ function AppInner() {
   // NEW in M38_P3 — folder-name suggestions for the editor's folder datalist
   // (RA-9 / RA-P3-8), derived from a one-shot listRecipes() on editor entry.
   const [folderSuggestions, setFolderSuggestions] = useState<string[]>([]);
+  // NEW in M43_P1 — feedback modal state and active batch context
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [activeBatchMeta, setActiveBatchMeta] = useState<{ id: string; name: string; stage?: string } | undefined>(undefined);
 
   const { config } = useConfig();
   const editor = useRecipeEditor(config);
@@ -180,6 +186,29 @@ function AppInner() {
       cancelled = true;
     };
   }, [view]);
+
+  useEffect(() => {
+    if (view === 'batchDetail' && activeBatchId) {
+      let cancelled = false;
+      getBatch(activeBatchId)
+        .then((b) => {
+          if (!cancelled) {
+            setActiveBatchMeta({ id: b.id, name: b.name, stage: b.status });
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setActiveBatchMeta(undefined);
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    } else {
+      // oxlint-disable-next-line react/set-state-in-effect
+      setActiveBatchMeta(undefined);
+    }
+  }, [view, activeBatchId]);
 
   const navigateGuarded = (target: View) => {
     if (view === 'editor' && editor.isDirty) {
@@ -435,9 +464,10 @@ function AppInner() {
     }
   };
 
-  if (view === 'list') {
-    return (
-      <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
+  const renderContent = () => {
+    if (view === 'list') {
+      return (
+        <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
         <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
@@ -1002,6 +1032,20 @@ function AppInner() {
 
       </div>
     </div>
+    );
+  };
+
+  return (
+    <>
+      {renderContent()}
+      <FeedbackButton onClick={() => setFeedbackOpen(true)} />
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        view={view}
+        batchMeta={view === 'batchDetail' ? activeBatchMeta : undefined}
+      />
+    </>
   );
 }
 

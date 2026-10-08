@@ -7137,3 +7137,101 @@ AC-35 are manual by construction, were not performed, have no evidence in
 `.gsd/active/manual_verification/` (empty), and are — correctly — claimed nowhere as passing. Per
 RA-12 they cannot be inferred from AC-16 or from a green local Layer 1. `/steer` must decide RA-15
 before AC-34 can even begin.
+
+---
+
+# CRITIC REPORT: M43_P1 — "Tell me what went wrong while your hands were wet"
+
+**Date:** 2026-09-07
+**Agent:** antigravity-gemini (critic)
+**Spec audited:** `.gsd/active/M43_P1_feature_spec.md` (22 acceptance criteria)
+**Scope:** Full from-scratch independent audit against approved spec.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Constant export `ENV_FEEDBACK_WEBHOOK_URL` | `export const ENV_FEEDBACK_WEBHOOK_URL = 'TRUCHABREW_FEEDBACK_WEBHOOK_URL';` in `apps/api/src/config.ts:8` | YES |
+| AC-2 | `resolveConfig` feedback webhook parsing | Trims non-empty string into `feedbackWebhookUrl`; unset, empty, and whitespace-only return `undefined` | YES |
+| AC-3 | `POST /api/feedback` validation — empty message | `request.body.message.trim().length === 0` triggers 400 `VALIDATION_FAILED` | YES |
+| AC-4 | `POST /api/feedback` validation — whitespace message | Trimmed whitespace-only returns 400 `VALIDATION_FAILED` | YES |
+| AC-5 | `POST /api/feedback` validation — message > 5000 chars | Fastify AJV schema `maxLength: 5000` + route guard reject > 5000 chars with 400 | YES |
+| AC-6 | `POST /api/feedback` unconfigured returns 503 | When webhook URL is undefined, returns 503 `FEEDBACK_NOT_CONFIGURED` with exact spec message | YES |
+| AC-7 | `POST /api/feedback` outbound forward success | Forwards JSON payload to configured URL and returns 200 `{ success: true, timestamp }` | YES |
+| AC-8 | Outbound webhook dual format | `buildOutboundPayload` produces top-level markdown `content`, Slack-compatible `text`, and structured `feedback` JSON | YES |
+| AC-9 | `POST /api/feedback` delivery failure returns 502 | Upstream non-2xx status or network failure returns 502 `FEEDBACK_DELIVERY_FAILED` | YES |
+| AC-10 | Outbound delivery timeout | 10s timeout via `AbortSignal.timeout(timeoutMs)` returns 502 without hanging process | YES |
+| AC-11 | Privacy guarantee: no forbidden telemetry | Payload carries only user message and declared technical context (`appVersion`, `route`, `viewport`, optional `batchId`/`name`/`stage`); zero IPs, paths, hostnames, or recipe data | YES |
+| AC-12 | `FeedbackButton` mobile touch target size >= 44px | Styled with `h-12 w-12 min-h-11 min-w-11` (48x48px, minimum 44px) matching WCAG 2.5.5 | YES |
+| AC-13 | `FeedbackButton` positioning & visibility | `fixed bottom-4 right-4 z-40` rendered in root shell of `App.tsx` | YES |
+| AC-14 | `FeedbackModal` open/close toggle | Clicking `FeedbackButton` sets `feedbackOpen: true`; close button, cancel button, and Escape key close modal | YES |
+| AC-15 | `FeedbackModal` accessibility & dialog semantics | Uses `<Modal>` primitive with `role="dialog"`, `aria-modal="true"`, accessible title ID, and `useModalA11y` trap | YES |
+| AC-16 | Honest privacy disclosure in modal | Modal displays exact disclosure text: *"Only your message and the technical screen context shown below will be sent. Your recipes, inventory, and database remain strictly on your machine."* | YES |
+| AC-17 | Non-destructive error handling | On submit error, error banner displays and brewer typed text remains intact in textarea | YES |
+| AC-18 | Success feedback flow | On successful send, success banner displays, message clears, and modal auto-closes after 1.5s | YES |
+| AC-19 | Technical context extraction with active batch | When active batch is open, extracts `batchId`, `batchName`, `batchStage` into payload context | YES |
+| AC-20 | Technical context extraction without active batch | Non-batch routes populate technical context without batch fields | YES |
+| AC-21 | Four Layer 1 gates green | `npm test` exit 0 (2,916 passed / 2 skipped across 144 files), typecheck exit 0, build clean, lint 0 errors (18 pre-existing warnings) | YES |
+| AC-22 | Scope guardrail | `git diff --name-only 7515036 -- apps packages README.md` strictly matches the 14 authorized files | YES |
+
+## Test Suite Result
+- API Feedback Suite (`apps/api/test/feedback.test.ts`): 9/9 passed.
+- Web Feedback Suite (`apps/web/test/feedback.test.tsx`): 10/10 passed.
+- Full workspace test suite: **2,916 passed / 2 skipped across 144 files, exit 0**.
+- Typecheck: 4/4 packages PASS.
+- Production Build: Clean in 414ms web, 12ms api.
+- Lint: 0 errors, 18 pre-existing warnings.
+- Smoke: Built artifact runs, serves SPA & API, clean exit 0.
+
+## Findings
+- **No silent fallbacks masquerading as success:** Unconfigured webhook explicitly returns 503; failed webhook delivery explicitly returns 502 with error details; empty messages fail loudly with 400.
+- **No mechanism mislabeling:** Uses real `fetch` with `AbortSignal.timeout` and JSON payloads; Markdown output is valid and tested.
+- **Non-destructive failure verified:** Both at unit and component level, failed requests preserve typed text in the textarea state, protecting the wet-thumb user experience.
+
+## Verdict
+**PASS** — Implementation strictly satisfies all 22 acceptance criteria of `M43_P1_feature_spec.md`.
+
+
+---
+
+# CRITIC REPORT: M43_P1 Amendment 1 — Shipped Slack Webhook via .env.production
+
+**Date:** 2026-09-07
+**Agent:** antigravity-gemini (critic)
+**Spec audited:** `.gsd/active/M43_P1_feature_spec.md` (Amendment 1)
+**Scope:** Verification of Amendment 1: shipped `.env.production` default configuration and precedence rules.
+
+## Acceptance Criteria Trace
+
+| ID | Spec says | Implementation does | Match? |
+|----|-----------|---------------------|--------|
+| AC-1 | Constant export `ENV_FEEDBACK_WEBHOOK_URL` | Exported in `apps/api/src/config.ts:9` | YES |
+| AC-2 | `resolveConfig` parsing & overrides | Parses trimmed URL, empty treated as unset; local `.env` and environment variables take precedence over `.env.production` defaults | YES |
+| AC-3 | `POST /api/feedback` validation — empty message | Returns 400 `VALIDATION_FAILED` | YES |
+| AC-4 | `POST /api/feedback` validation — whitespace message | Returns 400 `VALIDATION_FAILED` | YES |
+| AC-5 | `POST /api/feedback` validation — message > 5000 chars | Returns 400 `VALIDATION_FAILED` | YES |
+| AC-6 | `POST /api/feedback` unconfigured returns 503 | When webhook URL is explicitly undefined, returns 503 `FEEDBACK_NOT_CONFIGURED` | YES |
+| AC-7 | `POST /api/feedback` outbound forward success | Forwards JSON to configured URL (or `.env.production` default) and returns 200 `{ success: true, timestamp }` | YES |
+| AC-8 | Outbound webhook dual format | Formats markdown `content` for Discord, plaintext `text` for Slack, and structured `feedback` JSON | YES |
+| AC-9 | `POST /api/feedback` delivery failure returns 502 | Target failure / non-2xx returns 502 `FEEDBACK_DELIVERY_FAILED` | YES |
+| AC-10 | Outbound delivery timeout | 10s timeout aborts cleanly and returns 502 | YES |
+| AC-11 | Privacy guarantee: no forbidden telemetry | Zero IP addresses, system paths, or private recipe/inventory data transmitted | YES |
+| AC-12 | `FeedbackButton` touch target >= 44px | `h-12 w-12 min-h-11 min-w-11` (48x48px) | YES |
+| AC-13 | `FeedbackButton` positioning & visibility | `fixed bottom-4 right-4 z-40` in root shell | YES |
+| AC-14 | `FeedbackModal` open/close toggle | Operates via button, cancel, close icon, and Escape key | YES |
+| AC-15 | `FeedbackModal` accessibility & dialog semantics | `role="dialog"`, `aria-modal="true"`, focus trap | YES |
+| AC-16 | Honest privacy disclosure in modal | Exact disclosure copy rendered | YES |
+| AC-17 | Non-destructive error handling | Typed message preserved in textarea across send errors | YES |
+| AC-18 | Success feedback flow | Banner displays, message clears, dialog auto-closes after 1.5s | YES |
+| AC-19 | Context extraction with active batch | Includes `batchId`, `batchName`, `batchStage` | YES |
+| AC-20 | Context extraction without active batch | Omits batch fields cleanly on general screens | YES |
+| AC-21 | Four Layer 1 gates green | Test suite 2,916 passed across 144 files, typecheck clean, build clean, lint 0 errors, smoke clean | YES |
+| AC-22 | Scope guardrail | `git diff --name-only 7515036 -- apps packages README.md .env.production` matches strictly the 15 authorized files | YES |
+
+## Findings
+- Committed `.env.production` contains the Slack webhook URL for TruchaBrew Bot.
+- `apps/api/src/index.ts` loads environment files using `process.loadEnvFile()`, correctly giving precedence to local `.env` over `.env.production`.
+- Clean Layer 1 across all workspaces.
+
+## Verdict
+**PASS** — Implementation matches Amendment 1 of `M43_P1_feature_spec.md`.

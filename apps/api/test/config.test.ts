@@ -13,6 +13,7 @@ import {
   ENV_STATIC_ROOT,
   ENV_PORT,
   ENV_HOST,
+  ENV_FEEDBACK_WEBHOOK_URL,
   DEFAULT_PORT,
   DEFAULT_HOST,
 } from '../src/config';
@@ -344,5 +345,31 @@ describe('M42_P1 runtime config — resolveConfig / describeListenAddresses', ()
       'http://localhost:5177',
       'http://192.168.1.10:5177',
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M43_P1 — feedback webhook URL config (apps/api/src/config.ts)
+// ---------------------------------------------------------------------------
+
+describe('M43_P1 feedback webhook config', () => {
+  const PKG = '/x/apps/api';
+
+  it('AC-1: ENV_FEEDBACK_WEBHOOK_URL exports as TRUCHABREW_FEEDBACK_WEBHOOK_URL', () => {
+    expect(ENV_FEEDBACK_WEBHOOK_URL).toBe('TRUCHABREW_FEEDBACK_WEBHOOK_URL');
+  });
+
+  it('AC-2: resolveConfig parses feedback webhook URL, trims whitespace, and treats unset/empty as undefined', () => {
+    // Unset
+    expect(resolveConfig({}, PKG).feedbackWebhookUrl).toBeUndefined();
+    // Empty string
+    expect(resolveConfig({ [ENV_FEEDBACK_WEBHOOK_URL]: '' }, PKG).feedbackWebhookUrl).toBeUndefined();
+    // Whitespace only
+    expect(resolveConfig({ [ENV_FEEDBACK_WEBHOOK_URL]: '   \t  ' }, PKG).feedbackWebhookUrl).toBeUndefined();
+    // Valid trimmed URL
+    expect(
+      resolveConfig({ [ENV_FEEDBACK_WEBHOOK_URL]: '  https://discord.com/api/webhooks/123/xyz  ' }, PKG)
+        .feedbackWebhookUrl,
+    ).toBe('https://discord.com/api/webhooks/123/xyz');
   });
 });

@@ -109,3 +109,10 @@ only reinstalls or rebuilds what actually changed. Once it's already been built,
 - `npm run lint` — lint the whole repo.
 - `npm run smoke` — start the real built artifact and verify it serves correctly, then
   shut it down and clean up after itself.
+
+### Configuration & Environment Variables
+
+- `PORT` — server listen port (default: `5177`).
+- `HOST` — server bind host (default: `0.0.0.0`).
+- `TRUCHABREW_DB_PATH` — custom path to the SQLite database file (default: `apps/api/data/truchabrew.db`).
+- `TRUCHABREW_FEEDBACK_WEBHOOK_URL` — optional webhook destination URL (Discord, Slack, or generic HTTP POST) to receive messages sent from the in-app feedback button.

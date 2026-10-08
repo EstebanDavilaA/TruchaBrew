@@ -27,6 +27,7 @@ import { registerInventoryRoutes } from './routes/inventory';
 // registerConfigRoutes/registerInventoryRoutes above: no route in this repo
 // is reachable without a registration call here.
 import { registerBackupRoutes } from './routes/backup';
+import { registerFeedbackRoutes, type FeedbackRouteOptions } from './routes/feedback';
 import { sendApiError } from './errors';
 
 export interface ServerDeps {
@@ -36,6 +37,8 @@ export interface ServerDeps {
    *  directory, `@fastify/static` serves it and unmatched non-API GET/HEAD
    *  requests fall back to `index.html`. Optional. */
   staticRoot?: string;
+  feedbackWebhookUrl?: string;
+  feedbackOptions?: FeedbackRouteOptions;
 }
 
 /** Builds a fully-configured Fastify instance. Does not call listen() — test-injectable. */
@@ -52,6 +55,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   registerConfigRoutes(app, deps.db);
   registerInventoryRoutes(app, deps.db);
   registerBackupRoutes(app, deps.db);
+  registerFeedbackRoutes(app, deps.feedbackWebhookUrl, deps.feedbackOptions);
 
   // M42_P1 — serve the built web UI when a static root exists. Registered AFTER
   // every route so no static file can ever shadow an API route. Absent (or

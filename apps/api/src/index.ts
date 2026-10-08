@@ -11,6 +11,24 @@ import { resolveConfig, describeListenAddresses } from './config';
 // The package root is one level above this file's directory, in both the
 // source tree (`apps/api/src`) and the built artifact (`apps/api/dist`).
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = path.resolve(packageRoot, '..', '..');
+
+// Load environment files if present. Local .env files are loaded first so they take
+// precedence over committed defaults in .env.production.
+for (const envFile of [
+  path.join(repoRoot, '.env'),
+  path.join(packageRoot, '.env'),
+  path.join(repoRoot, '.env.production'),
+  path.join(packageRoot, '.env.production'),
+]) {
+  if (fs.existsSync(envFile) && typeof process.loadEnvFile === 'function') {
+    try {
+      process.loadEnvFile(envFile);
+    } catch {
+      // Ignore unreadable or invalid env files
+    }
+  }
+}
 
 const config = resolveConfig(process.env, packageRoot);
 
@@ -20,7 +38,12 @@ const { db } = openDatabase(config.dbPath);
 runMigrations(db, config.migrationsDir);
 seedDatabase(db);
 
-const app = buildServer({ db, logger: true, staticRoot: config.staticRoot });
+const app = buildServer({
+  db,
+  logger: true,
+  staticRoot: config.staticRoot,
+  feedbackWebhookUrl: config.feedbackWebhookUrl,
+});
 
 app
   .listen({ port: config.port, host: config.host })
