@@ -1,6 +1,6 @@
 # Framework maintenance / Phase 1 — Refresh CODESTREAM-lite
 
-**Date:** 2026-10-08 · **Status:** BUILT — awaiting `/steer`
+**Date:** 2026-10-08 · **Status:** CHECKPOINT — independently reviewed
 
 ## What you can do after this phase
 

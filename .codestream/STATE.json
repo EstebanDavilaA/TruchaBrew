@@ -106,6 +106,24 @@
       "state": 2,
       "agent": "github-copilot",
       "event": "Reopened M44_P1 planning at the user’s request. Replaced the parked draft with a one-page P1 spec limited to recipe and batch page exit protection; inventory/profile data-entry modals remain P2. Clarified the existing two-phase roadmap breakdown and retained the required BUG-026–BUG-039 triage. Awaiting SPEC_APPROVED; no implementation started."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 4,
+      "agent": "github-copilot",
+      "event": "Diagnosed the competing active specs as a workflow-state error: M44 planning had resumed before the framework refresh review checkpoint. Per user approval, temporarily moved the M44_P1 draft to session storage, leaving only framework_refresh.md active so its independent review can complete. The M44 draft is preserved verbatim and will be restored after the checkpoint."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 4,
+      "agent": "github-copilot",
+      "event": "Framework refresh steering checkpoint: independent review verified the supported entry points, refreshed workflow instructions, wave template presence, and parity of all 12 refreshed files with template revision 36aa63a. Review found no blockers after resolving the competing active-spec state. Non-blocking scope deviation: ROADMAP.md, STATE.json, and M44 planning artifacts were updated in response to separate user-directed M44 planning; README and archive contents were preserved. git diff --check passed; application tests/typecheck/build/lint/smoke are not applicable to documentation-only changes; actual wave use was not exercised."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "After the framework refresh checkpoint, restored the preserved M44_P1 draft as the sole active spec. It remains unapproved; no wave manifest or implementation has started."
     }
   ],
   "artifacts": {
