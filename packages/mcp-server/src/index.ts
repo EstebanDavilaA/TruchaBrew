@@ -8,6 +8,10 @@ import {
   registerRecipeTools,
   checkUnsupportedRecipeAction,
 } from './tools/recipes.ts';
+import {
+  registerEquipmentTools,
+  checkUnsupportedEquipmentAction,
+} from './tools/equipment.ts';
 
 export interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -126,6 +130,16 @@ export class McpServer {
             };
           }
 
+          // Check for explicitly unsupported equipment operations
+          const unsupportedEquipmentResult = checkUnsupportedEquipmentAction(toolName);
+          if (unsupportedEquipmentResult) {
+            return {
+              jsonrpc: '2.0',
+              id,
+              result: unsupportedEquipmentResult,
+            };
+          }
+
           const tool = this.tools.get(toolName);
           if (!tool) {
             return {
@@ -211,6 +225,7 @@ export function createServer(client?: TruchaBrewClient): McpServer {
   const c = client ?? new TruchaBrewClient();
   const server = new McpServer();
   registerRecipeTools(server, c);
+  registerEquipmentTools(server, c);
   return server;
 }
 
@@ -227,3 +242,4 @@ if (isMain) {
 
 export { TruchaBrewClient } from './client.ts';
 export * from './tools/recipes.ts';
+export * from './tools/equipment.ts';

@@ -80,6 +80,25 @@ before you brew:
 - **Never port-forward it or expose it to the internet.** Doing so would let anyone,
   anywhere, reach your data with no protection at all.
 
+## Conversational AI Assistants & MCP Server
+
+TruchaBrew includes a local Model Context Protocol (MCP) server that allows conversational
+AI assistants—including **Claude Code**, **Gemini CLI**, and **Claude Desktop**—to inspect
+and update recipes and equipment profiles in natural language.
+
+- **Start the MCP server:**
+  ```bash
+  npm run mcp
+  ```
+  (or `node packages/mcp-server/src/index.ts`)
+- **Setup Guide:** See [docs/mcp-setup.md](docs/mcp-setup.md) for step-by-step setup and
+  copy-paste configuration snippets for Claude Code, Gemini CLI, and Claude Desktop.
+- **Privacy Disclosure:** TruchaBrew itself is 100% self-hosted with no telemetry, accounts,
+  or cloud syncing. However, when you connect an external AI assistant via MCP, any recipe
+  or equipment profile data requested by that assistant leaves your local machine and is
+  sent across the internet to the external AI model provider (such as Anthropic or Google)
+  to generate responses. Conversational AI integration is strictly optional.
+
 ## Stopping and Restarting
 
 Press **Ctrl+C** in the terminal to stop the server. To start it again later, run
@@ -116,3 +135,4 @@ only reinstalls or rebuilds what actually changed. Once it's already been built,
 - `HOST` — server bind host (default: `0.0.0.0`).
 - `TRUCHABREW_DB_PATH` — custom path to the SQLite database file (default: `apps/api/data/truchabrew.db`).
 - `TRUCHABREW_FEEDBACK_WEBHOOK_URL` — optional webhook destination URL (Discord, Slack, or generic HTTP POST) to receive messages sent from the in-app feedback button.
+- `TRUCHABREW_API_URL` — target HTTP URL for the MCP server to communicate with the TruchaBrew API (default: `http://localhost:3000`).
