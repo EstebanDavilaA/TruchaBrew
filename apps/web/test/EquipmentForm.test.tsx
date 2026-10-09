@@ -290,6 +290,41 @@ describe('M31_P1: FormField label association and UI Primitives adoption in Equi
     expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
   });
 
+  describe('unsaved equipment profile changes', () => {
+    it('lets a clean or reverted form exit without a discard prompt from Back or Cancel', () => {
+      const onCancel = vi.fn();
+      render(<EquipmentForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+      const nameInput = screen.getByLabelText(/profile name/i);
+      fireEvent.change(nameInput, { target: { value: 'Temporary' } });
+      fireEvent.change(nameInput, { target: { value: '' } });
+
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+      fireEvent.click(cancelButtons.find((button) => button.textContent?.trim() === 'Cancel')!);
+
+      expect(onCancel).toHaveBeenCalledTimes(2);
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    });
+
+    it('keeps edited values when staying and exits only after confirming discard', () => {
+      const onCancel = vi.fn();
+      render(<EquipmentForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+      const nameInput = screen.getByLabelText(/profile name/i);
+      fireEvent.change(nameInput, { target: { value: 'Pending equipment' } });
+
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+      expect(nameInput).toHaveValue('Pending equipment');
+      expect(onCancel).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'Cancel' }).find((button) => button.textContent?.trim() === 'Cancel')!);
+      fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+      expect(onCancel).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('AC-8: every label carries htmlFor attribute matching its associated input id', () => {
     render(<EquipmentForm mode="create" onSaved={vi.fn()} onCancel={vi.fn()} />);
 
@@ -331,5 +366,4 @@ describe('M31_P1: FormField label association and UI Primitives adoption in Equi
     expect(deleteBtn).toHaveClass('bg-rose-950/80', 'rounded-lg');
   });
 });
-
 

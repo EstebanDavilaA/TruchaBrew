@@ -118,8 +118,15 @@ export const MashProfileForm: React.FC<MashProfileFormProps> = (props) => {
   const [targetPh, setTargetPh] = useState(initialProfile ? String(initialProfile.targetPh) : '5.4');
   const [spargeTempC, setSpargeTempC] = useState(initialProfile?.spargeTempC === null || initialProfile?.spargeTempC === undefined ? '' : String(initialProfile.spargeTempC));
   const [steps, setSteps] = useState<RawMashStepRow[]>(initialProfile ? toRawSteps(initialProfile) : []);
+  const [initialFormState] = useState(() => ({ name, targetPh, spargeTempC, steps }));
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const isDirty = JSON.stringify({ name, targetPh, spargeTempC, steps }) !== JSON.stringify(initialFormState);
+  const requestCancel = () => {
+    if (isDirty) setConfirmDiscardOpen(true);
+    else onCancel();
+  };
 
   const nameError = validateName(name);
   const targetPhError = validateBounded(parseFloat(targetPh), 3, 9);
@@ -184,7 +191,7 @@ export const MashProfileForm: React.FC<MashProfileFormProps> = (props) => {
         leading={
           <button
             type="button"
-            onClick={onCancel}
+            onClick={requestCancel}
             disabled={saveState === 'saving'}
             title="Cancel"
             aria-label="Cancel"
@@ -210,7 +217,7 @@ export const MashProfileForm: React.FC<MashProfileFormProps> = (props) => {
         <Button
           variant="secondary"
           size="sm"
-          onClick={onCancel}
+          onClick={requestCancel}
           disabled={saveState === 'saving'}
         >
           Cancel
@@ -238,6 +245,14 @@ export const MashProfileForm: React.FC<MashProfileFormProps> = (props) => {
           onCancel={() => setConfirmOpen(false)}
         />
       )}
+      <ConfirmDialog
+        open={confirmDiscardOpen}
+        title="Discard unsaved changes?"
+        message="Your changes will be lost if you leave this form."
+        confirmLabel="Discard changes"
+        onConfirm={onCancel}
+        onCancel={() => setConfirmDiscardOpen(false)}
+      />
       <PageContainer>
         {deleteAction?.error && (
           <div className="bg-rose-950/60 border border-rose-800 rounded-lg px-4 py-3 flex items-start gap-3 text-sm text-rose-200 mb-5">

@@ -155,10 +155,70 @@ export const InventoryForm: React.FC<InventoryFormProps> = (props) => {
   const [manufacturingDate, setManufacturingDate] = useState(
     seedHop?.manufacturingDate ?? seedFermentable?.manufacturingDate ?? seedYeast?.manufacturingDate ?? seedMisc?.manufacturingDate ?? '',
   );
+  const [initialFormState] = useState(() => ({
+    category,
+    name,
+    quantity,
+    unit,
+    costPerUnit,
+    purchaseDate,
+    expiryDate,
+    notes,
+    alphaAcidPct,
+    hopType,
+    origin,
+    year,
+    potentialSg,
+    colorSrm,
+    grainType,
+    supplier,
+    laboratory,
+    productId,
+    attenuationPct,
+    yeastType,
+    yeastForm,
+    miscType,
+    defaultUse,
+    lotNumber,
+    manufacturingDate,
+  }));
 
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  const currentFormState = {
+    category,
+    name,
+    quantity,
+    unit,
+    costPerUnit,
+    purchaseDate,
+    expiryDate,
+    notes,
+    alphaAcidPct,
+    hopType,
+    origin,
+    year,
+    potentialSg,
+    colorSrm,
+    grainType,
+    supplier,
+    laboratory,
+    productId,
+    attenuationPct,
+    yeastType,
+    yeastForm,
+    miscType,
+    defaultUse,
+    lotNumber,
+    manufacturingDate,
+  };
+  const isDirty = JSON.stringify(currentFormState) !== JSON.stringify(initialFormState);
+  const requestCancel = () => {
+    if (isDirty) setConfirmDiscardOpen(true);
+    else props.onCancel();
+  };
 
   const deleteAction = isEdit ? props.deleteAction : undefined;
   const prevDeleteBusy = useRef(deleteAction?.busy ?? false);
@@ -292,7 +352,7 @@ export const InventoryForm: React.FC<InventoryFormProps> = (props) => {
         leading={
           <Button
             variant="icon"
-            onClick={props.onCancel}
+            onClick={requestCancel}
             disabled={busy}
             title="Cancel"
             aria-label="Cancel"
@@ -317,7 +377,7 @@ export const InventoryForm: React.FC<InventoryFormProps> = (props) => {
         <Button
           variant="secondary"
           size="sm"
-          onClick={props.onCancel}
+          onClick={requestCancel}
           disabled={busy}
         >
           Cancel
@@ -707,6 +767,14 @@ export const InventoryForm: React.FC<InventoryFormProps> = (props) => {
           onCancel={() => setConfirmDeleteOpen(false)}
         />
       )}
+      <ConfirmDialog
+        open={confirmDiscardOpen}
+        title="Discard unsaved changes?"
+        message="Your changes will be lost if you leave this form."
+        confirmLabel="Discard changes"
+        onConfirm={props.onCancel}
+        onCancel={() => setConfirmDiscardOpen(false)}
+      />
     </>
   );
 };

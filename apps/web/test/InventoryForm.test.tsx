@@ -456,3 +456,38 @@ describe('AC-16 (M26_P1 Amendment 1): InventoryForm forwards onOpenMobileNav to 
     expect(screen.queryByRole('button', { name: 'Open navigation menu' })).toBeNull();
   });
 });
+
+describe('unsaved inventory changes', () => {
+  it('lets a clean or reverted form exit without a discard prompt from Back or Cancel', () => {
+    const onCancel = vi.fn();
+    render(<InventoryForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+    const nameInput = screen.getByLabelText(/^item name/i);
+    fireEvent.change(nameInput, { target: { value: 'Temporary' } });
+    fireEvent.change(nameInput, { target: { value: '' } });
+
+    const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+    fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+    fireEvent.click(cancelButtons.find((button) => button.textContent?.trim() === 'Cancel')!);
+
+    expect(onCancel).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+  });
+
+  it('keeps edited values when staying and exits only after confirming discard', () => {
+    const onCancel = vi.fn();
+    render(<InventoryForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+    const nameInput = screen.getByLabelText(/^item name/i);
+    fireEvent.change(nameInput, { target: { value: 'Pending item' } });
+
+    const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+    fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+    expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+    expect(nameInput).toHaveValue('Pending item');
+    expect(onCancel).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Cancel' }).find((button) => button.textContent?.trim() === 'Cancel')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+});

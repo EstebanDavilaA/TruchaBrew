@@ -237,6 +237,41 @@ describe('WaterProfileForm AC-37: Balance Strategy preset', () => {
     expect(screen.getByTestId('water-form-apply-strategy')).toBeInTheDocument();
   });
 
+  describe('unsaved water profile changes', () => {
+    it('lets a clean or reverted form exit without a discard prompt from Back or Cancel', () => {
+      const onCancel = vi.fn();
+      render(<WaterProfileForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+      const nameInput = screen.getByLabelText(/profile name/i);
+      fireEvent.change(nameInput, { target: { value: 'Temporary' } });
+      fireEvent.change(nameInput, { target: { value: '' } });
+
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+      fireEvent.click(cancelButtons.find((button) => button.textContent?.trim() === 'Cancel')!);
+
+      expect(onCancel).toHaveBeenCalledTimes(2);
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    });
+
+    it('keeps edited values when staying and exits only after confirming discard', () => {
+      const onCancel = vi.fn();
+      render(<WaterProfileForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+      const nameInput = screen.getByLabelText(/profile name/i);
+      fireEvent.change(nameInput, { target: { value: 'Pending water profile' } });
+
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+      expect(nameInput).toHaveValue('Pending water profile');
+      expect(onCancel).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'Cancel' }).find((button) => button.textContent?.trim() === 'Cancel')!);
+      fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+      expect(onCancel).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('applying Crisp Hop-Forward sets sulfate = 2 × chloride (other ions untouched)', () => {
     render(<WaterProfileForm mode="create" onSaved={vi.fn()} onCancel={vi.fn()} />);
     fireEvent.change(screen.getByTestId('water-form-cl'), { target: { value: '100' } });
@@ -267,4 +302,3 @@ describe('WaterProfileForm AC-37: Balance Strategy preset', () => {
     expect(screen.getByTestId('water-form-so4')).toHaveValue(50);
   });
 });
-

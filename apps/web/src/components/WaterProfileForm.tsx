@@ -45,10 +45,28 @@ export const WaterProfileForm: React.FC<WaterProfileFormProps> = (props) => {
   const [ph, setPh] = useState(initial?.ph !== null && initial?.ph !== undefined ? String(initial.ph) : '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [balanceStrategy, setBalanceStrategy] = useState<BalanceStrategy>('Balanced');
+  const [initialFormState] = useState(() => ({
+    name,
+    type,
+    calcium,
+    magnesium,
+    sodium,
+    chloride,
+    sulfate,
+    bicarbonate,
+    ph,
+    description,
+  }));
 
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  const isDirty = JSON.stringify({ name, type, calcium, magnesium, sodium, chloride, sulfate, bicarbonate, ph, description }) !== JSON.stringify(initialFormState);
+  const requestCancel = () => {
+    if (isDirty) setConfirmDiscardOpen(true);
+    else props.onCancel();
+  };
 
   const deleteAction = isEdit ? props.deleteAction : undefined;
   const prevDeleteBusy = useRef(deleteAction?.busy ?? false);
@@ -154,7 +172,7 @@ export const WaterProfileForm: React.FC<WaterProfileFormProps> = (props) => {
         leading={
           <button
             type="button"
-            onClick={props.onCancel}
+            onClick={requestCancel}
             disabled={busy}
             title="Cancel"
             aria-label="Cancel"
@@ -180,7 +198,7 @@ export const WaterProfileForm: React.FC<WaterProfileFormProps> = (props) => {
         <Button
           variant="secondary"
           size="sm"
-          onClick={props.onCancel}
+          onClick={requestCancel}
           disabled={busy}
         >
           Cancel
@@ -418,6 +436,14 @@ export const WaterProfileForm: React.FC<WaterProfileFormProps> = (props) => {
           onCancel={() => setConfirmDeleteOpen(false)}
         />
       )}
+      <ConfirmDialog
+        open={confirmDiscardOpen}
+        title="Discard unsaved changes?"
+        message="Your changes will be lost if you leave this form."
+        confirmLabel="Discard changes"
+        onConfirm={props.onCancel}
+        onCancel={() => setConfirmDiscardOpen(false)}
+      />
     </>
   );
 };
