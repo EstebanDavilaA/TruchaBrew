@@ -214,6 +214,12 @@
       "state": 3,
       "agent": "github-copilot",
       "event": "Stage 1 (P1 recipe chat tools) execution complete (commit 8def94a). Merged into wave branch. Verified quality gates: test (exit 0, 46 mcp-server tests + all workspaces pass), typecheck (exit 0, 5/5 workspaces pass), build (exit 0), lint (exit 0, 18 baseline warnings), smoke (exit 0). Starting Stage 2: P2 lane."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Stage 2 (P2 equipment profile chat tools, client setup, and privacy docs) execution complete (commit c79858c). Merged into wave branch. Merged checks verified: test (exit 0, 83 mcp-server tests, 3,015 repo tests pass), typecheck (exit 0, 5/5 workspaces pass), build (exit 0), lint (exit 0, 18 baseline warnings), smoke (exit 0). Wave build complete across all lanes; awaiting /steer."
     }
   ],
   "artifacts": {
