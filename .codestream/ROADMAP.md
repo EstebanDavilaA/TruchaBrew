@@ -754,7 +754,7 @@ write tools. `BUG-043` remains explicitly non-blocking.
 - **User-visible outcome:** When a brewer tries to leave a recipe, batch, inventory, or profile editor with unsaved changes, TruchaBrew asks whether to stay or discard; choosing to stay preserves the edits.
 - **Builds on:** Existing dirty-state tracking in the recipe editor, batch and profile forms, and the shared modal/dialog primitives.
 - **Phases:** P1 protects recipe and batch page edits across sidebar/mobile navigation, back/cancel actions, and browser unload; P2 protects dirty data-entry modals, including inventory and profile forms.
-- **Scope:** Reconcile `BUG-026`–`BUG-039` against the current app; resolved entries are closed and reproducible issues remain tracked with current evidence. P1 does not expand into unrelated visual redesigns.
+- **Scope:** Protect unsaved edits on recipe and batch pages and in inventory/profile data-entry forms. P1 covers sidebar/mobile navigation, page Back actions, and browser unload for recipe and batch pages; P2 covers Back/Cancel dismissal for inventory and profile forms.
 - **Explicitly out of scope:** Autosave, draft recovery after a crash, nested calculator/import/logging modal edits (Phase 2), and unrelated visual redesigns.
 
 ### Milestone 45 — Update recipes and equipment profiles through chat
@@ -774,8 +774,13 @@ context at the user's request; no phase spec is active.
 
 **Planning resumed (2026-10-08).** Clarified the existing two-phase estimate:
 P1 covers recipe and batch page navigation; P2 covers dirty data-entry modals.
-The M44_P1 draft includes the milestone's existing responsive-issue triage
-scope and is awaiting `SPEC_APPROVED`.
+The initial M44_P1 draft retained the milestone's responsive-issue triage;
+wave planning later removed that unrelated work, as recorded below.
+
+**Wave planning (2026-10-08).** Per user decision, removed `BUG-026`–`BUG-039`
+responsive/layout triage from M44; those issues remain tracked for separate
+future triage. P2 protects only form Back/Cancel exits; app-wide navigation and
+browser unload remain P1's scope for recipe and batch pages.
 
 ---
 

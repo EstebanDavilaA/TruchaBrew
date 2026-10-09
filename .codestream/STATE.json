@@ -1,9 +1,9 @@
 {
   "framework": "CODESTREAM-lite",
   "version": "0.1.0",
-  "current_state": 2,
+  "current_state": 3,
   "active_milestone": 44,
-  "active_phase": 1,
+  "active_phase": null,
   "state_history": [
     {
       "date": "2026-09-07",
@@ -124,13 +124,32 @@
       "state": 2,
       "agent": "github-copilot",
       "event": "After the framework refresh checkpoint, restored the preserved M44_P1 draft as the sole active spec. It remains unapproved; no wave manifest or implementation has started."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "Opened /wave M44 after the framework checkpoint was committed. The existing P1 draft joins the wave; added the P2 planning draft and wave manifest. Both phases are initially staged in parallel pending planners’ code-based ownership/dependency review. Lockfile is tracked. Awaiting planning results; no implementation authorized."
+    },
+    {
+      "date": "2026-10-08",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "Completed M44 wave planning. P1 covers recipe/batch page exits including app navigation and browser unload; P2 covers Back/Cancel exits in inventory and profile forms only. User chose P2 Back/Cancel-only and approved removing unrelated BUG-026–BUG-039 responsive/layout triage from M44; roadmap updated and bugs remain tracked. Planners verified disjoint source/test ownership, so both lanes are stage 1. Wave manifest and both specs await WAVE_APPROVED; no implementation started."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Received WAVE_APPROVED for M44. Approved both listed specs, recorded approval in the wave manifest and state, and started stage 1 with P1 and P2 in parallel."
     }
   ],
   "artifacts": {
     "project": ".codestream/PROJECT.md",
     "discovery": ".codestream/DISCOVERY.md",
     "roadmap": ".codestream/ROADMAP.md",
-    "active_spec": ".codestream/active/M44_P1_unsaved_editor_guard.md",
+    "active_spec": null,
+    "active_wave": ".codestream/active/M44-WAVE-unsaved-guard.md",
     "bugs": ".codestream/BUGS.md",
     "features": ".codestream/FEATURES.md"
   }
