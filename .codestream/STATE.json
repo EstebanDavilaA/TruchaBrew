@@ -1,8 +1,8 @@
 {
   "framework": "CODESTREAM-lite",
   "version": "0.1.0",
-  "current_state": 3,
-  "active_milestone": 45,
+  "current_state": 4,
+  "active_milestone": null,
   "active_phase": null,
   "state_history": [
     {
@@ -220,6 +220,12 @@
       "state": 3,
       "agent": "github-copilot",
       "event": "Stage 2 (P2 equipment profile chat tools, client setup, and privacy docs) execution complete (commit c79858c). Merged into wave branch. Merged checks verified: test (exit 0, 83 mcp-server tests, 3,015 repo tests pass), typecheck (exit 0, 5/5 workspaces pass), build (exit 0), lint (exit 0, 18 baseline warnings), smoke (exit 0). Wave build complete across all lanes; awaiting /steer."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 4,
+      "agent": "github-copilot",
+      "event": "State 4 /steer for M45 wave ('chat-updates'): all five Layer 1 quality gates verified green (test 3,015 passed / 2 skipped across 147 files, exit 0; typecheck 5/5 clean, exit 0; build clean, exit 0; lint 0 errors, 18 baseline warnings, exit 0; smoke clean, exit 0). Independent parallel reviews completed: P1 reviewer verified 6/6 outcomes; P2 reviewer verified 7/7 outcomes; Integration reviewer verified MCP server and client consistency across both domains with 0 blockers. Milestone 45 ('Update recipes and equipment profiles through chat') completed in full via Option D. Archived M45_P1_recipe_chat_tools.md, M45_P2_equipment_chat_tools.md, and M45-WAVE-chat-updates.md to .codestream/archive/specs/. Updated ROADMAP.md. Active wave and active milestone cleared."
     }
   ],
   "artifacts": {
@@ -227,7 +233,7 @@
     "discovery": ".codestream/DISCOVERY.md",
     "roadmap": ".codestream/ROADMAP.md",
     "active_spec": null,
-    "active_wave": ".codestream/active/M45-WAVE-chat-updates.md",
+    "active_wave": null,
     "bugs": ".codestream/BUGS.md",
     "features": ".codestream/FEATURES.md"
   }
