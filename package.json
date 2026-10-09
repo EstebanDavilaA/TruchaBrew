@@ -19,7 +19,8 @@
     "db:generate": "npm run db:generate --workspace=@truchabrew/api",
     "db:seed": "npm run db:seed --workspace=@truchabrew/api",
     "brew": "node scripts/brew.mjs",
-    "smoke": "node scripts/smoke-artifact.mjs"
+    "smoke": "node scripts/smoke-artifact.mjs",
+    "mcp": "node packages/mcp-server/src/index.ts"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
