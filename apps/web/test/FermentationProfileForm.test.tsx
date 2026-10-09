@@ -183,6 +183,41 @@ describe('M31_P4: FermentationProfileForm milestone-closing accessibility assert
     expect(container.innerHTML).not.toContain('text-[11px]');
   });
 
+  describe('unsaved fermentation profile changes', () => {
+    it('lets a clean or reverted form exit without a discard prompt from Back or Cancel', () => {
+      const onCancel = vi.fn();
+      render(<FermentationProfileForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+      const nameInput = screen.getByLabelText(/profile name/i);
+      fireEvent.change(nameInput, { target: { value: 'Temporary' } });
+      fireEvent.change(nameInput, { target: { value: '' } });
+
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+      fireEvent.click(cancelButtons.find((button) => button.textContent?.trim() === 'Cancel')!);
+
+      expect(onCancel).toHaveBeenCalledTimes(2);
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    });
+
+    it('keeps edited values when staying and exits only after confirming discard', () => {
+      const onCancel = vi.fn();
+      render(<FermentationProfileForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+      const nameInput = screen.getByLabelText(/profile name/i);
+      fireEvent.change(nameInput, { target: { value: 'Pending fermentation profile' } });
+
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+      expect(nameInput).toHaveValue('Pending fermentation profile');
+      expect(onCancel).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'Cancel' }).find((button) => button.textContent?.trim() === 'Cancel')!);
+      fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+      expect(onCancel).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('AC-11: every input/select/textarea in the form resolves to a non-empty accessible name', () => {
     const { container } = render(<FermentationProfileForm mode="create" onSaved={vi.fn()} onCancel={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /add step/i }));

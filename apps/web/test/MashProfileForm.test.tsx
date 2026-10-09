@@ -195,6 +195,41 @@ describe('AC-16 (M26_P1 Amendment 1): MashProfileForm forwards onOpenMobileNav t
     expect(onOpenMobileNav).toHaveBeenCalledTimes(1);
   });
 
+  describe('unsaved mash profile changes', () => {
+    it('lets a clean or reverted form exit without a discard prompt from Back or Cancel', () => {
+      const onCancel = vi.fn();
+      render(<MashProfileForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+      const nameInput = screen.getByLabelText(/profile name/i);
+      fireEvent.change(nameInput, { target: { value: 'Temporary' } });
+      fireEvent.change(nameInput, { target: { value: '' } });
+
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+      fireEvent.click(cancelButtons.find((button) => button.textContent?.trim() === 'Cancel')!);
+
+      expect(onCancel).toHaveBeenCalledTimes(2);
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    });
+
+    it('keeps edited values when staying and exits only after confirming discard', () => {
+      const onCancel = vi.fn();
+      render(<MashProfileForm mode="create" onSaved={vi.fn()} onCancel={onCancel} />);
+      const nameInput = screen.getByLabelText(/profile name/i);
+      fireEvent.change(nameInput, { target: { value: 'Pending mash profile' } });
+
+      const cancelButtons = screen.getAllByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButtons.find((button) => !button.textContent?.trim())!);
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+      expect(nameInput).toHaveValue('Pending mash profile');
+      expect(onCancel).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'Cancel' }).find((button) => button.textContent?.trim() === 'Cancel')!);
+      fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+      expect(onCancel).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('omitting onOpenMobileNav renders no hamburger button', () => {
     render(<MashProfileForm mode="create" onSaved={vi.fn()} onCancel={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Open navigation menu' })).toBeNull();
@@ -333,5 +368,4 @@ describe('M31_P2: MashProfileForm UI Primitives & Accessibility (AC-1..AC-12)', 
     expect(addBtn).toHaveClass('bg-slate-800', 'hover:bg-slate-700', 'rounded-lg');
   });
 });
-
 
