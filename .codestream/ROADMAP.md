@@ -760,6 +760,7 @@ write tools. `BUG-043` remains explicitly non-blocking.
 
 ### Milestone 45 — Update recipes and equipment profiles through chat
 - **User-visible outcome:** From Claude Code or Gemini CLI, a brewer can find a recipe or equipment profile, inspect it, and ask in natural language to update it; the saved change appears in TruchaBrew and remains after refresh.
+- **Phases:** P1 covers recipe inspection and update tools via a local stdio MCP server; P2 covers equipment profile inspection and update tools, client setup snippets for Claude Code and Gemini CLI, and privacy disclosure updates.
 - **Approach:** Provide a local, stdio Model Context Protocol (MCP) server that calls TruchaBrew's existing API. Support both clients through MCP configuration rather than separate provider integrations. The provider API key stays in the assistant client's own configuration; TruchaBrew does not receive or store it.
 - **Data/privacy boundary:** The assistant provider receives the selected recipe/profile data returned by MCP and any related chat context. This intentionally changes Discovery's current "no cloud / nothing uploaded" promise. Before implementation, explicitly approve and update that promise and the setup/privacy documentation; do not send the full database or add a remote MCP listener.
 - **Explicitly out of scope:** Creating or deleting records, direct database access, a TruchaBrew-hosted chat UI, and support for remote MCP connections.
@@ -782,6 +783,13 @@ wave planning later removed that unrelated work, as recorded below.
 responsive/layout triage from M44; those issues remain tracked for separate
 future triage. P2 protects only form Back/Cancel exits; app-wide navigation and
 browser unload remain P1's scope for recipe and batch pages.
+
+**Wave planning (2026-10-09).** Planned Milestone 45 as a two-phase wave:
+P1 covers recipe inspection and update tools via a local stdio MCP server; P2
+covers equipment profile inspection and update tools, client setup snippets for
+Claude Code and Gemini CLI, and privacy disclosure updates. Staged sequentially
+(Stage 1: P1, Stage 2: P2) so P2 builds on the MCP server package structure and
+REST client harness established in P1.
 
 ---
 

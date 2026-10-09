@@ -1,8 +1,8 @@
 {
   "framework": "CODESTREAM-lite",
   "version": "0.1.0",
-  "current_state": 4,
-  "active_milestone": null,
+  "current_state": 3,
+  "active_milestone": 45,
   "active_phase": null,
   "state_history": [
     {
@@ -190,6 +190,24 @@
       "state": 4,
       "agent": "github-copilot",
       "event": "Milestone 44 ('Leave an editor without silently losing work') completed in full via Option D. Archived M44_P1_unsaved_editor_guard.md, M44_P2_unsaved_modal_guard.md, and M44-WAVE-unsaved-guard.md to .codestream/archive/specs/. Updated ROADMAP.md. All five Layer 1 quality gates verified green. Active wave and active milestone cleared."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "Opened /wave M45 ('Update recipes and equipment profiles through chat'). Drafted wave manifest .codestream/active/M45-WAVE-chat-updates.md. Staging P1 (recipe chat tools via local stdio MCP) and P2 (equipment profile chat tools, client configuration for Claude Code / Gemini CLI, and privacy disclosure update). Spawning parallel planners to draft specs and determine file ownership."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "Completed M45 wave planning. P1 covers recipe inspection/updates and stdio MCP server foundation; P2 covers equipment profile inspection/updates, client setup snippets for Claude Code / Gemini CLI, and privacy boundary documentation. Applied roadmap correction to ROADMAP.md. Manifest updated to AWAITING SPEC_APPROVED with Stage 1 (P1) and Stage 2 (P2). Awaiting WAVE_APPROVED / SPEC_APPROVED; no implementation authorized."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Received WAVE_APPROVED for M45. Approved both listed specs, recorded approval in the wave manifest and state, and started stage 1 with P1."
     }
   ],
   "artifacts": {
@@ -197,7 +215,7 @@
     "discovery": ".codestream/DISCOVERY.md",
     "roadmap": ".codestream/ROADMAP.md",
     "active_spec": null,
-    "active_wave": null,
+    "active_wave": ".codestream/active/M45-WAVE-chat-updates.md",
     "bugs": ".codestream/BUGS.md",
     "features": ".codestream/FEATURES.md"
   }
