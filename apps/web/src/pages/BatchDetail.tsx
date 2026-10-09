@@ -130,6 +130,7 @@ function projectFormData(b: BatchWithReadings): BatchWriteInput {
 export interface BatchDetailProps {
   batchId: string;
   onBack: () => void;
+  onDirtyChange: (isDirty: boolean) => void;
   /** Fired after a successful delete (§3.5.5) — the caller navigates away (goToBatches()). */
   onDeleted: () => void;
   /** Fired after a successful Rebrew (§1.4/AC-15) with the newly created batch's id — the caller navigates to it. */
@@ -138,7 +139,7 @@ export interface BatchDetailProps {
   onOpenMobileNav?: () => void;
 }
 
-export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobileNav }: BatchDetailProps) {
+export function BatchDetail({ batchId, onBack, onDirtyChange, onDeleted, onRebrewed, onOpenMobileNav }: BatchDetailProps) {
   // §2.2.4, binding: statsSnapshot is a historical record and is rendered
   // as stored, never recomputed under a newly-selected strategy — config is
   // read here ONLY to feed the fallback recompute path below (statsSnapshot
@@ -165,6 +166,14 @@ export function BatchDetail({ batchId, onBack, onDeleted, onRebrewed, onOpenMobi
   // A FOURTH error state, separate from `error`, `saveError` and
   // `readingError`. Gates ONLY note-mutation failures.
   const [noteError, setNoteError] = useState<string | null>(null);
+  const isDirty = batch !== null && formData !== null
+    && JSON.stringify(formData) !== JSON.stringify(projectFormData(batch));
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
 
   // NEW in M13_P1 — batch delete (§3.5.5, AC-37/AC-38).
   const [deleteOpen, setDeleteOpen] = useState(false);

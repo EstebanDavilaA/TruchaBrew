@@ -284,6 +284,23 @@ async function navigateTo(label: (typeof NAV_LABELS)[number]) {
   fireEvent.click(screen.getByRole('button', { name: label }));
 }
 
+async function openBatchDetail() {
+  mockBatchesRoute();
+  render(<App />);
+  await waitFor(() => screen.getByText('Saved Test Recipe'));
+  await navigateTo('Batches');
+  await waitFor(() => screen.getByText(LISTED_BATCH.name));
+  fireEvent.click(screen.getByText(LISTED_BATCH.name));
+  await waitFor(() => screen.getByTestId('batch-save-btn'));
+}
+
+async function openDirtyBatch() {
+  await openBatchDetail();
+  fireEvent.click(screen.getByTestId('batch-tab-brewing'));
+  fireEvent.change(screen.getByLabelText('Mash pH'), { target: { value: '5.4' } });
+  await waitFor(() => expect(screen.getByLabelText('Mash pH')).toHaveValue(5.4));
+}
+
 describe('AC-13: every route renders the sidebar', () => {
   it('all five destination buttons are present on list, equipment, mashProfiles, fermentationProfiles, batches and editor', async () => {
     mockBatchesRoute();
@@ -558,6 +575,66 @@ describe('AC-21/AC-4/AC-5: unsaved-changes confirm fires for ANY destination whi
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     await waitFor(() => screen.getByTestId('settings-select-gravityUnit'));
     expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('M44 P1: protect dirty recipe and batch exits', () => {
+  it('uses the native beforeunload warning only while the recipe editor is dirty', async () => {
+    await openSavedRecipe();
+
+    const cleanEvent = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(cleanEvent);
+    expect(cleanEvent.defaultPrevented).toBe(false);
+
+    fireEvent.change(screen.getByPlaceholderText('Recipe Name'), { target: { value: 'Changed Name' } });
+    const dirtyEvent = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(dirtyEvent);
+    expect(dirtyEvent.defaultPrevented).toBe(true);
+    expect(screen.getByDisplayValue('Changed Name')).toBeInTheDocument();
+  });
+
+  it('protects dirty recipe edits from mobile drawer navigation', async () => {
+    await openSavedRecipe();
+    fireEvent.change(screen.getByPlaceholderText('Recipe Name'), { target: { value: 'Changed Name' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+
+    const drawer = screen.getByRole('dialog', { name: 'Mobile navigation' });
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Equipment Profiles' }));
+
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+    expect(screen.getByDisplayValue('Changed Name')).toBeInTheDocument();
+  });
+
+  it('does not warn before unload or navigation from a clean batch', async () => {
+    await openBatchDetail();
+
+    const cleanEvent = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(cleanEvent);
+    expect(cleanEvent.defaultPrevented).toBe(false);
+
+    await navigateTo('Recipes');
+    await waitFor(() => screen.getByText('Saved Test Recipe'));
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+  });
+
+  it('warns before unload and protects dirty batch edits through navigation and Back', async () => {
+    await openDirtyBatch();
+
+    const dirtyEvent = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(dirtyEvent);
+    expect(dirtyEvent.defaultPrevented).toBe(true);
+
+    await navigateTo('Recipes');
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+    expect(screen.getByLabelText('Mash pH')).toHaveValue(5.4);
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'));
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: ROUTE_H1.batches }));
   });
 });
 
@@ -1683,4 +1760,3 @@ describe('M38_P3 AC-34: folder fetch failure degrades silently', () => {
     expect(folderInput.value).toBe('StillWorks');
   });
 });
-

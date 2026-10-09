@@ -118,14 +118,15 @@ afterEach(() => {
 
 function renderBatchDetail(overrides: Partial<Parameters<typeof BatchDetail>[0]> = {}) {
   const onBack = vi.fn();
+  const onDirtyChange = vi.fn();
   const onDeleted = vi.fn();
   const onRebrewed = vi.fn();
   const utils = render(
     <ConfigProvider>
-      <BatchDetail batchId="batch-1" onBack={onBack} onDeleted={onDeleted} onRebrewed={onRebrewed} {...overrides} />
+      <BatchDetail batchId="batch-1" onBack={onBack} onDirtyChange={onDirtyChange} onDeleted={onDeleted} onRebrewed={onRebrewed} {...overrides} />
     </ConfigProvider>,
   );
-  return { ...utils, onBack, onDeleted, onRebrewed };
+  return { ...utils, onBack, onDirtyChange, onDeleted, onRebrewed };
 }
 
 async function waitForLoaded() {
@@ -473,7 +474,7 @@ describe('Save/Discard wiring', () => {
   it('Save Changes calls updateBatch with the current form data', async () => {
     mockedGetBatch.mockResolvedValue(baseBatchWithReadings());
     mockedUpdateBatch.mockResolvedValue(baseBatchWithReadings({ measuredMashPh: 5.4 }));
-    renderBatchDetail();
+    const { onDirtyChange } = renderBatchDetail();
     await waitForLoaded();
     fireEvent.click(screen.getByTestId('batch-tab-brewing'));
 
@@ -482,19 +483,22 @@ describe('Save/Discard wiring', () => {
 
     await waitFor(() => expect(mockedUpdateBatch).toHaveBeenCalledTimes(1));
     expect(mockedUpdateBatch.mock.calls[0][1]).toMatchObject({ measuredMashPh: 5.4 });
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
   });
 
   it('Discard Changes reverts an edit without calling the API', async () => {
     mockedGetBatch.mockResolvedValue(baseBatchWithReadings());
-    renderBatchDetail();
+    const { onDirtyChange } = renderBatchDetail();
     await waitForLoaded();
     fireEvent.click(screen.getByTestId('batch-tab-brewing'));
 
     fireEvent.change(screen.getByLabelText('Mash pH'), { target: { value: '5.4' } });
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
     fireEvent.click(screen.getByTestId('batch-discard-btn'));
 
     expect(mockedUpdateBatch).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Mash pH')).toHaveValue(null);
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
   });
 });
 
@@ -1279,4 +1283,3 @@ describe('Brew Day Tracker: Screen Navigation Persistence (FEAT-037)', () => {
     expect(screen.getByTestId('brew-day-timer-display').textContent).toBe('30:00');
   });
 });
-

@@ -82,6 +82,7 @@ function AppInner() {
   const [scaleBusy, setScaleBusy] = useState(false);
   const [scaleError, setScaleError] = useState<string | null>(null);
   const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
+  const [batchIsDirty, setBatchIsDirty] = useState(false);
   const [brewThisBusy, setBrewThisBusy] = useState(false);
   const [brewThisError, setBrewThisError] = useState<string | null>(null);
   const [recipeDeleteOpen, setRecipeDeleteOpen] = useState(false);
@@ -100,6 +101,18 @@ function AppInner() {
 
   const { config } = useConfig();
   const editor = useRecipeEditor(config);
+
+  useEffect(() => {
+    if (!editor.isDirty && !batchIsDirty) return;
+
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [editor.isDirty, batchIsDirty]);
 
   const loadEquipmentProfiles = useCallback(() => {
     listEquipmentProfiles()
@@ -211,7 +224,7 @@ function AppInner() {
   }, [view, activeBatchId]);
 
   const navigateGuarded = (target: View) => {
-    if (view === 'editor' && editor.isDirty) {
+    if ((view === 'editor' && editor.isDirty) || (view === 'batchDetail' && batchIsDirty)) {
       setPendingNavigation(target);
       return;
     }
@@ -225,7 +238,12 @@ function AppInner() {
     if (pendingNavigation) {
       const target = pendingNavigation;
       setPendingNavigation(null);
-      editor.closeEditor();
+      if (view === 'editor') {
+        editor.closeEditor();
+      }
+      if (view === 'batchDetail') {
+        setBatchIsDirty(false);
+      }
       setView(target);
     }
   };
@@ -270,8 +288,14 @@ function AppInner() {
   };
 
   const handleViewBatch = (id: string) => {
+    setBatchIsDirty(false);
     setActiveBatchId(id);
     setView('batchDetail');
+  };
+
+  const handleBatchDeleted = () => {
+    setBatchIsDirty(false);
+    setView('batches');
   };
 
   // AC-8: gated on the open recipe being saved (storedId !== null) and clean
@@ -649,13 +673,22 @@ function AppInner() {
       <div className="h-screen overflow-hidden flex bg-slate-950 text-slate-100 font-sans">
         <Sidebar activeView={view} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((c) => !c)} onNavigate={handleNavigate} />
         <MobileNav isOpen={mobileNavOpen} activeView={view} onClose={() => setMobileNavOpen(false)} onNavigate={handleNavigate} />
+        <ConfirmDialog
+          open={pendingNavigation !== null}
+          title="Discard unsaved changes?"
+          message="You have unsaved changes. Leave without saving?"
+          confirmLabel="Discard"
+          onConfirm={handleConfirmDiscard}
+          onCancel={handleCancelDiscard}
+        />
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           <BatchDetail
             batchId={activeBatchId}
             onBack={goToBatches}
-            onDeleted={goToBatches}
+            onDeleted={handleBatchDeleted}
             onRebrewed={handleViewBatch}
             onOpenMobileNav={() => setMobileNavOpen(true)}
+            onDirtyChange={setBatchIsDirty}
           />
         </div>
       </div>
