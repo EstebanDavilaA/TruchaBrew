@@ -14,6 +14,7 @@ const checks = [
   { name: 'packages/calculations', command: 'npx', args: ['tsc', '-p', 'packages/calculations/tsconfig.json', '--noEmit'] },
   { name: '@truchabrew/web', command: 'npm', args: ['run', 'typecheck', '--workspace=@truchabrew/web'] },
   { name: '@truchabrew/api', command: 'npm', args: ['run', 'typecheck', '--workspace=@truchabrew/api'] },
+  { name: 'packages/mcp-server', command: 'npx', args: ['tsc', '-p', 'packages/mcp-server/tsconfig.json', '--noEmit'] },
 ];
 
 let anyFailed = false;

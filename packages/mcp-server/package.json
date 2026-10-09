@@ -1,0 +1,22 @@
+{
+  "name": "@truchabrew/mcp-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "truchabrew-mcp": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run -c ../calculations/vitest.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@truchabrew/shared-types": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "vitest": "^3.2.4"
+  }
+}
