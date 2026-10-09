@@ -190,6 +190,42 @@
       "state": 4,
       "agent": "github-copilot",
       "event": "Milestone 44 ('Leave an editor without silently losing work') completed in full via Option D. Archived M44_P1_unsaved_editor_guard.md, M44_P2_unsaved_modal_guard.md, and M44-WAVE-unsaved-guard.md to .codestream/archive/specs/. Updated ROADMAP.md. All five Layer 1 quality gates verified green. Active wave and active milestone cleared."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "Opened /wave M45 ('Update recipes and equipment profiles through chat'). Drafted wave manifest .codestream/active/M45-WAVE-chat-updates.md. Staging P1 (recipe chat tools via local stdio MCP) and P2 (equipment profile chat tools, client configuration for Claude Code / Gemini CLI, and privacy disclosure update). Spawning parallel planners to draft specs and determine file ownership."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 2,
+      "agent": "github-copilot",
+      "event": "Completed M45 wave planning. P1 covers recipe inspection/updates and stdio MCP server foundation; P2 covers equipment profile inspection/updates, client setup snippets for Claude Code / Gemini CLI, and privacy boundary documentation. Applied roadmap correction to ROADMAP.md. Manifest updated to AWAITING SPEC_APPROVED with Stage 1 (P1) and Stage 2 (P2). Awaiting WAVE_APPROVED / SPEC_APPROVED; no implementation authorized."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Received WAVE_APPROVED for M45. Approved both listed specs, recorded approval in the wave manifest and state, and started stage 1 with P1."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Stage 1 (P1 recipe chat tools) execution complete (commit 8def94a). Merged into wave branch. Verified quality gates: test (exit 0, 46 mcp-server tests + all workspaces pass), typecheck (exit 0, 5/5 workspaces pass), build (exit 0), lint (exit 0, 18 baseline warnings), smoke (exit 0). Starting Stage 2: P2 lane."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Stage 2 (P2 equipment profile chat tools, client setup, and privacy docs) execution complete (commit c79858c). Merged into wave branch. Merged checks verified: test (exit 0, 83 mcp-server tests, 3,015 repo tests pass), typecheck (exit 0, 5/5 workspaces pass), build (exit 0), lint (exit 0, 18 baseline warnings), smoke (exit 0). Wave build complete across all lanes; awaiting /steer."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 4,
+      "agent": "github-copilot",
+      "event": "State 4 /steer for M45 wave ('chat-updates'): all five Layer 1 quality gates verified green (test 3,015 passed / 2 skipped across 147 files, exit 0; typecheck 5/5 clean, exit 0; build clean, exit 0; lint 0 errors, 18 baseline warnings, exit 0; smoke clean, exit 0). Independent parallel reviews completed: P1 reviewer verified 6/6 outcomes; P2 reviewer verified 7/7 outcomes; Integration reviewer verified MCP server and client consistency across both domains with 0 blockers. Milestone 45 ('Update recipes and equipment profiles through chat') completed in full via Option D. Archived M45_P1_recipe_chat_tools.md, M45_P2_equipment_chat_tools.md, and M45-WAVE-chat-updates.md to .codestream/archive/specs/. Updated ROADMAP.md. Active wave and active milestone cleared."
     }
   ],
   "artifacts": {
