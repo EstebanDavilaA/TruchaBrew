@@ -1,8 +1,8 @@
 {
   "framework": "CODESTREAM-lite",
   "version": "0.1.0",
-  "current_state": 3,
-  "active_milestone": 44,
+  "current_state": 4,
+  "active_milestone": null,
   "active_phase": null,
   "state_history": [
     {
@@ -142,6 +142,54 @@
       "state": 3,
       "agent": "github-copilot",
       "event": "Received WAVE_APPROVED for M44. Approved both listed specs, recorded approval in the wave manifest and state, and started stage 1 with P1 and P2 in parallel."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Recovered P1 lane report from its completed execution session: commit a00b8f2 on wave/M44-unsaved-guard-P1, based on 4caf8b3. Lane reported targeted tests exit 0 (153 passed), full tests exit 0 (2,922 passed, 2 skipped), typecheck/build/lint/smoke exit 0 after fixing its initial failures. Verified owned-file scope and clean lane tree; fast-forwarded P1 into the wave. Post-merge App/BatchDetail integration tests exited 0 (153 passed). Lane reported 15 dependency advisories, not triaged."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Recovered P2 lane report from its completed execution session: commit 5800efb on wave/M44-unsaved-guard-P2, based on 4caf8b3. Lane reported focused tests exit 0 (103 passed), typecheck/build/lint/smoke exit 0, and full tests exit 1 due to controlTargetSize.test.ts source-line allowlist drift. Verified owned-file scope and clean lane tree; merged P2 into the wave without conflicts at 0bb2273. Both lane commits are verified ancestors of the wave branch; master was not merged or pushed."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Merged-wave validation: targeted page/form tests plus controlTargetSize exited 1 (280 passed, 1 failed); full npm test exited 1 with the same guardrail failure (web: 1,621 passed, 1 failed; calculations: 696 passed, 2 skipped). Root packaging tests were not reached. Repository typecheck/build/lint/smoke each exited 0. Logged BUG-044 and corrected the stale manifest to merged lanes with integration blocked. Cause of missed handoff was runner execution, not incomplete lanes: runner did not collect reports, integrate, or update coordination records; the initial steer preflight relied on stale labels. No independent review or checkpoint yet."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "User approved the session-stored framework handoff spec with SPEC_APPROVED and requested a template PR. Updated execute/wave/onboard/steer guidance in the project and matching codestream-lite template source: explicit completion reports, durable lane references, interrupted-runner recovery, and readiness preflight using reports and Git ancestry. Documentation diff checks and byte parity passed; application checks are not applicable to this documentation-only framework slice. M44 remains the active wave, blocked on BUG-044. Template publication is tracked separately; no framework independent review has run."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "Published only the four generic handoff skill changes to the codestream-lite template on fix/wave-completion-handoff at a544ba2; opened EstebanDavilaA/codestream-lite#1 (https://github.com/EstebanDavilaA/codestream-lite/pull/1). Template checkout is clean and synchronized with its upstream branch. Template main was not merged. Project framework and recovery records remain uncommitted; no product code or data was upstreamed. Framework slice implementation is finished and awaits independent /steer; M44 still awaits its diagnosed guardrail integration fix before wave review."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 3,
+      "agent": "github-copilot",
+      "event": "/steer readiness preflight for M44 wave ('unsaved-guard'): verified lane commits a00b8f2 (P1) and 5800efb (P2) are merged into wave/M44-unsaved-guard at 0bb2273. Targeted checks passed: P1 tests exit 0 (153 passed), P2 tests exit 0 (103 passed), typecheck exit 0, build exit 0, lint exit 0 (18 baseline warnings), smoke exit 0. Full npm test failed with exit 1 due to web workspace test/controlTargetSize.test.ts failure (reproducing BUG-044 source-line allowlist drift from P2 edits). Per wave readiness preflight and Rule 4, failed merged checks block wave review. Routed blocker to /diagnose; halted without launching reviewers or presenting a checkpoint."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 4,
+      "agent": "github-copilot",
+      "event": "State 4 /steer for M44 wave ('unsaved-guard'): resolved BUG-044 test allowlist line drift in apps/web/test/controlTargetSize.test.ts; all five Layer 1 quality gates verified green (test 2,932 passed / 2 skipped across 146 files, exit 0; typecheck 4/4 clean, exit 0; build clean, exit 0; lint 0 errors, 18 baseline warnings, exit 0; smoke clean, exit 0). Independent parallel reviews completed: P1 reviewer verified 3/3 outcomes; P2 reviewer verified 3/3 outcomes; Integration reviewer verified dialog accessibility and focus safety, reporting non-blocking findings (copy divergence between P1 and P2, uncommitted test allowlist update, and planned scope boundary where P2 guards only form Back/Cancel exits). Presenting Milestone 44 steering checkpoint."
+    },
+    {
+      "date": "2026-10-09",
+      "state": 4,
+      "agent": "github-copilot",
+      "event": "Milestone 44 ('Leave an editor without silently losing work') completed in full via Option D. Archived M44_P1_unsaved_editor_guard.md, M44_P2_unsaved_modal_guard.md, and M44-WAVE-unsaved-guard.md to .codestream/archive/specs/. Updated ROADMAP.md. All five Layer 1 quality gates verified green. Active wave and active milestone cleared."
     }
   ],
   "artifacts": {
@@ -149,7 +197,7 @@
     "discovery": ".codestream/DISCOVERY.md",
     "roadmap": ".codestream/ROADMAP.md",
     "active_spec": null,
-    "active_wave": ".codestream/active/M44-WAVE-unsaved-guard.md",
+    "active_wave": null,
     "bugs": ".codestream/BUGS.md",
     "features": ".codestream/FEATURES.md"
   }
