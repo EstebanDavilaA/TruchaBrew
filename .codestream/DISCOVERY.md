@@ -58,6 +58,22 @@ Observable outcomes, not feelings:
   during a brew, so there is nothing to reconcile.
 - **A community recipe library or social features.** Recipes are the brewer's own.
 
+## Privacy boundary & external AI assistants
+
+TruchaBrew remains 100% self-hosted, private, and local-first: no accounts, no cloud
+sync, no telemetry, and no data uploaded anywhere by the core application.
+
+When a brewer chooses to enable conversational assistant integrations (via the local
+stdio Model Context Protocol server for tools like Claude Code or Gemini CLI), an explicit
+data boundary is crossed:
+- Data requested by the assistant during a chat (such as recipe vitals, ingredients,
+  notes, or equipment profile parameters) is retrieved from the local SQLite database and
+  provided to the assistant CLI process.
+- The assistant transmits this requested data over the internet to the external AI model
+  provider (e.g., Anthropic or Google) according to that provider's privacy policies.
+- Assistant integration is strictly opt-in and optional; brewing workflows and data
+  remain entirely local if external assistants are not configured.
+
 ## Open questions
 
 - Whether `Recipe.folder` / `Recipe.tags` should be required rather than optional —

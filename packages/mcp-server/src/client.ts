@@ -1,4 +1,4 @@
-import type { RecipeSummary, RecipeWriteInput, StoredRecipe } from '@truchabrew/shared-types';
+import type { RecipeSummary, RecipeWriteInput, StoredRecipe, EquipmentProfile, EquipmentUpdateInput } from '@truchabrew/shared-types';
 
 export class TruchaBrewApiError extends Error {
   readonly status: number;
@@ -126,6 +126,40 @@ export class TruchaBrewClient {
     return this.request<StoredRecipe>(`/api/recipes/${encodeURIComponent(id.trim())}`, {
       method: 'PUT',
       body: JSON.stringify(recipe),
+    });
+  }
+
+  async listEquipmentProfiles(): Promise<EquipmentProfile[]> {
+    return this.request<EquipmentProfile[]>('/api/equipment-profiles');
+  }
+
+  async getEquipmentProfile(idOrName: string): Promise<EquipmentProfile> {
+    if (!idOrName || typeof idOrName !== 'string' || idOrName.trim() === '') {
+      throw new Error('Equipment profile id or name must be a non-empty string');
+    }
+    const trimmed = idOrName.trim();
+    const profiles = await this.listEquipmentProfiles();
+    const match =
+      profiles.find((p) => p.id === trimmed) ??
+      profiles.find((p) => p.name.toLowerCase() === trimmed.toLowerCase()) ??
+      profiles.find((p) => p.name.toLowerCase().includes(trimmed.toLowerCase()));
+    if (!match) {
+      throw new TruchaBrewApiError(404, 'NOT_FOUND', `Equipment profile not found: "${trimmed}"`);
+    }
+    return match;
+  }
+
+  async updateEquipmentProfile(id: string, profile: EquipmentUpdateInput): Promise<EquipmentProfile> {
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      throw new Error('Equipment profile id must be a non-empty string');
+    }
+    const cleanProfile = { ...profile };
+    delete (cleanProfile as Record<string, unknown>).id;
+    delete (cleanProfile as Record<string, unknown>).derivedFromEquipmentId;
+
+    return this.request<EquipmentProfile>(`/api/equipment-profiles/${encodeURIComponent(id.trim())}`, {
+      method: 'PUT',
+      body: JSON.stringify(cleanProfile),
     });
   }
 }
